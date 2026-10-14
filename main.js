@@ -570,7 +570,9 @@ let distance = 0;
 let lane = 1;
 let jumpVelocity = 0;
 let jumping = false;
-const speed = 0.25;\nlet score = 0;\nlet health = 3;
+const speed = 0.25;
+let score = 0;
+let health = 3;
 let lastTime = 0;
 
 function start() {
@@ -706,7 +708,12 @@ if (soldierMixer) {
       }
     }
 
-    for (const item of scenery) {\n      item.position.z += speed * dt;\n      if (item.position.z > 17) item.position.z -= 152;\n    }\n\n    for (const rock of rocks) {
+    for (const item of scenery) {
+      item.position.z += speed * dt;
+      if (item.position.z > 17) item.position.z -= 152;
+    }
+
+    for (const rock of rocks) {
       rock.position.z += speed * dt;
 
       if (rock.position.z > 15) {
@@ -719,7 +726,8 @@ if (soldierMixer) {
       obstacle.mesh.position.z += speed * dt;
 
       if (!obstacle.passed && obstacle.mesh.position.z > 3.1) {
-        obstacle.passed = true;\n        score += 10;
+        obstacle.passed = true;
+        score += 10;
 
         if (
           Math.abs(obstacle.mesh.position.x - player.position.x) < 1.15 &&
