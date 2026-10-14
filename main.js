@@ -24,24 +24,26 @@ const renderer = new THREE.WebGLRenderer({
   powerPreference: 'high-performance'
 });
 
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+// Limita i pixel elaborati sui display Android ad alta densità.
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.15));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.12;
+renderer.toneMappingExposure = 1.2;
+renderer.shadowMap.autoUpdate = true;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87958e);
-scene.fog = new THREE.FogExp2(0x87958e, 0.0115);
+scene.background = new THREE.Color(0x9dbbd1);
+scene.fog = new THREE.FogExp2(0x9dbbd1, 0.0055);
 
 const camera = new THREE.PerspectiveCamera(
   62, innerWidth / innerHeight, 0.1, 180
 );
 
-camera.position.set(0, 4.25, 9.6);
-camera.lookAt(0, 1.5, -3);
+camera.position.set(0, 3.15, 7.4);
+camera.lookAt(0, 1.4, -5);
 
 // Illuminazione
 scene.add(
@@ -73,9 +75,9 @@ function mat(color, roughness = 0.9, extra = {}) {
 }
 
 const dirtMat = mat(0x514634);
-const roadMat = mat(0x393a34);
-const vergeMat = mat(0x716954);
-const stripeMat = mat(0xbdb49a);
+const roadMat = mat(0x53504a);
+const vergeMat = mat(0x897b61);
+const stripeMat = mat(0xc9c2aa);
 const barkMat = mat(0x403024);
 const darkMat = mat(0x282c28);
 const uniformMat = mat(0x555d3d);
@@ -143,9 +145,72 @@ function createDirtTexture() {
   return texture;
 }
 
+// Texture procedurali leggere: dettagli visivi senza download esterni
+function createSurfaceTexture(kind) {
+  const c = document.createElement('canvas');
+  c.width = c.height = 512;
+  const ctx = c.getContext('2d');
+  const road = kind === 'road';
+  ctx.fillStyle = road ? '#55524d' : '#63533e';
+  ctx.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 17000; i++) {
+    const x = Math.random() * 512, y = Math.random() * 512;
+    const v = Math.floor(35 + Math.random() * 110);
+    ctx.fillStyle = road
+      ? `rgba(${v},${v},${v},${Math.random() * .18})`
+      : `rgba(${v},${Math.floor(v*.82)},${Math.floor(v*.6)},${Math.random()*.2})`;
+    ctx.fillRect(x, y, Math.random()*4+1, Math.random()*4+1);
+  }
+  if (road) {
+    for (let i=0;i<70;i++) {
+      ctx.strokeStyle = `rgba(24,22,20,${Math.random()*.13})`;
+      ctx.lineWidth = Math.random()*2+.3;
+      ctx.beginPath();
+      const x=Math.random()*512, y=Math.random()*512;
+      ctx.moveTo(x,y); ctx.lineTo(x+Math.random()*12-6,y+Math.random()*100);
+      ctx.stroke();
+    }
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping;
+  t.repeat.set(2, 30);
+  t.colorSpace=THREE.SRGBColorSpace;
+  t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+  return t;
+}
 const dirtTexture = createDirtTexture();
 dirtMat.map = dirtTexture;
-roadMat.map = dirtTexture;
+roadMat.map = createSurfaceTexture('road');
+// Preferisce mappe PBR locali quando presenti; mantiene le texture generate come fallback.
+const pbrLoader = new THREE.TextureLoader();
+function installPBR(material, basePath, repeatX, repeatY) {
+  const configure = (texture, color = false) => {
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(repeatX, repeatY);
+    texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    if (color) texture.colorSpace = THREE.SRGBColorSpace;
+    return texture;
+  };
+  pbrLoader.load(basePath + '_color.jpg', tex => {
+    material.map = configure(tex, true);
+    material.color.set(0xffffff);
+    material.needsUpdate = true;
+  }, undefined, () => {});
+  pbrLoader.load(basePath + '_normal.jpg', tex => {
+    material.normalMap = configure(tex);
+    material.normalScale = new THREE.Vector2(0.6, 0.6);
+    material.needsUpdate = true;
+  }, undefined, () => {});
+  pbrLoader.load(basePath + '_roughness.jpg', tex => {
+    material.roughnessMap = configure(tex);
+    material.roughness = 1;
+    material.needsUpdate = true;
+  }, undefined, () => {});
+}
+installPBR(roadMat, './assets/textures/road', 2, 30);
+installPBR(dirtMat, './assets/textures/forest', 2, 25);
+
+vergeMat.map = createSurfaceTexture('dirt');
 
 // Funzioni per creare oggetti 3D
 function addBox(parent, size, material, pos, cast = true) {
@@ -265,21 +330,34 @@ function createTree(x, z, scale = 1) {
     barkMat, [0, 1.5, 0], 8
   );
 
-  for (let i = 0; i < 4; i++) {
-    const crown = new THREE.Mesh(
-      new THREE.ConeGeometry(1.2 - i * 0.17, 2.5, 7),
-      leafMats[(Math.random() * leafMats.length) | 0]
-    );
-
-    crown.position.set(
-      (Math.random() - 0.5) * 0.25,
-      2.2 + i * 0.72,
-      (Math.random() - 0.5) * 0.2
-    );
-
-    crown.rotation.y = Math.random() * 2;
-    crown.castShadow = true;
-    group.add(crown);
+  // Rami asimmetrici con aghi a ciuffi: silhouette meno geometrica
+  // rispetto alle precedenti quattro chiome coniche.
+  const twigMat = barkMat;
+  for (let tier = 0; tier < 5; tier++) {
+    const h = 1.15 + tier * 0.39;
+    const radius = 1.36 * (1 - tier / 9);
+    const branches = tier < 2 ? 5 : 4;
+    for (let j = 0; j < branches; j++) {
+      const angle = (j / branches) * Math.PI * 2 + tier * 1.17;
+      const reach = radius * (0.77 + Math.random() * 0.3);
+      const branch = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.018, 0.052, reach, 4),
+        twigMat
+      );
+      branch.position.set(Math.cos(angle) * reach * 0.48, h + 0.05, Math.sin(angle) * reach * 0.48);
+      branch.rotation.z = Math.PI / 2 - Math.atan2(0.22, reach);
+      branch.rotation.y = -angle;
+      group.add(branch);
+      const needle = new THREE.Mesh(
+        new THREE.ConeGeometry(0.23 + radius * 0.13, reach * 1.03, 6),
+        leafMats[(Math.random() * leafMats.length) | 0]
+      );
+      needle.position.set(Math.cos(angle) * reach * 0.65, h + 0.13, Math.sin(angle) * reach * 0.65);
+      needle.rotation.z = Math.cos(angle) * 0.65;
+      needle.rotation.x = -Math.sin(angle) * 0.65;
+      needle.castShadow = tier % 2 === 0;
+      group.add(needle);
+    }
   }
 
   scene.add(group);
@@ -327,8 +405,130 @@ function createRock(x, z, scale = 1) {
   rocks.push(rock);
 }
 
+// Scenario militare ispirato a un percorso forestale storico
+const scenery = [];
+function sandbagWall(x, z, width = 2.4) {
+  const group = new THREE.Group();
+  const sack = mat(0x99856a);
+  for (let row = 0; row < 4; row++) {
+    for (let i = 0; i < 6; i++) {
+      const mesh = addSphere(group, 0.24, sack,
+        [(i - 2.5) * width / 6 + (row % 2) * 0.12, 0.2 + row * 0.27, 0],
+        [1.3, 0.68, 0.85]);
+      mesh.rotation.z = (i % 2 ? 1 : -1) * 0.05;
+    }
+  }
+  group.position.set(x, 0, z);
+  scene.add(group);
+  scenery.push(group);
+}
+function watchTower(x, z) {
+  const g = new THREE.Group();
+  const timber = mat(0x54422e);
+  for (const dx of [-0.7, 0.7]) for (const dz of [-0.7, 0.7]) {
+    addBox(g, [0.18, 5.6, 0.18], timber, [dx, 2.8, dz]);
+  }
+  addBox(g, [2.2, 0.25, 2.2], timber, [0, 5.25, 0]);
+  addBox(g, [2.5, 0.24, 2.5], timber, [0, 6.7, 0]);
+  // Ringhiere e parapetti per dare alla torre una silhouette credibile.
+  for (const side of [-1, 1]) {
+    addBox(g, [2.35, 0.12, 0.12], timber, [0, 6.15, side * 1.12]);
+    addBox(g, [0.12, 0.12, 2.35], timber, [side * 1.12, 6.15, 0]);
+    for (const offset of [-0.9, 0, 0.9]) {
+      addBox(g, [0.1, 0.95, 0.1], timber, [offset, 5.7, side * 1.12]);
+      addBox(g, [0.1, 0.95, 0.1], timber, [side * 1.12, 5.7, offset]);
+    }
+  }
+  // Scala in legno appoggiata al lato della torre.
+  for (const side of [-0.38, 0.38]) {
+    const rail = addBox(g, [0.1, 5.8, 0.1], timber, [side, 2.8, 1.03]);
+    rail.rotation.x = -0.15;
+  }
+  for (let step = 0; step < 13; step++) {
+    addBox(g, [0.88, 0.09, 0.12], timber, [0, 0.42 + step * 0.4, 1.45 - step * 0.045]);
+  }
+  // Copertura a falde con una piccola sporgenza.
+  const roofMat = mat(0x3f3a32, 1);
+  for (const side of [-1, 1]) {
+    const roof = addBox(g, [2.9, 0.12, 1.75], roofMat, [0, 7.2, side * 0.72]);
+    roof.rotation.x = side * 0.38;
+  }
+  for (const y of [1.4, 3.0, 4.6]) {
+    for (const side of [-1, 1]) {
+      const beam = addBox(g, [0.12, 1.8, 0.12], timber, [side * 0.7, y, 0]);
+      beam.rotation.z = side * 0.65;
+    }
+  }
+  g.position.set(x, 0, z);
+  scene.add(g);
+  scenery.push(g);
+}
+function barricade(x, z) {
+  const g = new THREE.Group();
+  const wood = mat(0x54412d);
+  for (const angle of [-0.72, 0.72]) {
+    const beam = addBox(g, [0.18, 2.5, 0.18], wood, [0, 1.05, 0]);
+    beam.rotation.z = angle;
+  }
+  addBox(g, [2.2, 0.16, 0.16], wood, [0, 1.1, 0]);
+  g.position.set(x, 0, z);
+  scene.add(g);
+  scenery.push(g);
+}
+for (let z = -28; z > -150; z -= 38) {
+  sandbagWall(-5.3, z);
+  sandbagWall(5.3, z - 12);
+  watchTower(9.2, z - 18);
+  barricade(-5.1, z - 7);
+}
+// Strati di colline lontane per profondità atmosferica
+const mountainMat = mat(0x6f806d, 1, {flatShading: true});
+for (let i=0;i<28;i++) {
+  const mountain = new THREE.Mesh(
+    new THREE.ConeGeometry(12 + Math.random()*13, 18 + Math.random()*16, 7),
+    mountainMat
+  );
+  mountain.position.set((i-14)*15, 5, -125-Math.random()*22);
+  mountain.rotation.y=Math.random()*Math.PI;
+  mountain.receiveShadow=true;
+  scene.add(mountain);
+}
+// Dettagli del sottobosco
+// Vegetazione istanziata: una draw call per 500 fili anziché 500 mesh.
+const grassCount = 300;
+const grassMaterial = new THREE.MeshStandardMaterial({
+  color: 0x647552, side: THREE.DoubleSide, roughness: 1
+});
+const grassGeometry = new THREE.ConeGeometry(0.12, 0.7, 3);
+const grass = new THREE.InstancedMesh(grassGeometry, grassMaterial, grassCount);
+const grassTransform = new THREE.Object3D();
+const grassPositions = [];
+let grassUpdateFrame = 0;
+for (let i = 0; i < grassCount; i++) {
+  const side = Math.random() < 0.5 ? -1 : 1;
+  grassPositions.push({
+    x: side * (4.7 + Math.random() * 17),
+    z: 10 - Math.random() * 150,
+    size: 0.45 + Math.random() * 1.25,
+    angle: Math.random() * Math.PI * 2
+  });
+}
+function updateGrass() {
+  for (let i = 0; i < grassCount; i++) {
+    const g = grassPositions[i];
+    grassTransform.position.set(g.x, 0.13, g.z);
+    grassTransform.rotation.set(0, g.angle, 0);
+    grassTransform.scale.setScalar(g.size);
+    grassTransform.updateMatrix();
+    grass.setMatrixAt(i, grassTransform.matrix);
+  }
+  grass.instanceMatrix.needsUpdate = true;
+}
+updateGrass();
+grass.frustumCulled = false;
+scene.add(grass);
 // Genera il paesaggio
-for (let z = 15; z > -145; z -= 5.5) {
+for (let z = 15; z > -145; z -= 9) {
   createTree(
     -6 - Math.random() * 5,
     z,
@@ -380,6 +580,7 @@ const soldierClock = new THREE.Clock();
 let soldierMixer = null;
 let soldierRun = null;
 let soldierIdle = null;
+let soldierJump = null;
 let soldierActiveAction = null;
 
 const loader = new GLTFLoader();
@@ -392,23 +593,36 @@ loader.load(
     soldier.rotation.y = Math.PI;
 
     soldier.traverse((object) => {
-      if (object.isMesh) {
-        object.castShadow = true;
-        object.receiveShadow = true;
+      if (!object.isMesh) return;
+      object.castShadow = true;
+      object.receiveShadow = true;
+      // Mantieni i materiali PBR originali del GLB, senza appiattirli.
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      for (const material of materials) {
+        if (!material) continue;
+        if (material.isMeshStandardMaterial || material.isMeshPhysicalMaterial) {
+          material.envMapIntensity = 0.8;
+          material.needsUpdate = true;
+        }
+      }
+      if (object.isSkinnedMesh) {
+        object.frustumCulled = false;
       }
     });
 
     player.add(soldier);
 
-    // Adatta il modello a un'altezza di circa 1,9 metri
+    // Dimensioni e centratura: calcolo prima dello scaling, poi verifica.
     soldier.updateMatrixWorld(true);
-    const bounds = new THREE.Box3().setFromObject(soldier);
-    const height = bounds.max.y - bounds.min.y;
-
-    if (height > 0) {
-      const scale = 1.9 / height;
-      soldier.scale.setScalar(scale);
-      soldier.position.y = -bounds.min.y * scale;
+    const originalBounds = new THREE.Box3().setFromObject(soldier);
+    const originalHeight = originalBounds.max.y - originalBounds.min.y;
+    if (originalHeight > 0.001) {
+      soldier.scale.setScalar(1.9 / originalHeight);
+      soldier.updateMatrixWorld(true);
+      const scaledBounds = new THREE.Box3().setFromObject(soldier);
+      soldier.position.y -= scaledBounds.min.y;
+      soldier.position.x -= (scaledBounds.min.x + scaledBounds.max.x) / 2;
+      soldier.position.z -= (scaledBounds.min.z + scaledBounds.max.z) / 2;
     }
 
     soldierMixer = new THREE.AnimationMixer(soldier);
@@ -420,9 +634,18 @@ loader.load(
     const idleClip = clips.find((clip) =>
       /idle|t-pose|tpose/i.test(clip.name)
     );
+    const jumpClip = clips.find((clip) =>
+      /jump|vault|hop/i.test(clip.name)
+    );
 
     if (runClip) {
       soldierRun = soldierMixer.clipAction(runClip);
+    }
+
+    if (jumpClip) {
+      soldierJump = soldierMixer.clipAction(jumpClip);
+      soldierJump.setLoop(THREE.LoopOnce, 1);
+      soldierJump.clampWhenFinished = true;
     }
 
     if (idleClip) {
@@ -446,6 +669,27 @@ loader.load(
 
 // Il modello Soldier.glb sostituisce il vecchio soldato costruito con cubi.
 
+// Materiale tela dei sacchi con dettaglio superficiale procedurale.
+// Un futuro set PBR locale potrà sostituirlo senza cambiare la geometria.
+const sackCanvas = document.createElement('canvas');
+sackCanvas.width = sackCanvas.height = 128;
+const sackCtx = sackCanvas.getContext('2d');
+sackCtx.fillStyle = '#a99a77';
+sackCtx.fillRect(0, 0, 128, 128);
+for (let i = 0; i < 128; i += 4) {
+  sackCtx.strokeStyle = i % 8 === 0 ? '#877b60' : '#b9ab87';
+  sackCtx.beginPath();
+  sackCtx.moveTo(i, 0);
+  sackCtx.lineTo(i, 128);
+  sackCtx.moveTo(0, i);
+  sackCtx.lineTo(128, i);
+  sackCtx.stroke();
+}
+const sackTexture = new THREE.CanvasTexture(sackCanvas);
+sackTexture.colorSpace = THREE.SRGBColorSpace;
+const sackMat = new THREE.MeshStandardMaterial({map: sackTexture, roughness: 1});
+const sackGeometry = new THREE.SphereGeometry(0.27, 12, 8);
+
 // Ostacoli
 const obstacles = [];
 const lanes = [-2.5, 0, 2.5];
@@ -457,17 +701,15 @@ function createObstacle(z) {
 
   if (type < 0.38) {
     // Sacchi di sabbia
-    const sackMat = mat(0x81745a);
-
     for (let row = 0; row < 3; row++) {
       for (let col = 0; col < 3; col++) {
-        const sack = addSphere(
-          group, 0.27, sackMat,
-          [(col - 1) * 0.38, 0.23 + row * 0.28, 0],
-          [1.3, 0.75, 0.9]
-        );
-
+        const sack = new THREE.Mesh(sackGeometry, sackMat);
+        sack.position.set((col - 1) * 0.39 + (row % 2) * 0.06, 0.23 + row * 0.28, 0);
+        sack.scale.set(1.3, 0.75, 0.9);
         sack.rotation.z = (Math.random() - 0.5) * 0.15;
+        sack.castShadow = true;
+        sack.receiveShadow = true;
+        group.add(sack);
       }
     }
   } else if (type < 0.7) {
@@ -518,6 +760,8 @@ let lane = 1;
 let jumpVelocity = 0;
 let jumping = false;
 const speed = 0.25;
+let score = 0;
+let health = 3;
 let lastTime = 0;
 
 function start() {
@@ -577,7 +821,7 @@ function animate(time) {
 
   if (running) {
     distance += speed * dt;
-    stats.textContent = `Distanza: ${Math.floor(distance * 2)} m`;
+    stats.textContent = `❤️ ${'♥'.repeat(health)}  |  PUNTI: ${score}  |  TRAGUARDO: ${Math.max(0, 1000 - Math.floor(distance * 2))} m`;
 
     // Movimento laterale
     player.position.x = THREE.MathUtils.damp(
@@ -609,10 +853,10 @@ function animate(time) {
     // Animazione del soldato 3D
 if (soldierMixer) {
   const desiredAction =
-    jumping && soldierRun
-      ? soldierRun
+    jumping && soldierJump
+      ? soldierJump
       : running
-        ? soldierRun
+        ? soldierRun || soldierIdle
         : soldierIdle || soldierRun;
 
   if (desiredAction && desiredAction !== soldierActiveAction) {
@@ -645,12 +889,24 @@ if (soldierMixer) {
       }
     }
 
+    for (const tuft of grassPositions) {
+      tuft.z += speed * dt;
+      if (tuft.z > 15) tuft.z -= 155;
+    }
+    // Aggiorna le matrici GPU a frame alterni per ridurre il carico CPU.
+    if ((grassUpdateFrame++ & 1) === 0) updateGrass();
+
     for (const bush of bushes) {
       bush.position.z += speed * dt;
 
       if (bush.position.z > 15) {
         bush.position.z -= 160;
       }
+    }
+
+    for (const item of scenery) {
+      item.position.z += speed * dt;
+      if (item.position.z > 17) item.position.z -= 152;
     }
 
     for (const rock of rocks) {
@@ -667,6 +923,7 @@ if (soldierMixer) {
 
       if (!obstacle.passed && obstacle.mesh.position.z > 3.1) {
         obstacle.passed = true;
+        score += 10;
 
         if (
           Math.abs(obstacle.mesh.position.x - player.position.x) < 1.15 &&
@@ -721,6 +978,6 @@ window.addEventListener('resize', () => {
 
   renderer.setSize(innerWidth, innerHeight);
   renderer.setPixelRatio(
-    Math.min(window.devicePixelRatio || 1, 1.5)
+    Math.min(window.devicePixelRatio || 1, 1.15)
   );
 });
