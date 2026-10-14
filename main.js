@@ -74,11 +74,44 @@ function mat(color, roughness = 0.9, extra = {}) {
   });
 }
 
+// Texture condivisa di legno stagionato per torrette, casse e barriere.
+// Generata una sola volta: nessun download o geometria aggiuntiva.
+function createWeatheredWoodTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256; canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#80674c'; ctx.fillRect(0, 0, 256, 512);
+  let seed = 98731;
+  const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+  for (let i = 0; i < 460; i++) {
+    const x = rnd() * 256, y = rnd() * 512;
+    ctx.strokeStyle = rnd() > 0.5 ? 'rgba(36,24,18,0.19)' : 'rgba(205,172,122,0.20)';
+    ctx.lineWidth = 0.5 + rnd() * 2.6;
+    ctx.beginPath(); ctx.moveTo(x, y);
+    ctx.bezierCurveTo(x + rnd()*9-4, y+35, x+rnd()*13-6, y+90, x+rnd()*12-6, y+105+rnd()*160);
+    ctx.stroke();
+  }
+  for (let i = 0; i < 22; i++) {
+    const x = rnd()*256, y = rnd()*512;
+    ctx.strokeStyle = 'rgba(43,30,23,0.30)'; ctx.lineWidth = 1.3;
+    ctx.beginPath(); ctx.ellipse(x,y,2+rnd()*5,8+rnd()*18,rnd()*0.25,0,Math.PI*2);ctx.stroke();
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+  return texture;
+}
+const woodTexture = createWeatheredWoodTexture();
+function weatheredWood(color = 0xffffff) {
+  return new THREE.MeshStandardMaterial({map: woodTexture, color, roughness: 0.98});
+}
+
 const dirtMat = mat(0x514634);
 const roadMat = mat(0x53504a);
 const vergeMat = mat(0x897b61);
 const stripeMat = mat(0xc9c2aa);
-const barkMat = mat(0x403024);
+const barkMat = weatheredWood(0x8e806c);
 const darkMat = mat(0x282c28);
 const uniformMat = mat(0x555d3d);
 const uniformDarkMat = mat(0x414833);
@@ -508,7 +541,7 @@ function sandbagWall(x, z, width = 2.4) {
 }
 function watchTower(x, z) {
   const g = new THREE.Group();
-  const timber = mat(0x54422e);
+  const timber = weatheredWood(0xb3a18a);
   for (const dx of [-0.7, 0.7]) for (const dz of [-0.7, 0.7]) {
     addBox(g, [0.18, 5.6, 0.18], timber, [dx, 2.8, dz]);
   }
@@ -549,7 +582,7 @@ function watchTower(x, z) {
 }
 function barricade(x, z) {
   const g = new THREE.Group();
-  const wood = mat(0x54412d);
+  const wood = weatheredWood(0xa7977e);
   for (const angle of [-0.72, 0.72]) {
     const beam = addBox(g, [0.18, 2.5, 0.18], wood, [0, 1.05, 0]);
     beam.rotation.z = angle;
@@ -568,7 +601,7 @@ for (let z = -28; z > -150; z -= 38) {
 // Traguardo 3D: portale militare con striscione rosso e sacchi laterali.
 // Compare negli ultimi 200 metri, senza entrare nel riciclo degli ostacoli.
 const finishGate = new THREE.Group();
-const finishTimber = mat(0x443528);
+const finishTimber = weatheredWood(0x96816c);
 const finishRed = mat(0x7e2928, 0.95, {side: THREE.DoubleSide});
 for (const side of [-1, 1]) {
   const x = side * 4.25;
@@ -844,8 +877,8 @@ const obstacles = [];
 const lanes = [-2.5, 0, 2.5];
 
 // Casse militari in legno con assi e rinforzi: materiali condivisi.
-const crateWood = mat(0x57402d);
-const crateTrim = mat(0x382b21);
+const crateWood = weatheredWood(0xc5a98a);
+const crateTrim = weatheredWood(0x786450);
 function createSupplyCrate(parent, x, y, z, size = 1) {
   const g = new THREE.Group();
   g.position.set(x, y, z);
