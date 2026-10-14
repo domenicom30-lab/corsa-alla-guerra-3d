@@ -1788,6 +1788,35 @@ loader.load(
     const guard = createFinishOfficer();
     guard.rotation.y = Math.PI;
     finishGuard.add(guard);
+    // Prefer a textured, human-proportioned CC0 officer stand-in with a
+    // peaked cap. This navy-uniform model is NOT a historical WWII officer.
+    // Keep the existing procedural figure if the asset is missing.
+    loader.load('./models/characters/officer-standing.glb', (officerGltf) => {
+      const detailedOfficer = officerGltf.scene;
+      detailedOfficer.updateMatrixWorld(true);
+      const bounds = new THREE.Box3().setFromObject(detailedOfficer);
+      const size = new THREE.Vector3();
+      bounds.getSize(size);
+      if (!Number.isFinite(size.y) || size.y < 0.1) return;
+      const scale = 2.25 / size.y;
+      detailedOfficer.scale.setScalar(scale);
+      detailedOfficer.position.y = -bounds.min.y * scale;
+      detailedOfficer.position.x = -(bounds.min.x + bounds.max.x) * scale * 0.5;
+      detailedOfficer.position.z = -(bounds.min.z + bounds.max.z) * scale * 0.5;
+      detailedOfficer.rotation.y = Math.PI;
+      detailedOfficer.traverse((part) => {
+        if (!part.isMesh) return;
+        part.castShadow = true;
+        part.receiveShadow = true;
+      });
+      finishGuard.remove(guard);
+      finishGuard.add(detailedOfficer);
+      window.corsaOfficerAsset = 'CC0 textured pilot stand-in';
+      console.info('[Corsa Character] detailed officer loaded');
+    }, undefined, (error) => {
+      window.corsaOfficerAsset = 'procedural fallback';
+      console.warn('[Corsa Character] textured officer unavailable', error);
+    });
     finishGuardMixer = null;
 
     soldierMixer = new THREE.AnimationMixer(soldier);
