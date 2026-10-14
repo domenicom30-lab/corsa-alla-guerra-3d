@@ -192,6 +192,7 @@ function installPBR(material, basePath, repeatX, repeatY) {
   };
   pbrLoader.load(basePath + '_color.jpg', tex => {
     material.map = configure(tex, true);
+    material.color.set(0xffffff);
     material.needsUpdate = true;
   }, undefined, () => {});
   pbrLoader.load(basePath + '_normal.jpg', tex => {
