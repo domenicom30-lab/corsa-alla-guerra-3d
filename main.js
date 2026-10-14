@@ -811,6 +811,8 @@ loader.load(
 
     // Il GLB guarda gia verso -Z: non ruotarlo verso la telecamera.
     soldier.rotation.y = 0;
+    // Preserve a stable base transform even if animation clips include root motion.
+    soldier.userData.groundAnchorY = 0;
 
     soldier.traverse((object) => {
       if (!object.isMesh) return;
@@ -850,6 +852,7 @@ loader.load(
       soldier.updateMatrixWorld(true);
       const scaledBounds = new THREE.Box3().setFromObject(soldier);
       soldier.position.y -= scaledBounds.min.y;
+      soldier.userData.groundAnchorY = soldier.position.y;
       soldier.position.x -= (scaledBounds.min.x + scaledBounds.max.x) / 2;
       soldier.position.z -= (scaledBounds.min.z + scaledBounds.max.z) / 2;
     }
@@ -1082,6 +1085,13 @@ function animate(time) {
       dt
     );
 
+    // Recover from invalid/out-of-bounds vertical positions before updating jump.
+    if (!Number.isFinite(player.position.y) || player.position.y < 0) {
+      player.position.y = 0;
+      jumpVelocity = 0;
+      jumping = false;
+    }
+
     // Salto
     if (jumping) {
       player.position.y += jumpVelocity * dt;
@@ -1112,7 +1122,13 @@ if (soldierMixer) {
     soldierActiveAction = desiredAction;
   }
 
-  soldierMixer.update(soldierClock.getDelta());
+  // GLTF clips can animate the scene root (especially on repeated starts).
+  // Keep the model's ground anchor fixed; jumping belongs to player.position.y.
+  soldierMixer.update(Math.min(soldierClock.getDelta(), 0.05));
+  const soldierRoot = player.children[0];
+  if (soldierRoot && Number.isFinite(soldierRoot.userData.groundAnchorY)) {
+    soldierRoot.position.y = soldierRoot.userData.groundAnchorY;
+  }
 }
 
     // Il portale si avvicina solo nell'ultimo tratto del livello.
