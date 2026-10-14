@@ -479,13 +479,17 @@ function createTree(x, z, scale = 1) {
   const group = new THREE.Group();
   group.position.set(x, 0, z);
   group.scale.setScalar(scale);
+  // Rotate each tree differently so repeated billboard silhouettes do not
+  // form visible identical rows along the runner's path.
+  const variation = Math.abs(Math.sin(x * 12.9898 + z * 78.233));
+  group.rotation.y = variation * Math.PI * 2;
   const trunk = new THREE.Mesh(pineTrunkGeo, pineBarkMat);
   trunk.position.y = 2.4;
   trunk.castShadow = true;
   group.add(trunk);
   for (let i = 0; i < 3; i++) {
     const foliage = new THREE.Mesh(pineFoliageGeo, pineFoliageMat);
-    foliage.position.y = 2.9;
+    foliage.position.y = 2.85 + (variation - 0.5) * 0.28;
     foliage.rotation.y = i * Math.PI / 3 + 0.17;
     foliage.castShadow = i === 0;
     foliage.receiveShadow = false;
