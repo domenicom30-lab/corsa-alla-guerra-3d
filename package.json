@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
-    "check": "node scripts/check-project.mjs"
+    "check": "node scripts/check-project.mjs && node tests/soldier-gear.test.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.3",

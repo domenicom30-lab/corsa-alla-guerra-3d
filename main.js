@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { attachMilitaryGear } from './src/soldier-gear.js';
 import './style.css';
 
 // CORSA ALLA GUERRA 3D - Enhanced Edition
@@ -821,6 +822,9 @@ loader.load(
       soldier.position.x -= (scaledBounds.min.x + scaledBounds.max.x) / 2;
       soldier.position.z -= (scaledBounds.min.z + scaledBounds.max.z) / 2;
     }
+
+    // Attach after normalization so equipment cannot change height or centering.
+    attachMilitaryGear(soldier);
 
     soldierMixer = new THREE.AnimationMixer(soldier);
 
