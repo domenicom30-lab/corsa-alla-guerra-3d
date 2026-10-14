@@ -35,14 +35,14 @@ renderer.toneMappingExposure = 1.2;
 renderer.shadowMap.autoUpdate = true;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x9dbbd1);
-scene.fog = new THREE.FogExp2(0x9dbbd1, 0.0055);
+scene.background = new THREE.Color(0xa8b6b5);
+scene.fog = new THREE.FogExp2(0xa8b6b5, 0.010);
 
 const camera = new THREE.PerspectiveCamera(
   62, innerWidth / innerHeight, 0.1, 180
 );
 
-camera.position.set(0, 2.9, 6.1);
+camera.position.set(0, 3.3, 7.0);
 camera.lookAt(0, 1.35, -5);
 
 // Illuminazione
@@ -758,8 +758,16 @@ loader.load(
       /jump|vault|hop/i.test(clip.name)
     );
 
-    if (runClip) {
-      soldierRun = soldierMixer.clipAction(runClip);
+    // Rimuove la traslazione verticale del nodo radice dalla corsa:
+    // il personaggio resta appoggiato al terreno, mentre le ossa si animano.
+    const groundedRunClip = runClip ? runClip.clone() : null;
+    if (groundedRunClip) {
+      groundedRunClip.tracks = groundedRunClip.tracks.filter((track) => {
+        if (!track.name.endsWith('.position')) return true;
+        const node = track.name.slice(0, -'.position'.length).toLowerCase();
+        return !/^(root|armature|hips|pelvis|mixamorig:hips)$/.test(node);
+      });
+      soldierRun = soldierMixer.clipAction(groundedRunClip);
     }
 
     if (jumpClip) {
@@ -1117,16 +1125,16 @@ if (soldierMixer) {
   // Camera ravvicinata dietro al soldato
   targetCamera.set(
     player.position.x * 0.25,
-    4.25 + player.position.y * 0.25,
-    9.6
+    3.35 + player.position.y * 0.22,
+    7.1
   );
 
   camera.position.lerp(targetCamera, 0.04);
 
   camera.lookAt(
     player.position.x * 0.18,
-    1.5 + player.position.y * 0.35,
-    -3
+    1.55 + player.position.y * 0.25,
+    -5
   );
 
   renderer.render(scene, camera);
