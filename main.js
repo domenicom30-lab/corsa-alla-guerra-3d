@@ -969,14 +969,15 @@ function installImportedPines() {
 }
 // Photographic-style textured CC0 conifers replace the Kenney trees nearest
 // the road. Load asynchronously and keep existing trees as safe fallback.
-const realisticTreeFiles = ['norway-spruce.glb', 'scots-pine.glb'];
+const realisticTreeFiles = ['norway-spruce.glb', 'scots-pine.glb', 'silver-birch.glb', 'columnar-cypress.glb'];
 const realisticTrees = new Map();
 function installRealisticTrees() {
   if (!realisticTrees.size) return;
   forest.forEach((tree, index) => {
     // Use the detailed models on both sides of the road, while limiting
     // draw calls and texture duplication on mobile.
-    const filename = realisticTreeFiles[index % realisticTreeFiles.length];
+    // Most trees remain conifers; occasional broadleaf birch breaks repetition.
+    const filename = realisticTreeFiles[index % 11 === 0 ? 2 : index % 13 === 0 ? 3 : index % 2];
     // Prefer the intended species when available, but never leave a
     // procedural tree behind just because its GLB finishes loading later.
     const chosenName = realisticTrees.has(filename) ? filename : realisticTrees.keys().next().value;
