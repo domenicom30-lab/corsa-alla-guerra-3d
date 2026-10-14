@@ -466,7 +466,7 @@ for (const x of [-1.45, 1.45]) {
 
 // Sparse leaf litter / small stones on the forest floor: one instanced draw
 // call rather than dozens of individual meshes. Avoid the playable road.
-const forestDebrisCount = 240;
+const forestDebrisCount = 460;
 const forestDebrisGeometry = new THREE.DodecahedronGeometry(0.12, 0);
 const forestDebrisMaterial = new THREE.MeshStandardMaterial({
   color: 0x554c3b, roughness: 1, flatShading: true
@@ -505,7 +505,7 @@ scene.add(forestDebris);
 
 // Forest-floor moss and fallen-needle islands: hundreds of patches in one draw call.
 // Positioned outside the road, slightly above the base terrain.
-const mossCount = 320;
+const mossCount = 760;
 const mossGeometry = new THREE.IcosahedronGeometry(1, 0);
 const mossMaterial = new THREE.MeshStandardMaterial({
   color: 0x647454, roughness: 1, flatShading: true
@@ -1152,9 +1152,9 @@ scene.add(finishGate);
 // Foschia naturale al posto delle montagne coniche artificiali.
 // Dettagli del sottobosco
 // Vegetazione istanziata: una draw call per 500 fili anziché 500 mesh.
-const grassCount = 300;
+const grassCount = 1100;
 const grassMaterial = new THREE.MeshStandardMaterial({
-  color: 0x647552, side: THREE.DoubleSide, roughness: 1
+  color: 0x526747, side: THREE.DoubleSide, roughness: 1
 });
 // Lama d'erba incurvata invece di coni appuntiti.
 const grassGeometry = new THREE.BufferGeometry();
