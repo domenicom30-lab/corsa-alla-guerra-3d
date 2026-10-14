@@ -855,14 +855,16 @@ function createTree(x, z, scale = 1) {
 const natureLoader = new GLTFLoader();
 const naturePineFiles = [
   'tree-pinetalla-detailed.glb', 'tree-pinetallb-detailed.glb',
-  'tree-pinetallc-detailed.glb', 'tree-pinetalld-detailed.glb'
+  'tree-pinetallc-detailed.glb', 'tree-pinetalld-detailed.glb',
+  'tree-pinerounda.glb', 'tree-pineroundc.glb',
+  'tree-pinesmalla.glb', 'tree-pinesmallc.glb'
 ];
-const naturePines = [];
+const naturePines = new Map();
 function installImportedPines() {
-  if (!naturePines.length) return;
+  if (naturePines.size !== naturePineFiles.length) return;
   forest.forEach((tree, index) => {
-    if (index % 3 === 2 || tree.userData.importedPine) return;
-    const source = naturePines[index % naturePines.length];
+    if (index % 6 === 5 || tree.userData.importedPine) return;
+    const source = naturePines.get(naturePineFiles[index % naturePineFiles.length]);
     const instance = source.clone(true);
     // Original asset heights vary: normalize to existing forest scale.
     const bounds = new THREE.Box3().setFromObject(instance);
@@ -884,7 +886,7 @@ function installImportedPines() {
 }
 for (const filename of naturePineFiles) {
   natureLoader.load('./models/nature/' + filename, (gltf) => {
-    naturePines.push(gltf.scene);
+    naturePines.set(filename, gltf.scene);
     installImportedPines();
   }, undefined, () => {
     // Procedural pines remain available as a reliable offline fallback.
@@ -897,7 +899,14 @@ const natureProps = [];
 for (const [filename, count, height] of [
   ['rock-largea.glb', 7, 1.0],
   ['rock-largeb.glb', 7, 1.25],
-  ['plant-bushdetailed.glb', 12, 1.3]
+  ['rock-largec.glb', 6, 1.0],
+  ['rock-largee.glb', 6, 1.15],
+  ['rock-talla.glb', 5, 1.8],
+  ['rock-tallc.glb', 5, 1.5],
+  ['plant-bushdetailed.glb', 12, 1.3],
+  ['plant-bushlarge.glb', 14, 1.7],
+  ['plant-bushsmall.glb', 18, 0.8],
+  ['grass-large.glb', 24, 0.65]
 ]) {
   natureLoader.load('./models/nature/' + filename, (gltf) => {
     const box = new THREE.Box3().setFromObject(gltf.scene);
