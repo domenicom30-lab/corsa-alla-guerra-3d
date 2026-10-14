@@ -565,8 +565,33 @@ function createPineCrownGeometry() {
   return geometry;
 }
 const pineCrownGeo = createPineCrownGeometry();
+// Shared procedural needle color variation helps break up large flat green faces.
+function makePineNeedleTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#455c3e';
+  ctx.fillRect(0, 0, 128, 128);
+  let seed = 837;
+  const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+  for (let i = 0; i < 1700; i++) {
+    const x = rnd() * 128, y = rnd() * 128;
+    ctx.strokeStyle = rnd() > 0.5 ? 'rgba(14,30,17,0.28)' : 'rgba(149,167,112,0.17)';
+    ctx.lineWidth = 0.5 + rnd() * 1.2;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + (rnd() - 0.5) * 5, y + 2 + rnd() * 8);
+    ctx.stroke();
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(2, 3);
+  return texture;
+}
 const pineCrownMat = new THREE.MeshStandardMaterial({
-  color: 0x314a32, roughness: 1, flatShading: false, side: THREE.DoubleSide
+  map: makePineNeedleTexture(), color: 0xb7c8b0,
+  roughness: 1, flatShading: false, side: THREE.DoubleSide
 });
 
 // A single shared low-resolution bark texture adds vertical grain without
