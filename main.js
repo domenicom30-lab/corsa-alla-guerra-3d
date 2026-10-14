@@ -329,21 +329,34 @@ function createTree(x, z, scale = 1) {
     barkMat, [0, 1.5, 0], 8
   );
 
-  for (let i = 0; i < 4; i++) {
-    const crown = new THREE.Mesh(
-      new THREE.ConeGeometry(1.2 - i * 0.17, 2.5, 10),
-      leafMats[(Math.random() * leafMats.length) | 0]
-    );
-
-    crown.position.set(
-      (Math.random() - 0.5) * 0.25,
-      2.2 + i * 0.72,
-      (Math.random() - 0.5) * 0.2
-    );
-
-    crown.rotation.y = Math.random() * 2;
-    crown.castShadow = true;
-    group.add(crown);
+  // Rami asimmetrici con aghi a ciuffi: silhouette meno geometrica
+  // rispetto alle precedenti quattro chiome coniche.
+  const twigMat = barkMat;
+  for (let tier = 0; tier < 8; tier++) {
+    const h = 1.15 + tier * 0.39;
+    const radius = 1.36 * (1 - tier / 9);
+    const branches = tier < 2 ? 6 : 5;
+    for (let j = 0; j < branches; j++) {
+      const angle = (j / branches) * Math.PI * 2 + tier * 1.17;
+      const reach = radius * (0.77 + Math.random() * 0.3);
+      const branch = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.018, 0.052, reach, 4),
+        twigMat
+      );
+      branch.position.set(Math.cos(angle) * reach * 0.48, h + 0.05, Math.sin(angle) * reach * 0.48);
+      branch.rotation.z = Math.PI / 2 - Math.atan2(0.22, reach);
+      branch.rotation.y = -angle;
+      group.add(branch);
+      const needle = new THREE.Mesh(
+        new THREE.ConeGeometry(0.23 + radius * 0.13, reach * 1.03, 6),
+        leafMats[(Math.random() * leafMats.length) | 0]
+      );
+      needle.position.set(Math.cos(angle) * reach * 0.65, h + 0.13, Math.sin(angle) * reach * 0.65);
+      needle.rotation.z = Math.cos(angle) * 0.65;
+      needle.rotation.x = -Math.sin(angle) * 0.65;
+      needle.castShadow = tier % 2 === 0;
+      group.add(needle);
+    }
   }
 
   scene.add(group);
