@@ -24,7 +24,7 @@ const checks = [
   ['Prestazioni mobile', () => {
     assert.ok(main.includes('setPixelRatio'));
     assert.ok(main.includes('InstancedMesh'));
-    const shadowSize = main.match(/sun\\.shadow\\.mapSize\\.set\\((\\d+),\\s*(\\d+)\\)/);
+    const shadowSize = main.match(/sun\.shadow\.mapSize\.set\((\d+),\s*(\d+)\)/);
     assert.ok(shadowSize, 'Shadow map mancante');
     const width = Number(shadowSize[1]);
     const height = Number(shadowSize[2]);
