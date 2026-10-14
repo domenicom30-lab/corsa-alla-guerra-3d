@@ -1533,18 +1533,19 @@ if (soldierMixer) {
   }
 
   // Camera ravvicinata dietro al soldato
+  const landscape = innerWidth > innerHeight;
   targetCamera.set(
     player.position.x * 0.25,
-    3.35 + player.position.y * 0.22,
-    7.1
+    (landscape ? 3.05 : 3.35) + player.position.y * 0.22,
+    landscape ? 7.8 : 7.1
   );
 
   camera.position.lerp(targetCamera, 0.04);
 
   camera.lookAt(
     player.position.x * 0.18,
-    1.55 + player.position.y * 0.25,
-    -5
+    (landscape ? 1.35 : 1.55) + player.position.y * 0.25,
+    landscape ? -7 : -5
   );
 
   renderer.render(scene, camera);
