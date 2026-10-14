@@ -81,6 +81,22 @@ function createDaylightSky() {
   return texture;
 }
 scene.background = createDaylightSky();
+// Physically based environment lighting for the soldier, bark and foliage.
+// Reuse the existing daylight panorama; no large HDR download or network call.
+try {
+  const skyForReflections = scene.background.clone();
+  skyForReflections.mapping = THREE.EquirectangularReflectionMapping;
+  skyForReflections.needsUpdate = true;
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const environment = pmrem.fromEquirectangular(skyForReflections);
+  scene.environment = environment.texture;
+  scene.environmentIntensity = 0.55;
+  pmrem.dispose();
+  skyForReflections.dispose();
+  console.info('[Corsa Renderer] PBR daylight environment enabled');
+} catch (error) {
+  console.warn('[Corsa Renderer] PBR environment unavailable', error);
+}
 scene.fog = new THREE.FogExp2(0x9baaa0, 0.0045);
 
 const camera = new THREE.PerspectiveCamera(
