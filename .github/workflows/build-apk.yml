@@ -40,8 +40,19 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Import verified CC0 PBR terrain textures
+      - name: Import 4K CC0 PBR terrain textures
+        env:
+          PBR_RESOLUTION: 4K
         run: python3 scripts/download_pbr.py Ground009 Ground005
+
+      - name: Install CC0 nature GLB models
+        run: python3 scripts/download_nature.py
+
+      - name: Install CC0 realistic spruce and pine GLBs
+        run: python3 scripts/download_realistic_trees.py
+
+      - name: Install CC0 textured officer character
+        run: python3 scripts/download_characters.py
 
       - name: Build web game
         run: npm run build

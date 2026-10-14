@@ -10,8 +10,9 @@
   <div id="hud">
     <div class="brand">CORSA ALLA GUERRA <span>3D</span></div>
     <div id="stats">Distanza: 0 m</div>
+    <div id="quality-panel"><label for="quality-select">GRAFICA</label><select id="quality-select" aria-label="Qualità grafica"><option value="balanced">Bilanciata</option><option value="high" selected>Alta</option><option value="ultra">Ultra</option></select></div>
     <div id="message">TOCCA PER INIZIARE</div>
-    <div id="controls"><button id="left">◀</button><button id="jump">SALTA</button><button id="right">▶</button></div>
+    <div id="controls"><button id="left" aria-label="Sinistra"><span>◀</span><small>SINISTRA</small></button><button id="right" aria-label="Destra"><span>▶</span><small>DESTRA</small></button><button id="jump" aria-label="Salta"><span>↑</span><small>SALTA</small></button><button id="duck" aria-label="Abbassati"><span>↓</span><small>ABBASSATI</small></button></div>
   </div>
   <canvas id="game"></canvas>
   <script type="module" src="./main.js"></script>

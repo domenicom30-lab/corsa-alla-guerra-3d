@@ -1,6 +1,13 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { clone as cloneSkinnedModel, retargetClip } from 'three/addons/utils/SkeletonUtils.js';
+import { EffectComposer, RenderPass, EffectPass, VignetteEffect, BloomEffect, SMAAEffect } from 'postprocessing';
+import { EffectComposer as ThreeComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass as ThreeRenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import './style.css';
+import { createFinishOfficer } from './period-officer.js';
 
 // CORSA ALLA GUERRA 3D - Enhanced Edition
 // Three.js / Android
@@ -12,9 +19,11 @@ const stats = document.querySelector('#stats');
 const leftButton = document.querySelector('#left');
 const rightButton = document.querySelector('#right');
 const jumpButton = document.querySelector('#jump');
+const duckButton = document.querySelector('#duck');
+const qualitySelect = document.querySelector('#quality-select');
 
 if (!canvas || !message || !stats ||
-    !leftButton || !rightButton || !jumpButton) {
+    !leftButton || !rightButton || !jumpButton || !duckButton) {
   throw new Error('Elementi del gioco mancanti in index.html');
 }
 
@@ -25,18 +34,70 @@ const renderer = new THREE.WebGLRenderer({
 });
 
 // Limita i pixel elaborati sui display Android ad alta densità.
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.15));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.2;
+renderer.toneMappingExposure = 1.12;
 renderer.shadowMap.autoUpdate = true;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xa8b6b5);
-scene.fog = new THREE.FogExp2(0xa8b6b5, 0.010);
+// Procedural daylight sky with a blue upper atmosphere, warm horizon and
+// wispy clouds. Generated once; no network assets or per-frame shader cost.
+function createDaylightSky() {
+  const c = document.createElement('canvas');
+  c.width = 1024;
+  c.height = 512;
+  const ctx = c.getContext('2d');
+  const gradient = ctx.createLinearGradient(0, 0, 0, 512);
+  gradient.addColorStop(0, '#567a9c');
+  gradient.addColorStop(0.45, '#9bbbd0');
+  gradient.addColorStop(0.78, '#d0d3c4');
+  gradient.addColorStop(1, '#a9b7a9');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 1024, 512);
+  let seed = 28411;
+  const rnd = () => ((seed = (1664525 * seed + 1013904223) >>> 0) / 4294967296);
+  for (let i = 0; i < 65; i++) {
+    const x = rnd() * 1024;
+    const y = 80 + rnd() * 245;
+    const rx = 35 + rnd() * 115;
+    const ry = 5 + rnd() * 20;
+    const cloud = ctx.createRadialGradient(x, y, 0, x, y, rx);
+    cloud.addColorStop(0, 'rgba(255,252,243,0.18)');
+    cloud.addColorStop(1, 'rgba(255,252,243,0)');
+    ctx.fillStyle = cloud;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(1, ry / rx);
+    ctx.translate(-x, -y);
+    ctx.fillRect(x-rx, y-rx, rx*2, rx*2);
+    ctx.restore();
+  }
+  const texture = new THREE.CanvasTexture(c);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+scene.background = createDaylightSky();
+// Physically based environment lighting for the soldier, bark and foliage.
+// Reuse the existing daylight panorama; no large HDR download or network call.
+try {
+  const skyForReflections = scene.background.clone();
+  skyForReflections.mapping = THREE.EquirectangularReflectionMapping;
+  skyForReflections.needsUpdate = true;
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const environment = pmrem.fromEquirectangular(skyForReflections);
+  scene.environment = environment.texture;
+  scene.environmentIntensity = 0.55;
+  pmrem.dispose();
+  skyForReflections.dispose();
+  console.info('[Corsa Renderer] PBR daylight environment enabled');
+} catch (error) {
+  console.warn('[Corsa Renderer] PBR environment unavailable', error);
+}
+scene.fog = new THREE.FogExp2(0x9baaa0, 0.0045);
 
 const camera = new THREE.PerspectiveCamera(
   62, innerWidth / innerHeight, 0.1, 180
@@ -45,23 +106,87 @@ const camera = new THREE.PerspectiveCamera(
 camera.position.set(0, 3.3, 7.0);
 camera.lookAt(0, 1.35, -5);
 
+// Lightweight cinematic postprocessing; mobile fallback uses direct rendering.
+let cinematicComposer = null;
+try {
+  cinematicComposer = new EffectComposer(renderer, { multisampling: 0 });
+  cinematicComposer.addPass(new RenderPass(scene, camera));
+  cinematicComposer.addPass(new EffectPass(camera,
+    new BloomEffect({ intensity: 0.16, luminanceThreshold: 0.91, mipmapBlur: true }),
+    new SMAAEffect(),
+    new VignetteEffect({ eskil: false, offset: 0.36, darkness: 0.35 })
+  ));
+} catch (error) {
+  console.warn('Postprocessing non disponibile: renderer standard attivo', error);
+  cinematicComposer = null;
+}
+
+// GTAO: screen-space ambient occlusion for contact shadows in Ultra mode.
+// Separate Three.js pipeline so unsupported GPUs can use the existing renderer.
+let ultraComposer = null;
+try {
+  ultraComposer = new ThreeComposer(renderer);
+  ultraComposer.addPass(new ThreeRenderPass(scene, camera));
+  const gtao = new GTAOPass(scene, camera, innerWidth, innerHeight);
+  gtao.output = GTAOPass.OUTPUT.Default;
+  gtao.blendIntensity = 0.7;
+  ultraComposer.addPass(gtao);
+  ultraComposer.addPass(new OutputPass());
+  console.info('[Corsa Renderer] GTAO pipeline initialized');
+} catch (error) {
+  console.warn('[Corsa Renderer] GTAO unavailable, using cinematic pipeline', error);
+  ultraComposer = null;
+}
+
 // Illuminazione
 scene.add(
-  new THREE.HemisphereLight(0xdce8e8, 0x35372b, 1.9)
+  new THREE.HemisphereLight(0xd2d9ce, 0x414538, 1.7)
 );
 
-const sun = new THREE.DirectionalLight(0xffdfb8, 2.8);
-sun.position.set(-7, 13, 5);
+const sun = new THREE.DirectionalLight(0xffe4bd, 2.35);
+sun.position.set(-11, 18, -9);
 sun.castShadow = true;
-sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.left = -11;
 sun.shadow.camera.right = 11;
 sun.shadow.camera.top = 15;
 sun.shadow.camera.bottom = -10;
 sun.shadow.normalBias = 0.035;
+sun.shadow.bias = -0.00015;
+sun.shadow.radius = 2.2;
 scene.add(sun);
+// Three actual runtime graphics profiles; no app restart needed.
+const qualityPresets = {
+  balanced: {dpr: 1.0, shadow: 1024, post: false, fog: 0.007, far: 115},
+  high: {dpr: 1.5, shadow: 2048, post: true, fog: 0.0045, far: 180},
+  ultra: {dpr: 2.0, shadow: 4096, post: true, fog: 0.0035, far: 230}
+};
+let currentQuality = 'high';
+function applyQuality(value) {
+  currentQuality = Object.prototype.hasOwnProperty.call(qualityPresets, value) ? value : 'high';
+  const preset = qualityPresets[currentQuality];
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, preset.dpr));
+  // Stronger filmic grading in Ultra; prevent overexposed foliage highlights.
+  renderer.toneMappingExposure = currentQuality === 'ultra' ? 1.02 : 1.12;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.setSize(innerWidth, innerHeight);
+  if (cinematicComposer) cinematicComposer.setSize(innerWidth, innerHeight);
+  if (ultraComposer) ultraComposer.setSize(innerWidth, innerHeight);
+  scene.fog.density = preset.fog;
+  camera.far = preset.far;
+  camera.updateProjectionMatrix();
+  sun.shadow.mapSize.set(preset.shadow, preset.shadow);
+  if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
+  sun.shadow.needsUpdate = true;
+  if (qualitySelect) qualitySelect.value = currentQuality;
+  try { localStorage.setItem('corsa-quality', currentQuality); } catch (_) {}
+}
+if (qualitySelect) qualitySelect.addEventListener('change', () => applyQuality(qualitySelect.value));
+try { applyQuality(localStorage.getItem('corsa-quality') || 'high'); }
+catch (_) { applyQuality('high'); }
 
-const fillLight = new THREE.DirectionalLight(0xaac4d2, 0.65);
+
+const fillLight = new THREE.DirectionalLight(0xc8d8e2, 0.92);
 fillLight.position.set(6, 5, -8);
 scene.add(fillLight);
 
@@ -107,9 +232,9 @@ function weatheredWood(color = 0xffffff) {
   return new THREE.MeshStandardMaterial({map: woodTexture, color, roughness: 0.98});
 }
 
-const dirtMat = mat(0x514634);
-const roadMat = mat(0x53504a);
-const vergeMat = mat(0x897b61);
+const dirtMat = mat(0x78846b);
+const roadMat = mat(0x74685a);
+const vergeMat = mat(0x4d5945);
 const stripeMat = mat(0xc9c2aa);
 const barkMat = weatheredWood(0x8e806c);
 const darkMat = mat(0x282c28);
@@ -143,8 +268,21 @@ function createDirtTexture() {
   c.height = 256;
 
   const ctx = c.getContext('2d');
-  ctx.fillStyle = '#514634';
+  ctx.fillStyle = '#373d2e';
   ctx.fillRect(0, 0, 256, 256);
+  // Broad, soft patches of damp soil and moss break up the sandy background.
+  let soilSeed = 3491;
+  const soilRand = () => ((soilSeed = (1664525 * soilSeed + 1013904223) >>> 0) / 4294967296);
+  for (let i = 0; i < 170; i++) {
+    const x = soilRand() * 256, y = soilRand() * 256;
+    const radius = 7 + soilRand() * 28;
+    const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+    const shade = soilRand() > 0.46 ? '53,69,44' : '40,35,28';
+    gradient.addColorStop(0, 'rgba(' + shade + ',0.28)');
+    gradient.addColorStop(1, 'rgba(' + shade + ',0)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+  }
 
   for (let i = 0; i < 6000; i++) {
     const shade = 35 + Math.random() * 60;
@@ -184,7 +322,7 @@ function createSurfaceTexture(kind) {
   c.width = c.height = 512;
   const ctx = c.getContext('2d');
   const road = kind === 'road';
-  ctx.fillStyle = road ? '#55524d' : '#63533e';
+  ctx.fillStyle = road ? '#5d5346' : '#363d2f';
   ctx.fillRect(0, 0, 512, 512);
   for (let i = 0; i < 17000; i++) {
     const x = Math.random() * 512, y = Math.random() * 512;
@@ -214,8 +352,23 @@ function createSurfaceTexture(kind) {
 const dirtTexture = createDirtTexture();
 dirtMat.map = dirtTexture;
 roadMat.map = createSurfaceTexture('road');
+// Keep the roadway darker than the surrounding soil, including when PBR maps load.
+roadMat.color.set(0x777873);
+roadMat.roughness = 0.94;
 // Preferisce mappe PBR locali quando presenti; mantiene le texture generate come fallback.
 const pbrLoader = new THREE.TextureLoader();
+// Asset diagnostics: reports actual texture/model success on the device.
+const assetDiagnostics = {textures: new Set(), models: new Set(), errors: new Set()};
+window.corsaAssetDiagnostics = assetDiagnostics;
+function assetLoaded(kind, name) {
+  assetDiagnostics[kind].add(name);
+  console.info('[Corsa Assets] loaded', kind, name);
+}
+function assetFailed(name, error) {
+  assetDiagnostics.errors.add(name);
+  console.warn('[Corsa Assets] unavailable:', name, error || 'load error');
+}
+
 function installPBR(material, basePath, repeatX, repeatY) {
   const configure = (texture, color = false) => {
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
@@ -226,16 +379,19 @@ function installPBR(material, basePath, repeatX, repeatY) {
   };
   pbrLoader.load(basePath + '_color.jpg', tex => {
     material.map = configure(tex, true);
-    material.color.set(0xffffff);
+    assetLoaded('textures', basePath + '_color');
+    material.color.set(material === roadMat ? 0x777873 : 0x77876d);
     material.needsUpdate = true;
   }, undefined, () => {});
   pbrLoader.load(basePath + '_normal.jpg', tex => {
     material.normalMap = configure(tex);
+    assetLoaded('textures', basePath + '_normal');
     material.normalScale = new THREE.Vector2(0.6, 0.6);
     material.needsUpdate = true;
   }, undefined, () => {});
   pbrLoader.load(basePath + '_roughness.jpg', tex => {
     material.roughnessMap = configure(tex);
+    assetLoaded('textures', basePath + '_roughness');
     material.roughness = 1;
     material.needsUpdate = true;
   }, undefined, () => {});
@@ -300,6 +456,8 @@ ground.rotation.x = -Math.PI / 2;
 ground.position.set(0, -0.23, -55);
 ground.receiveShadow = true;
 scene.add(ground);
+// Forest soil uses a dark green-brown tint even when external maps are loaded.
+dirtMat.color.set(0x78846b);
 
 const road = new THREE.Mesh(
   new THREE.PlaneGeometry(8, 180),
@@ -321,6 +479,36 @@ for (const x of [-4.1, 4.1]) {
   verge.receiveShadow = true;
   scene.add(verge);
 }
+
+// Weathered road markings: two edge lines and broken centre dashes.
+// Single shared mesh/material; recycled with the moving track.
+const roadMarkMaterial = new THREE.MeshBasicMaterial({
+  color: 0xc8c4af, transparent: true, opacity: 0.62,
+  depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2
+});
+const roadMarkGeometry = new THREE.PlaneGeometry(0.10, 3.8);
+const roadMarkPositions = [];
+for (let z = 10; z > -158; z -= 6) {
+  roadMarkPositions.push({x: -3.67, z, stretch: 1.55});
+  roadMarkPositions.push({x: 3.67, z, stretch: 1.55});
+  if (Math.round(z / 6) % 2 === 0) roadMarkPositions.push({x: 0, z, stretch: 1});
+}
+const roadMarks = new THREE.InstancedMesh(roadMarkGeometry, roadMarkMaterial, roadMarkPositions.length);
+const roadMarkTransform = new THREE.Object3D();
+function updateRoadMarks() {
+  for (let i = 0; i < roadMarkPositions.length; i++) {
+    const mark = roadMarkPositions[i];
+    roadMarkTransform.position.set(mark.x, -0.058, mark.z);
+    roadMarkTransform.rotation.set(-Math.PI / 2, 0, 0);
+    roadMarkTransform.scale.set(1, mark.stretch, 1);
+    roadMarkTransform.updateMatrix();
+    roadMarks.setMatrixAt(i, roadMarkTransform.matrix);
+  }
+  roadMarks.instanceMatrix.needsUpdate = true;
+}
+updateRoadMarks();
+roadMarks.frustumCulled = false;
+scene.add(roadMarks);
 
 // Solchi irregolari da mezzi militari, non due linee perfette.
 // Una sola texture procedurale condivisa dai due solchi, senza mesh extra.
@@ -360,11 +548,148 @@ for (const x of [-1.45, 1.45]) {
   scene.add(rut);
 }
 
+// Sparse leaf litter / small stones on the forest floor: one instanced draw
+// call rather than dozens of individual meshes. Avoid the playable road.
+const forestDebrisCount = 460;
+const forestDebrisGeometry = new THREE.DodecahedronGeometry(0.12, 0);
+const forestDebrisMaterial = new THREE.MeshStandardMaterial({
+  color: 0x554c3b, roughness: 1, flatShading: true
+});
+const forestDebris = new THREE.InstancedMesh(
+  forestDebrisGeometry, forestDebrisMaterial, forestDebrisCount
+);
+const forestDebrisTransform = new THREE.Object3D();
+const forestDebrisPositions = [];
+let debrisSeed = 6201;
+const debrisRandom = () => ((debrisSeed = (1664525 * debrisSeed + 1013904223) >>> 0) / 4294967296);
+for (let i = 0; i < forestDebrisCount; i++) {
+  const side = debrisRandom() > 0.5 ? 1 : -1;
+  forestDebrisPositions.push({
+    x: side * (4.6 + debrisRandom() * 15),
+    z: 12 - debrisRandom() * 158,
+    scale: 0.45 + debrisRandom() * 1.4,
+    angle: debrisRandom() * Math.PI * 2
+  });
+}
+let debrisUpdateFrame = 0;
+function updateForestDebris() {
+  for (let i = 0; i < forestDebrisCount; i++) {
+    const item = forestDebrisPositions[i];
+    forestDebrisTransform.position.set(item.x, -0.13, item.z);
+    forestDebrisTransform.rotation.set(0, item.angle, 0);
+    forestDebrisTransform.scale.set(item.scale * 1.2, item.scale * 0.22, item.scale * 0.8);
+    forestDebrisTransform.updateMatrix();
+    forestDebris.setMatrixAt(i, forestDebrisTransform.matrix);
+  }
+  forestDebris.instanceMatrix.needsUpdate = true;
+}
+updateForestDebris();
+forestDebris.frustumCulled = false;
+scene.add(forestDebris);
+
+// Forest-floor moss and fallen-needle islands: hundreds of patches in one draw call.
+// Positioned outside the road, slightly above the base terrain.
+const mossCount = 1400;
+const mossGeometry = new THREE.IcosahedronGeometry(1, 0);
+const mossMaterial = new THREE.MeshStandardMaterial({
+  color: 0x647454, roughness: 1, flatShading: true
+});
+const moss = new THREE.InstancedMesh(mossGeometry, mossMaterial, mossCount);
+const mossTransform = new THREE.Object3D();
+const mossPositions = [];
+const mossColor = new THREE.Color();
+let mossSeed = 19472;
+const mossRand = () => ((mossSeed = (1664525 * mossSeed + 1013904223) >>> 0) / 4294967296);
+for (let i = 0; i < mossCount; i++) {
+  const side = mossRand() > 0.5 ? 1 : -1;
+  const x = side * (4.8 + mossRand() * 17);
+  mossPositions.push({x, z: 12 - mossRand() * 158,
+    width: 0.35 + mossRand() * 0.9, angle: mossRand() * Math.PI * 2});
+  mossColor.setHex([0x526348, 0x454f36, 0x656a45, 0x3d4c36][i % 4]);
+  moss.setColorAt(i, mossColor);
+}
+function updateMoss() {
+  for (let i = 0; i < mossCount; i++) {
+    const patch = mossPositions[i];
+    mossTransform.position.set(patch.x, -0.18, patch.z);
+    mossTransform.rotation.set(0, patch.angle, 0);
+    mossTransform.scale.set(patch.width * 1.9, 0.045, patch.width * 1.1);
+    mossTransform.updateMatrix();
+    moss.setMatrixAt(i, mossTransform.matrix);
+  }
+  moss.instanceMatrix.needsUpdate = true;
+}
+updateMoss();
+moss.frustumCulled = false;
+scene.add(moss);
+
+// Irregular granite boulders along the forest verge. GPU instancing keeps
+// the added rocky landscape at one draw call on Android.
+const boulderCount = 95;
+const boulderGeometry = new THREE.IcosahedronGeometry(1, 1);
+const boulderMaterial = new THREE.MeshStandardMaterial({
+  color: 0x77786e, roughness: 0.98, flatShading: true
+});
+const boulders = new THREE.InstancedMesh(boulderGeometry, boulderMaterial, boulderCount);
+const boulderTransform = new THREE.Object3D();
+const boulderPositions = [];
+const boulderColor = new THREE.Color();
+let boulderSeed = 61823;
+const boulderRand = () => ((boulderSeed = (1664525 * boulderSeed + 1013904223) >>> 0) / 4294967296);
+for (let i = 0; i < boulderCount; i++) {
+  const side = boulderRand() > 0.5 ? 1 : -1;
+  const width = 0.35 + boulderRand() * 1.05;
+  boulderPositions.push({
+    x: side * (5.3 + boulderRand() * 17),
+    z: 10 - boulderRand() * 157,
+    width,
+    height: width * (0.38 + boulderRand() * 0.35),
+    angle: boulderRand() * Math.PI * 2
+  });
+  boulderColor.setHex([0x77776d, 0x676a60, 0x898679, 0x5b6058][i % 4]);
+  boulders.setColorAt(i, boulderColor);
+}
+function updateBoulders() {
+  for (let i = 0; i < boulderCount; i++) {
+    const rock = boulderPositions[i];
+    boulderTransform.position.set(rock.x, -0.19 + rock.height * 0.38, rock.z);
+    boulderTransform.rotation.set(0.12, rock.angle, -0.09);
+    boulderTransform.scale.set(rock.width * 1.4, rock.height, rock.width);
+    boulderTransform.updateMatrix();
+    boulders.setMatrixAt(i, boulderTransform.matrix);
+  }
+  boulders.instanceMatrix.needsUpdate = true;
+}
+updateBoulders();
+boulders.frustumCulled = false;
+boulders.receiveShadow = true;
+scene.add(boulders);
+
 // Pozzanghere e fango umido lungo i margini della carreggiata.
 // Geometria condivisa e materiale senza ombre: effetto leggero per Android.
-const puddleGeometry = new THREE.CircleGeometry(1, 18);
+// Slightly jagged, asymmetric puddle outline rather than perfect circles.
+// Shared between all puddles, so the geometry cost remains constant.
+function createPuddleGeometry() {
+  const segments = 24;
+  const vertices = [0, 0, 0];
+  const indices = [];
+  for (let i = 0; i <= segments; i++) {
+    const angle = i / segments * Math.PI * 2;
+    const ripple = 1 + 0.12 * Math.sin(angle * 5 + 0.8)
+      + 0.08 * Math.sin(angle * 9 - 0.6)
+      + 0.04 * Math.cos(angle * 13);
+    vertices.push(Math.cos(angle) * ripple, Math.sin(angle) * ripple, 0);
+    if (i > 0) indices.push(0, i, i + 1);
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+const puddleGeometry = createPuddleGeometry();
 const puddleMaterial = new THREE.MeshStandardMaterial({
-  color: 0x48585b, roughness: 0.24, metalness: 0.12,
+  color: 0x293b37, roughness: 0.18, metalness: 0.08,
   transparent: true, opacity: 0.69, depthWrite: false,
   polygonOffset: true, polygonOffsetFactor: -2,
   side: THREE.DoubleSide
@@ -383,15 +708,39 @@ for (let i = 0; i < 28; i++) {
   const sz = 0.7 + puddleRand() * 1.25;
   const rim = new THREE.Mesh(puddleGeometry, mudRimMaterial);
   rim.rotation.x = -Math.PI / 2;
+  rim.rotation.y = puddleRand() * Math.PI * 2;
   rim.scale.set(sx * 1.2, sz * 1.16, 1);
   rim.position.set(x, -0.047, z);
   scene.add(rim);
   const water = new THREE.Mesh(puddleGeometry, puddleMaterial);
   water.rotation.x = -Math.PI / 2;
+  water.rotation.y = rim.rotation.y;
   water.scale.set(sx, sz, 1);
   water.position.set(x, -0.043, z);
   scene.add(water);
   puddles.push({rim, water});
+}
+
+// Mud is not perfectly flat: add a few shared-geometry, irregular wet-soil
+// patches around the ruts. Cheap unlit decals avoid costly reflection passes.
+const mudPatchGeometry = new THREE.CircleGeometry(1, 11);
+const mudPatchMaterial = new THREE.MeshBasicMaterial({
+  color: 0x302e25, transparent: true, opacity: 0.23,
+  depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1,
+  side: THREE.DoubleSide
+});
+const mudPatches = [];
+let mudSeed = 9381;
+const mudRandom = () => ((mudSeed = (1664525 * mudSeed + 1013904223) >>> 0) / 4294967296);
+for (let i = 0; i < 46; i++) {
+  const patch = new THREE.Mesh(mudPatchGeometry, mudPatchMaterial);
+  patch.rotation.x = -Math.PI / 2;
+  patch.rotation.y = mudRandom() * Math.PI;
+  const side = mudRandom() > 0.5 ? 1 : -1;
+  patch.position.set(side * (1.25 + mudRandom() * 2.1), -0.057, 11 - i * 3.45);
+  patch.scale.set(0.3 + mudRandom() * 0.95, 0.5 + mudRandom() * 1.45, 1);
+  scene.add(patch);
+  mudPatches.push(patch);
 }
 
 // Strada forestale: niente strisce bianche da asfalto.
@@ -447,25 +796,412 @@ function makePineFoliage() {
 const pineFoliageMat = makePineFoliage();
 const pineFoliageGeo = new THREE.PlaneGeometry(3.5, 5.2);
 const pineTrunkGeo = new THREE.CylinderGeometry(0.10, 0.22, 4.8, 6);
+// Real 3D pine crowns: three staggered low-poly branch whorls, not
+// camera-facing crossed billboards. Geometry and materials are shared.
+function createPineCrownGeometry() {
+  // Layered radial spruce boughs instead of the previous continuous cone.
+  // All needle sprays are part of ONE shared geometry for every pine.
+  const positions = [], uvs = [], indices = [];
+  function triangle(a, b, c) {
+    const base = positions.length / 3;
+    positions.push(...a, ...b, ...c);
+    uvs.push(0, 0, 1, 0, 0.5, 1);
+    indices.push(base, base + 1, base + 2);
+  }
+  const whorls = 10;
+  const branches = 11;
+  for (let ring = 0; ring < whorls; ring++) {
+    const t = ring / whorls;
+    const y = 0.24 + t * 2.12;
+    const reach = Math.pow(1 - t, 0.92) * 1.14;
+    for (let j = 0; j < branches; j++) {
+      const angle = j * Math.PI * 2 / branches + ring * 1.73;
+      const ux = Math.cos(angle), uz = Math.sin(angle);
+      const sideX = -uz, sideZ = ux;
+      const r = reach * (0.82 + 0.18 * Math.sin(j * 9.1 + ring * 3.7));
+      const droop = 0.15 + 0.10 * (1 - t);
+      const inner = [ux * 0.09, y + 0.17, uz * 0.09];
+      const tip = [ux * r, y - droop, uz * r];
+      const halfWidth = 0.14 + (1 - t) * 0.18;
+      triangle(inner,
+        [ux * r * 0.60 + sideX * halfWidth, y + 0.07, uz * r * 0.60 + sideZ * halfWidth], tip);
+      triangle(inner, tip,
+        [ux * r * 0.60 - sideX * halfWidth, y + 0.07, uz * r * 0.60 - sideZ * halfWidth]);
+      // Secondary sprays give branches depth when viewed from above.
+      triangle([ux * r * 0.26, y + 0.14, uz * r * 0.26],
+        [ux * r * 0.69 + sideX * halfWidth * 0.67, y + 0.26, uz * r * 0.69 + sideZ * halfWidth * 0.67],
+        [ux * r * 0.88, y - droop * 0.55, uz * r * 0.88]);
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+const pineCrownGeo = createPineCrownGeometry();
+// Shared procedural needle color variation helps break up large flat green faces.
+function makePineNeedleTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#455c3e';
+  ctx.fillRect(0, 0, 128, 128);
+  let seed = 837;
+  const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+  for (let i = 0; i < 1700; i++) {
+    const x = rnd() * 128, y = rnd() * 128;
+    ctx.strokeStyle = rnd() > 0.5 ? 'rgba(14,30,17,0.28)' : 'rgba(149,167,112,0.17)';
+    ctx.lineWidth = 0.5 + rnd() * 1.2;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + (rnd() - 0.5) * 5, y + 2 + rnd() * 8);
+    ctx.stroke();
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(2, 3);
+  return texture;
+}
+const pineCrownMat = new THREE.MeshStandardMaterial({
+  map: makePineNeedleTexture(), color: 0xb7c8b0,
+  roughness: 1, flatShading: false, side: THREE.DoubleSide
+});
+// Small palette variations share geometry and textures, but break up the
+// single identical dark-green forest color across the whole landscape.
+const pineCrownVariants = [pineCrownMat,
+  pineCrownMat.clone(), pineCrownMat.clone()];
+pineCrownVariants[1].color.set(0x94aa8b);
+pineCrownVariants[2].color.set(0xc3bda0);
+
+// A single shared low-resolution bark texture adds vertical grain without
+// adding geometry, draw calls or per-tree materials on Android.
+function makePineBarkMaterial() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#554737';
+  ctx.fillRect(0, 0, 128, 256);
+  let seed = 2147;
+  const random = () => ((seed = (1664525 * seed + 1013904223) >>> 0) / 4294967296);
+  for (let i = 0; i < 440; i++) {
+    const x = random() * 128;
+    const y = random() * 256;
+    ctx.strokeStyle = ['#302b25', '#75624b', '#857258', '#40382d'][Math.floor(random() * 4)];
+    ctx.lineWidth = 0.5 + random() * 2.3;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + (random() - 0.5) * 4, y + 5 + random() * 31);
+    ctx.stroke();
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  return new THREE.MeshStandardMaterial({map: texture, roughness: 1});
+}
+const pineBarkMat = makePineBarkMaterial();
 function createTree(x, z, scale = 1) {
   const group = new THREE.Group();
   group.position.set(x, 0, z);
   group.scale.setScalar(scale);
-  const trunk = new THREE.Mesh(pineTrunkGeo, barkMat);
+  // Rotate each tree differently so repeated billboard silhouettes do not
+  // form visible identical rows along the runner's path.
+  const variation = Math.abs(Math.sin(x * 12.9898 + z * 78.233));
+  group.rotation.y = variation * Math.PI * 2;
+  const trunk = new THREE.Mesh(pineTrunkGeo, pineBarkMat);
   trunk.position.y = 2.4;
   trunk.castShadow = true;
   group.add(trunk);
+  // Layer cutout needle silhouettes over the 3D branches to break up
+  // the solid polygonal outlines visible in the Android screenshots.
+  for (let spray = 0; spray < 3; spray++) {
+    const needles = new THREE.Mesh(pineFoliageGeo, pineFoliageMat);
+    needles.position.y = 3.45 + (variation - 0.5) * 0.2;
+    needles.rotation.y = spray * Math.PI / 3;
+    needles.scale.set(1.05 + variation * 0.18, 1.0 + variation * 0.12, 1);
+    needles.castShadow = false;
+    group.add(needles);
+  }
+  // Overlapping whorls retain actual 3D volume and shadows.
   for (let i = 0; i < 3; i++) {
-    const foliage = new THREE.Mesh(pineFoliageGeo, pineFoliageMat);
-    foliage.position.y = 2.9;
-    foliage.rotation.y = i * Math.PI / 3 + 0.17;
-    foliage.castShadow = i === 0;
-    foliage.receiveShadow = false;
-    group.add(foliage);
+    const crown = new THREE.Mesh(pineCrownGeo,
+      pineCrownVariants[Math.floor(variation * pineCrownVariants.length) % pineCrownVariants.length]);
+    crown.position.y = 1.5 + i * 1.1 + (variation - 0.5) * 0.2;
+    crown.scale.set((1.65 - i * 0.34) * (0.91 + variation * 0.18),
+      1.03 + variation * 0.13, (1.65 - i * 0.34) * (0.91 + variation * 0.18));
+    crown.rotation.y = variation * 2.1 + i * 0.43;
+    crown.castShadow = i === 0;
+    group.add(crown);
+
   }
   scene.add(group);
   forest.push(group);
 }
+
+// Real CC0 Kenney glTF pine assets are bundled by the Android build.
+// Replace nearby procedural pines with imported meshes; retain fallback
+// crowns if the assets are unavailable in a development preview.
+const natureLoader = new GLTFLoader();
+const naturePineFiles = [
+  'tree-pinetalla-detailed.glb', 'tree-pinetallb-detailed.glb',
+  'tree-pinetallc-detailed.glb', 'tree-pinetalld-detailed.glb',
+  'tree-pinerounda.glb', 'tree-pineroundc.glb',
+  'tree-pinesmalla.glb', 'tree-pinesmallc.glb'
+];
+const naturePines = new Map();
+function installImportedPines() {
+  if (!naturePines.size) return;
+  forest.forEach((tree, index) => {
+    if (index % 6 === 5 || tree.userData.importedPine || tree.userData.realisticPine) return;
+    const preferred = naturePineFiles[index % naturePineFiles.length];
+    const source = naturePines.get(preferred);
+    if (!source) return; // Retry this tree when its exact GLB finishes loading.
+    const instance = source.clone(true);
+    // Original asset heights vary: normalize to existing forest scale.
+    const bounds = new THREE.Box3().setFromObject(instance);
+    const size = new THREE.Vector3(); bounds.getSize(size);
+    if (size.y < 0.01) return;
+    // Keep the original mesh proportions, but vary the height to prevent
+    // identical forest silhouettes from repeating along the road.
+    const variation = 0.86 + (index * 37 % 17) / 17 * 0.35;
+    const factor = 6.7 * variation / size.y;
+    instance.scale.setScalar(factor);
+    instance.position.y = -bounds.min.y * factor - 0.2;
+    instance.traverse((part) => {
+      if (part.isMesh) {
+        part.castShadow = index % 4 === 0;
+        part.receiveShadow = true;
+      }
+    });
+    tree.clear();
+    tree.add(instance);
+    tree.userData.importedPine = true;
+    tree.userData.assetName = preferred;
+  });
+}
+// Photographic-style textured CC0 conifers replace the Kenney trees nearest
+// the road. Load asynchronously and keep existing trees as safe fallback.
+const realisticTreeFiles = ['norway-spruce.glb', 'scots-pine.glb', 'silver-birch.glb', 'columnar-cypress.glb'];
+const realisticTrees = new Map();
+function installRealisticTrees() {
+  if (!realisticTrees.size) return;
+  forest.forEach((tree, index) => {
+    // Use the detailed models on both sides of the road, while limiting
+    // draw calls and texture duplication on mobile.
+    // Most trees remain conifers; occasional broadleaf birch breaks repetition.
+    const filename = realisticTreeFiles[index % 11 === 0 ? 2 : index % 13 === 0 ? 3 : index % 2];
+    // Prefer the intended species when available, but never leave a
+    // procedural tree behind just because its GLB finishes loading later.
+    const chosenName = realisticTrees.has(filename) ? filename : realisticTrees.keys().next().value;
+    if (!chosenName || tree.userData.assetName === chosenName) return;
+    const source = realisticTrees.get(chosenName);
+    if (!source) return;
+    const instance = source.clone(true);
+    const bounds = new THREE.Box3().setFromObject(instance);
+    const height = bounds.max.y - bounds.min.y;
+    if (!Number.isFinite(height) || height < 0.01) {
+      assetFailed(filename + ': invalid scene bounds', new Error('GLB has no usable tree geometry'));
+      return;
+    }
+    const targetHeight = 8.5 + ((index * 13) % 9) * 0.65;
+    const scale = targetHeight / height;
+    instance.scale.setScalar(scale);
+    instance.position.y = -bounds.min.y * scale - 0.12;
+    instance.traverse((part) => {
+      if (!part.isMesh) return;
+      part.castShadow = index % 6 === 0;
+      part.receiveShadow = true;
+      if (part.material) {
+        const materials = Array.isArray(part.material) ? part.material : [part.material];
+        for (const mat of materials) {
+          if (mat.map) mat.map.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+          mat.side = THREE.DoubleSide;
+        }
+      }
+    });
+    tree.clear();
+    tree.add(instance);
+    tree.userData.realisticPine = true;
+    tree.userData.assetName = chosenName;
+  });
+  const active = forest.filter(tree => tree.userData.realisticPine).length;
+  console.info('[Corsa Forest] realistic conifers active:', active, '/', forest.length);
+  window.corsaRealisticTreeCount = active;
+}
+for (const filename of realisticTreeFiles) {
+  natureLoader.load('./models/realistic/' + filename, (gltf) => {
+    realisticTrees.set(filename, gltf.scene);
+    assetLoaded('models', filename);
+    installRealisticTrees();
+  }, undefined, (error) => assetFailed(filename, error));
+}
+
+for (const filename of naturePineFiles) {
+  natureLoader.load('./models/nature/' + filename, (gltf) => {
+    naturePines.set(filename, gltf.scene);
+    assetLoaded('models', filename);
+    installImportedPines();
+  }, undefined, (error) => {
+    assetFailed(filename, error);
+    // Procedural pines remain available as a reliable offline fallback.
+  });
+}
+
+// Dense natural forest-floor leaf litter, batched into a single GPU draw call.
+// Alpha-cutout silhouettes and varied warm/cool colors avoid polygonal boulders.
+const litterCanvas = document.createElement('canvas');
+litterCanvas.width = 128; litterCanvas.height = 128;
+const litterCtx = litterCanvas.getContext('2d');
+litterCtx.clearRect(0, 0, 128, 128);
+litterCtx.translate(64, 64);
+litterCtx.beginPath();
+litterCtx.moveTo(0, -54);
+litterCtx.bezierCurveTo(39, -39, 39, 11, 0, 53);
+litterCtx.bezierCurveTo(-39, 11, -39, -39, 0, -54);
+litterCtx.fillStyle = '#ddd3a7'; litterCtx.fill();
+litterCtx.strokeStyle = '#8d7755'; litterCtx.lineWidth = 3;
+litterCtx.beginPath(); litterCtx.moveTo(0, -49); litterCtx.lineTo(0, 47); litterCtx.stroke();
+for (const side of [-1, 1]) for (let j = 0; j < 6; j++) {
+  const y = -33 + j * 13;
+  litterCtx.beginPath(); litterCtx.moveTo(0, y + 10);
+  litterCtx.lineTo(side * (16 + (5 - j) * 2), y - 6); litterCtx.stroke();
+}
+const litterTexture = new THREE.CanvasTexture(litterCanvas);
+litterTexture.colorSpace = THREE.SRGBColorSpace;
+const litterMaterial = new THREE.MeshStandardMaterial({
+  map: litterTexture, transparent: false, alphaTest: 0.35,
+  side: THREE.DoubleSide, roughness: 1, depthWrite: true
+});
+const litterCount = 1900;
+const litter = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.32, 0.66), litterMaterial, litterCount);
+const litterTransform = new THREE.Object3D();
+const litterItems = [];
+let litterSeed = 4093;
+const litterRand = () => ((litterSeed = (1664525 * litterSeed + 1013904223) >>> 0) / 4294967296);
+const litterColors = [0x756b49, 0x85734d, 0x6e7650, 0x554f37, 0x9b8456];
+for (let i = 0; i < litterCount; i++) {
+  const side = litterRand() < 0.5 ? -1 : 1;
+  const item = {
+    x: side * (4.3 + litterRand() * 19),
+    z: 12 - litterRand() * 161,
+    rotation: litterRand() * Math.PI * 2,
+    scale: 0.3 + litterRand() * 1.5
+  };
+  litterItems.push(item);
+  litter.setColorAt(i, new THREE.Color(litterColors[Math.floor(litterRand() * litterColors.length)]));
+}
+function updateLitter() {
+  for (let i = 0; i < litterCount; i++) {
+    const leaf = litterItems[i];
+    litterTransform.position.set(leaf.x, -0.208 + i % 4 * 0.002, leaf.z);
+    litterTransform.rotation.set(-Math.PI / 2, 0, leaf.rotation);
+    litterTransform.scale.setScalar(leaf.scale);
+    litterTransform.updateMatrix();
+    litter.setMatrixAt(i, litterTransform.matrix);
+  }
+  litter.instanceMatrix.needsUpdate = true;
+}
+updateLitter();
+litter.frustumCulled = false;
+scene.add(litter);
+
+// Imported CC0 granite and detailed bush models complement the procedural
+// instanced ground clutter. Only a few near-camera props are used.
+const natureProps = [];
+for (const [filename, count, height] of [
+  ['rock-largea.glb', 7, 1.0],
+  ['rock-largeb.glb', 7, 1.25],
+  ['rock-largec.glb', 6, 1.0],
+  ['rock-largee.glb', 6, 1.15],
+  ['rock-talla.glb', 5, 1.8],
+  ['rock-tallc.glb', 5, 1.5],
+  ['plant-bushdetailed.glb', 12, 1.3],
+  ['plant-bushlarge.glb', 14, 1.7],
+  ['plant-bushsmall.glb', 18, 0.8],
+  ['grass-large.glb', 24, 0.65]
+]) {
+  natureLoader.load('./models/nature/' + filename, (gltf) => {
+    assetLoaded('models', filename);
+    const box = new THREE.Box3().setFromObject(gltf.scene);
+    const dimensions = new THREE.Vector3(); box.getSize(dimensions);
+    if (dimensions.y < 0.001) return;
+    for (let i = 0; i < count; i++) {
+      const prop = gltf.scene.clone(true);
+      const factor = height / dimensions.y * (0.72 + (i % 4) * 0.16);
+      prop.scale.setScalar(factor);
+      prop.position.set((i % 2 ? 1 : -1) * (5.7 + (i * 7 % 12)),
+        -0.22 - box.min.y * factor,
+        8 - i * 13 - (filename.length % 7));
+      prop.rotation.y = i * 2.39996;
+      prop.traverse((part) => { if (part.isMesh) part.receiveShadow = true; });
+      prop.userData.natureBaseY = prop.position.y;
+      scene.add(prop);
+      natureProps.push(prop);
+    }
+  }, undefined, () => {});
+}
+
+// Near-road undergrowth: hundreds of crossed, curved leaf blades in a single
+// GPU instanced draw call. Naturalistic silhouettes without billboard sprites.
+const fernBladeGeometry = new THREE.BufferGeometry();
+const fernPositions = [], fernUvs = [];
+for (let frond = 0; frond < 7; frond++) {
+  const angle = frond * Math.PI * 2 / 7;
+  const ux = Math.cos(angle), uz = Math.sin(angle);
+  const vx = -uz, vz = ux;
+  for (let segment = 0; segment < 7; segment++) {
+    const t0 = segment / 7, t1 = (segment + 1) / 7;
+    const width0 = Math.sin(Math.PI * (0.08 + t0 * 0.92)) * 0.14;
+    const width1 = Math.sin(Math.PI * (0.08 + t1 * 0.92)) * 0.14;
+    const point = (t, width, side) => [ux * t * 0.82 + vx * width * side,
+      0.05 + t * 0.88 - t * t * 0.28,
+      uz * t * 0.82 + vz * width * side];
+    const p0 = point(t0, width0, -1), p1 = point(t0, width0, 1);
+    const p2 = point(t1, width1, -1), p3 = point(t1, width1, 1);
+    fernPositions.push(...p0,...p1,...p2,...p2,...p1,...p3);
+    fernUvs.push(0,t0,1,t0,0,t1,0,t1,1,t0,1,t1);
+  }
+}
+fernBladeGeometry.setAttribute('position', new THREE.Float32BufferAttribute(fernPositions, 3));
+fernBladeGeometry.setAttribute('uv', new THREE.Float32BufferAttribute(fernUvs, 2));
+fernBladeGeometry.computeVertexNormals();
+const fernMaterial = new THREE.MeshStandardMaterial({color:0x354c2e,
+  side:THREE.DoubleSide,roughness:0.97,metalness:0});
+const fernCount = 1250;
+const ferns = new THREE.InstancedMesh(fernBladeGeometry, fernMaterial, fernCount);
+const fernDummy = new THREE.Object3D();
+const fernLocations = [];
+let fernSeed = 314159;
+const fernRand = () => ((fernSeed = (1664525 * fernSeed + 1013904223) >>> 0) / 4294967296);
+for (let i = 0; i < fernCount; i++) {
+  const side = i % 2 ? 1 : -1;
+  fernLocations.push({x:side*(4.65+fernRand()*21),z:10-fernRand()*160,
+    scale:0.55+fernRand()*1.1,rotation:fernRand()*Math.PI*2});
+}
+function updateFerns() {
+  fernLocations.forEach((fern,i)=>{
+    fernDummy.position.set(fern.x,-0.18,fern.z);
+    fernDummy.rotation.set(0,fern.rotation,0);
+    fernDummy.scale.setScalar(fern.scale);
+    fernDummy.updateMatrix(); ferns.setMatrixAt(i,fernDummy.matrix);
+  });
+  ferns.instanceMatrix.needsUpdate=true;
+}
+updateFerns();
+ferns.frustumCulled=false;
+scene.add(ferns);
+// Randomized fern color per instance, avoiding a flat monochrome carpet.
+const fernTint = new THREE.Color();
+for (let i=0; i<fernCount; i++) {
+  const variation = (i*37%113)/113;
+  fernTint.setHSL(0.26+variation*0.035,0.19+variation*0.16,0.26+variation*0.18);
+  ferns.setColorAt(i,fernTint);
+}
+if (ferns.instanceColor) ferns.instanceColor.needsUpdate=true;
 
 // Cespugli
 // Cespugli a foglie ritagliate: silhouette naturali con poche superfici.
@@ -494,9 +1230,11 @@ function createBush(x, z, scale = 1) {
   const group = new THREE.Group();
   group.position.set(x, 0, z);
   group.scale.setScalar(scale);
+  const variation = Math.abs(Math.sin(x * 7.31 + z * 3.97));
+  group.rotation.y = variation * Math.PI * 2;
   for (let i = 0; i < 3; i++) {
     const foliage = new THREE.Mesh(shrubGeometry, shrubMaterial);
-    foliage.position.y = 0.64;
+    foliage.position.y = 0.60 + variation * 0.13;
     foliage.rotation.y = i * Math.PI / 3;
     foliage.castShadow = false;
     group.add(foliage);
@@ -539,7 +1277,19 @@ for (let i = 0; i < 128; i += 4) {
 const sackTexture = new THREE.CanvasTexture(sackCanvas);
 sackTexture.colorSpace = THREE.SRGBColorSpace;
 const sackMat = new THREE.MeshStandardMaterial({map: sackTexture, roughness: 1});
+// A softened, slightly flattened sack shape avoids perfect ball-like sandbags.
+// Shared geometry keeps the fortification detail inexpensive on mobile.
 const sackGeometry = new THREE.SphereGeometry(0.27, 12, 8);
+const sackPosition = sackGeometry.getAttribute('position');
+for (let i = 0; i < sackPosition.count; i++) {
+  const x = sackPosition.getX(i);
+  const y = sackPosition.getY(i);
+  const z = sackPosition.getZ(i);
+  const wrinkle = 1 + 0.035 * Math.sin(x * 37 + z * 19) * Math.cos(y * 28);
+  sackPosition.setXYZ(i, x * wrinkle, y * 0.82, z * wrinkle);
+}
+sackPosition.needsUpdate = true;
+sackGeometry.computeVertexNormals();
 
 // Scenario militare ispirato a un percorso forestale storico
 const scenery = [];
@@ -565,6 +1315,17 @@ function watchTower(x, z) {
   const timber = weatheredWood(0xb3a18a);
   for (const dx of [-0.7, 0.7]) for (const dz of [-0.7, 0.7]) {
     addBox(g, [0.18, 5.6, 0.18], timber, [dx, 2.8, dz]);
+  }
+  // Cross-braced supports prevent the tower from reading as four floating posts.
+  for (const side of [-1, 1]) {
+    for (const height of [1.65, 3.75]) {
+      const frontBrace = addBox(g, [0.11, 2.1, 0.13], timber,
+        [0, height, side * 0.7]);
+      frontBrace.rotation.z = side * 0.59;
+      const sideBrace = addBox(g, [0.13, 2.1, 0.11], timber,
+        [side * 0.7, height, 0]);
+      sideBrace.rotation.x = side * 0.59;
+    }
   }
   addBox(g, [2.2, 0.25, 2.2], timber, [0, 5.25, 0]);
   addBox(g, [2.5, 0.24, 2.5], timber, [0, 6.7, 0]);
@@ -668,16 +1429,87 @@ const banner = new THREE.Mesh(new THREE.PlaneGeometry(7.8, 1.45),
   new THREE.MeshBasicMaterial({map: bannerTexture, side: THREE.DoubleSide}));
 banner.position.set(0, 4.2, 0.04);
 finishGate.add(banner);
-finishGate.visible = false;
-finishGate.position.set(0, 0, -97);
+// Period-style environmental graphics matching the supplied WWII game reference.
+// Painted onto canvases to avoid image downloads and additional dependencies.
+function paintedSign(lines, background, ink, width = 512, height = 768) {
+  const canvas = document.createElement('canvas');
+  canvas.width = width; canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = background; ctx.fillRect(0, 0, width, height);
+  let seed = 7203;
+  const random = () => ((seed = (1664525 * seed + 1013904223) >>> 0) / 4294967296);
+  for (let i = 0; i < 2700; i++) {
+    ctx.fillStyle = random() > 0.5 ? 'rgba(0,0,0,0.09)' : 'rgba(255,240,205,0.055)';
+    ctx.fillRect(random()*width, random()*height, 2+random()*18, 1+random()*8);
+  }
+  ctx.strokeStyle = '#ab9a76'; ctx.lineWidth = 14;
+  ctx.strokeRect(18, 18, width-36, height-36);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = ink;
+  const fontSize = Math.floor(Math.min(width / 6.5, height / (lines.length * 2.3)));
+  ctx.font = 'bold ' + fontSize + 'px Georgia,serif';
+  lines.forEach((line, index) => ctx.fillText(line, width/2,
+    height * (0.32 + index * 0.15), width - 70));
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+function addFinishSign(lines, background, ink, x, y, z, w, h) {
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(w, h),
+    new THREE.MeshStandardMaterial({map: paintedSign(lines, background, ink),
+      roughness: 0.95, side: THREE.DoubleSide}));
+  sign.position.set(x, y, z);
+  finishGate.add(sign);
+  return sign;
+}
+// Green propaganda placard on the left and tall DUX standard on the right.
+addFinishSign(['VINCERE', 'PER', "L'ITALIA"], '#34443b', '#e1d6b4',
+  -6.8, 2.9, 5.8, 3.5, 3.0);
+addFinishSign(['DUX', '★', 'SPQR'], '#34362c', '#b7a277',
+  6.7, 4.1, 5.8, 2.7, 5.4);
+// Two vertical red banners with white roundels and black hooked-cross
+// historical symbols, only as scenery in the fictional period setting.
+function makeHistoricalBanner() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256; canvas.height = 640;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#9c302e'; ctx.fillRect(0,0,256,640);
+  const grad = ctx.createLinearGradient(0,0,256,0);
+  grad.addColorStop(0,'rgba(0,0,0,0.28)');
+  grad.addColorStop(0.48,'rgba(255,255,255,0.08)');
+  grad.addColorStop(1,'rgba(0,0,0,0.23)');
+  ctx.fillStyle=grad;ctx.fillRect(0,0,256,640);
+  ctx.fillStyle='#ece5d8'; ctx.beginPath();ctx.arc(128,138,96,0,Math.PI*2);ctx.fill();
+  ctx.save();ctx.translate(128,138);ctx.rotate(Math.PI/4);
+  ctx.fillStyle='#191919';
+  ctx.fillRect(-14,-72,28,144);ctx.fillRect(-72,-14,144,28);
+  ctx.fillRect(0,-72,70,25);ctx.fillRect(47,-72,23,58);
+  ctx.fillRect(0,47,70,25);ctx.fillRect(47,14,23,58);
+  ctx.fillRect(-70,47,70,25);ctx.fillRect(-70,14,23,58);
+  ctx.fillRect(-70,-72,70,25);ctx.fillRect(-70,-72,23,58);
+  ctx.restore();
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+const periodFlagMat = new THREE.MeshStandardMaterial({
+  map: makeHistoricalBanner(), side: THREE.DoubleSide, roughness: 0.97
+});
+for (const x of [-4.25,4.25]) {
+  const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.45, 3.55), periodFlagMat);
+  flag.position.set(x, 3.18, 0.25);
+  finishGate.add(flag);
+}
+finishGate.visible = true;
+finishGate.position.set(0, 0, -27);
 scene.add(finishGate);
 
 // Foschia naturale al posto delle montagne coniche artificiali.
 // Dettagli del sottobosco
 // Vegetazione istanziata: una draw call per 500 fili anziché 500 mesh.
-const grassCount = 300;
+const grassCount = 2600;
 const grassMaterial = new THREE.MeshStandardMaterial({
-  color: 0x647552, side: THREE.DoubleSide, roughness: 1
+  color: 0x526747, side: THREE.DoubleSide, roughness: 1
 });
 // Lama d'erba incurvata invece di coni appuntiti.
 const grassGeometry = new THREE.BufferGeometry();
@@ -728,6 +1560,15 @@ for (let z = 15; z > -145; z -= 9) {
     0.75 + Math.random() * 0.65
   );
 
+  // Staggered background trunks add forest depth without narrowing the
+  // playable road. Sparse enough to preserve Android draw-call budget.
+  if (Math.random() > 0.46) {
+    createTree(-11.5 - Math.random() * 5, z - 4, 0.6 + Math.random() * 0.5);
+  }
+  if (Math.random() > 0.46) {
+    createTree(11.5 + Math.random() * 5, z - 6, 0.6 + Math.random() * 0.5);
+  }
+
   if (Math.random() > 0.25) {
     createBush(
       -4.8 - Math.random() * 3,
@@ -763,6 +1604,27 @@ const player = new THREE.Group();
 scene.add(player);
 player.position.set(0, 0, 3);
 
+// A second, independent rig waits beneath the finish banner.
+// Uses the existing GLB and shares its geometry/textures to keep APK size low.
+let finishGuardMixer = null;
+const finishGuard = new THREE.Group();
+finishGuard.position.set(0, 0, -0.7);
+finishGate.add(finishGuard);
+const finishPlatform = new THREE.Mesh(
+  new THREE.CylinderGeometry(1.15, 1.15, 0.10, 24),
+  new THREE.MeshStandardMaterial({color: 0x8c2c29, roughness: 0.88})
+);
+finishPlatform.position.set(0, 0.05, -0.7);
+finishPlatform.receiveShadow = true;
+finishGate.add(finishPlatform);
+// Small front-facing marker makes the waiting character readable at distance.
+const podiumRim = new THREE.Mesh(
+  new THREE.CylinderGeometry(1.20, 1.20, 0.045, 24),
+  new THREE.MeshStandardMaterial({color: 0xb44b3b, roughness: 0.74})
+);
+podiumRim.position.set(0, 0.115, -0.7);
+finishGate.add(podiumRim);
+
 const soldierClock = new THREE.Clock();
 let soldierMixer = null;
 let soldierRun = null;
@@ -772,13 +1634,107 @@ let soldierActiveAction = null;
 
 const loader = new GLTFLoader();
 
+// Historical replacement takes precedence when a verified rigged GLB with
+// embedded locomotion animations is available. A missing/invalid asset falls
+// back to the existing animated soldier rather than breaking gameplay.
+function loadRunnerModel(path, fallback = false, animationSource = null) {
 loader.load(
-  './models/Soldier.glb',
+  path,
   (gltf) => {
+    const hasRig = !!gltf.scene.getObjectByProperty('isSkinnedMesh', true) ||
+      (() => { let found = false; gltf.scene.traverse(p => { if (p.isSkinnedMesh) found = true; }); return found; })();
+    const hasRun = gltf.animations.some(clip => /run|walk/i.test(clip.name));
+    if (!fallback && !hasRig) {
+      console.warn('[Corsa Character] historical GLB missing rig/run animation; falling back');
+      loadRunnerModel('./models/Soldier.glb', true);
+      return;
+    }
+    if (!fallback && !hasRun && !animationSource) {
+      loader.load('./models/Soldier.glb', (source) => loadRunnerModel(path, false, source),
+        undefined, () => loadRunnerModel('./models/Soldier.glb', true));
+      return;
+    }
+    window.corsaRunnerAsset = fallback ? 'Soldier.glb (modern fallback)' : path;
+    console.info('[Corsa Character] active runner asset:', window.corsaRunnerAsset);
     const soldier = gltf.scene;
 
     // Il GLB guarda gia verso -Z: non ruotarlo verso la telecamera.
     soldier.rotation.y = 0;
+    // Neutral charcoal uniform treatment inspired by the reference runner.
+    // Retain original GLB textures and skinning instead of replacing them.
+    soldier.traverse((part) => {
+      if (!part.isMesh || !part.material) return;
+      const mats = Array.isArray(part.material) ? part.material : [part.material];
+      const adjusted = mats.map((original) => {
+        const mat = original.clone();
+        const name = ((part.name || '') + ' ' + (original.name || '')).toLowerCase();
+        if (mat.color && /uniform|jacket|coat|pants|trouser|shirt|fabric|cloth|vest/.test(name)) {
+          mat.color.multiply(new THREE.Color(0x666b67));
+          mat.roughness = Math.max(mat.roughness ?? 0.8, 0.88);
+        }
+        return mat;
+      });
+      part.material = Array.isArray(part.material) ? adjusted : adjusted[0];
+    });
+    // Historical silhouette pass: hide modern tactical backpack and helmet
+    // when those pieces are separate named meshes. Keep the animated rig.
+    let hiddenModernParts = 0;
+    soldier.traverse((part) => {
+      if (!part.isMesh) return;
+      const label = part.name.toLowerCase();
+      if (/(backpack|rucksack|tactical_pack|helmet|kneepad|knee_pad)/.test(label)) {
+        part.visible = false;
+        hiddenModernParts++;
+      }
+    });
+    // The cap follows the animated head bone, rather than floating at a
+    // fixed world coordinate. This is an interim silhouette improvement.
+    let headBone = null;
+    soldier.traverse((part) => {
+      if (!headBone && part.isBone && /(?:^|[:_.])head(?:[_0-9]*|$)/i.test(part.name)) headBone = part;
+    });
+    if (headBone) {
+      const cap = new THREE.Group();
+      const darkCloth = new THREE.MeshStandardMaterial({color: 0x222624, roughness: 0.94});
+      const capBand = new THREE.MeshStandardMaterial({color: 0x101414, roughness: 0.72});
+      const capTop = new THREE.Mesh(new THREE.CylinderGeometry(0.135, 0.122, 0.055, 24), darkCloth);
+      capTop.position.y = 0.155;
+      cap.add(capTop);
+      const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.125, 0.108, 0.115, 24), darkCloth);
+      crown.position.y = 0.083;
+      cap.add(crown);
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(0.109, 0.109, 0.037, 24), capBand);
+      band.position.y = 0.023;
+      cap.add(band);
+      const visor = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), capBand);
+      visor.scale.set(1.12, 0.12, 0.72);
+      visor.position.set(0, 0.005, -0.092);
+      cap.add(visor);
+      cap.position.set(0, 0.13, 0);
+      cap.scale.setScalar(0.92);
+      cap.traverse((part) => { if (part.isMesh) part.castShadow = true; });
+      headBone.add(cap);
+    }
+    // Record the actual mesh/bone layout so the next character replacement
+    // can target this GLB rather than guessing from a screenshot.
+    const soldierParts = [];
+    soldier.traverse((part) => {
+      if (part.isMesh || part.isBone) soldierParts.push({
+        type: part.isBone ? 'bone' : 'mesh',
+        name: part.name || '(unnamed)',
+        visible: part.visible
+      });
+    });
+    window.corsaCharacterDiagnostics = {
+      source: 'Soldier.glb',
+      headBone: headBone?.name || null,
+      hiddenModernParts,
+      parts: soldierParts
+    };
+    console.info('[Corsa Soldier] hidden modern parts:', hiddenModernParts, 'animated head:', !!headBone);
+    console.info('[Corsa Soldier] model hierarchy:', window.corsaCharacterDiagnostics);
+    // Preserve a stable base transform even if animation clips include root motion.
+    soldier.userData.groundAnchorY = 0;
 
     soldier.traverse((object) => {
       if (!object.isMesh) return;
@@ -796,8 +1752,10 @@ loader.load(
           const exposedSkin = /skin|face|head|hand|neck|eye|teeth|hair/.test(partName);
           if (!exposedSkin && material.color) {
             // Moltiplicatore cromatico, non sostituzione della texture PBR.
-            material.color.multiply(new THREE.Color(0x53575b));
-            material.roughness = Math.max(material.roughness ?? 0.8, 0.83);
+            // Preserve the original GLB fabric detail: a strong dark tint
+            // previously crushed most of the soldier's midtone information.
+            material.color.multiply(new THREE.Color(0xb0b5a7));
+            material.roughness = Math.max(material.roughness ?? 0.8, 0.78);
           }
           material.needsUpdate = true;
         }
@@ -818,13 +1776,125 @@ loader.load(
       soldier.updateMatrixWorld(true);
       const scaledBounds = new THREE.Box3().setFromObject(soldier);
       soldier.position.y -= scaledBounds.min.y;
+      soldier.userData.groundAnchorY = soldier.position.y;
       soldier.position.x -= (scaledBounds.min.x + scaledBounds.max.x) / 2;
       soldier.position.z -= (scaledBounds.min.z + scaledBounds.max.z) / 2;
     }
 
+    // Keep the visible skinned mesh grounded after the initial pose is applied.
+    // Imported rigs may use an offset on an animated bone rather than the scene root.
+    const groundProbe = new THREE.Box3();
+    let groundCheckFrame = 0;
+    const keepSoldierGrounded = () => {
+      // The expensive skinned bounding-box check is periodic, not per-frame.
+      if (++groundCheckFrame > 10 && groundCheckFrame % 30 !== 0) return;
+      soldier.updateMatrixWorld(true);
+      groundProbe.setFromObject(soldier);
+      if (groundProbe.isEmpty() || !Number.isFinite(groundProbe.min.y)) return;
+      // Compute in world coordinates: the player is at y=0 while running.
+      const worldFloor = player.position.y;
+      const penetration = worldFloor - groundProbe.min.y;
+      if (penetration > 0.035 && penetration < 2.5) {
+        soldier.position.y += penetration;
+        soldier.userData.groundAnchorY = soldier.position.y;
+      }
+    };
+    // Protect the camera against Mixamo retarget pose explosions.
+    // The uploaded rig has a different bind pose than Soldier.glb; a bad
+    // retarget can expand the skinned mesh tens of times beyond its rest size.
+    const safetyBounds = new THREE.Box3();
+    const safetySize = new THREE.Vector3();
+    let safetyFrames = 0;
+    soldier.userData.keepInCamera = () => {
+      if (++safetyFrames % 3 !== 0) return;
+      soldier.updateMatrixWorld(true);
+      safetyBounds.setFromObject(soldier);
+      if (safetyBounds.isEmpty()) return;
+      safetyBounds.getSize(safetySize);
+      if (![safetySize.x, safetySize.y, safetySize.z].every(Number.isFinite)) return;
+      const maxRatio = Math.max(safetySize.x / 1.5, safetySize.y / 2.15, safetySize.z / 1.5);
+      if (maxRatio > 1.05) {
+        const factor = Math.max(0.05, 1 / maxRatio);
+        soldier.scale.multiplyScalar(factor);
+        soldier.updateMatrixWorld(true);
+        safetyBounds.setFromObject(soldier);
+        soldier.position.x -= (safetyBounds.min.x + safetyBounds.max.x) * 0.5 - player.position.x;
+        soldier.position.z -= (safetyBounds.min.z + safetyBounds.max.z) * 0.5 - player.position.z;
+        soldier.position.y += player.position.y - safetyBounds.min.y;
+        soldier.userData.groundAnchorY = soldier.position.y;
+        console.warn('[Corsa Character] oversized animated rig clamped', maxRatio);
+      }
+    };
+    soldier.userData.keepGrounded = keepSoldierGrounded;
+    keepSoldierGrounded();
+
+    // Dedicated officer mesh with a peaked cap and gray tunic. It is a
+    // separate 3D character, not another copy of the runner.
+    const guard = createFinishOfficer();
+    guard.rotation.y = Math.PI;
+    finishGuard.add(guard);
+    // Prefer a textured, human-proportioned CC0 officer stand-in with a
+    // peaked cap. This navy-uniform model is NOT a historical WWII officer.
+    // Keep the existing procedural figure if the asset is missing.
+    loader.load('./models/characters/officer-standing.glb', (officerGltf) => {
+      const detailedOfficer = officerGltf.scene;
+      detailedOfficer.updateMatrixWorld(true);
+      const bounds = new THREE.Box3().setFromObject(detailedOfficer);
+      const size = new THREE.Vector3();
+      bounds.getSize(size);
+      if (!Number.isFinite(size.y) || size.y < 0.1) return;
+      const scale = 2.25 / size.y;
+      detailedOfficer.scale.setScalar(scale);
+      detailedOfficer.position.y = -bounds.min.y * scale;
+      detailedOfficer.position.x = -(bounds.min.x + bounds.max.x) * scale * 0.5;
+      detailedOfficer.position.z = -(bounds.min.z + bounds.max.z) * scale * 0.5;
+      detailedOfficer.rotation.y = Math.PI;
+      detailedOfficer.traverse((part) => {
+        if (!part.isMesh) return;
+        part.castShadow = true;
+        part.receiveShadow = true;
+      });
+      finishGuard.remove(guard);
+      finishGuard.add(detailedOfficer);
+      window.corsaOfficerAsset = 'CC0 textured pilot stand-in';
+      console.info('[Corsa Character] detailed officer loaded');
+    }, undefined, (error) => {
+      window.corsaOfficerAsset = 'procedural fallback';
+      console.warn('[Corsa Character] textured officer unavailable', error);
+    });
+    finishGuardMixer = null;
+
     soldierMixer = new THREE.AnimationMixer(soldier);
 
-    const clips = gltf.animations;
+    let clips = gltf.animations;
+    if (animationSource && !hasRun) {
+      try {
+        let targetSkin = null, sourceSkin = null;
+        soldier.traverse(p => { if (!targetSkin && p.isSkinnedMesh) targetSkin = p; });
+        animationSource.scene.traverse(p => { if (!sourceSkin && p.isSkinnedMesh) sourceSkin = p; });
+        if (!targetSkin || !sourceSkin) throw new Error('Missing skinned mesh');
+        const normalize = n => n.toLowerCase().replace(/^mixamorig[:_]?/, '').replace(/[_0-9]+$/g, '');
+        const sourceByName = new Map(sourceSkin.skeleton.bones.map(b => [normalize(b.name), b.name]));
+        const names = {};
+        for (const bone of targetSkin.skeleton.bones) {
+          const sourceName = sourceByName.get(normalize(bone.name));
+          if (sourceName) names[bone.name] = sourceName;
+        }
+        if (Object.keys(names).length < 12) throw new Error('Only ' + Object.keys(names).length + ' matching bones');
+        clips = animationSource.animations.map(clip => retargetClip(targetSkin, sourceSkin, clip, {
+          names, hip: targetSkin.skeleton.bones.find(b => /hips/i.test(b.name))?.name,
+          useFirstFramePosition: false
+        }));
+        // Retargeted hip translation is in source-rig units and can throw
+        // the model into the camera. Only preserve joint rotations.
+        for (const clip of clips) clip.tracks = clip.tracks.filter(track => !track.name.endsWith('.position') && !track.name.endsWith('.scale'));
+        window.corsaCharacterRetarget = { bones: Object.keys(names).length, clips: clips.map(c => c.name) };
+      } catch (error) {
+        console.warn('[Corsa Character] retarget failed', error);
+        loadRunnerModel('./models/Soldier.glb', true);
+        return;
+      }
+    }
     const runClip = clips.find((clip) =>
       /run|walk/i.test(clip.name)
     );
@@ -835,28 +1905,35 @@ loader.load(
       /jump|vault|hop/i.test(clip.name)
     );
 
-    // Rimuove la traslazione verticale del nodo radice dalla corsa:
-    // il personaggio resta appoggiato al terreno, mentre le ossa si animano.
-    const groundedRunClip = runClip ? runClip.clone() : null;
-    if (groundedRunClip) {
-      groundedRunClip.tracks = groundedRunClip.tracks.filter((track) => {
+    // Root/hip translation from imported clips may shift the entire skinned
+    // character below ground at startup. Strip translation only from the
+    // armature/root/hips; preserve limb rotation and all other animation.
+    const groundedClip = (clip) => {
+      if (!clip) return null;
+      const grounded = clip.clone();
+      grounded.tracks = grounded.tracks.filter((track) => {
         if (!track.name.endsWith('.position')) return true;
         const node = track.name.slice(0, -'.position'.length).toLowerCase();
-        return !/^(root|armature|hips|pelvis|mixamorig:hips)$/.test(node);
+        return !/(^|[|/:])(root|armature|hips|pelvis|mixamorig:hips)$/.test(node);
       });
-      soldierRun = soldierMixer.clipAction(groundedRunClip);
-    }
+      return grounded;
+    };
+    if (runClip) soldierRun = soldierMixer.clipAction(groundedClip(runClip));
 
     if (jumpClip) {
-      soldierJump = soldierMixer.clipAction(jumpClip);
+      soldierJump = soldierMixer.clipAction(groundedClip(jumpClip));
       soldierJump.setLoop(THREE.LoopOnce, 1);
       soldierJump.clampWhenFinished = true;
     }
 
     if (idleClip) {
-      soldierIdle = soldierMixer.clipAction(idleClip);
+      const guardIdle = finishGuardMixer.clipAction(groundedClip(idleClip));
+      guardIdle.play();
+    }
+    if (idleClip) {
+      soldierIdle = soldierMixer.clipAction(groundedClip(idleClip));
     } else if (clips.length && !soldierRun) {
-      soldierIdle = soldierMixer.clipAction(clips[0]);
+      soldierIdle = soldierMixer.clipAction(groundedClip(clips[0]));
     }
 
     console.log(
@@ -867,9 +1944,16 @@ loader.load(
   undefined,
   (error) => {
     console.error('Errore caricamento Soldier.glb:', error);
-    message.textContent = 'ERRORE NEL CARICAMENTO DEL SOLDATO';
+    if (!fallback) {
+      console.warn('[Corsa Character] historical model not installed, loading existing animated runner');
+      loadRunnerModel('./models/Soldier.glb', true);
+    } else {
+      message.textContent = 'ERRORE NEL CARICAMENTO DEL SOLDATO';
+    }
   }
 );
+}
+loadRunnerModel('./models/historical-runner.glb');
 
 
 // Il modello Soldier.glb sostituisce il vecchio soldato costruito con cubi.
@@ -969,12 +2053,17 @@ let distance = 0;
 let lane = 1;
 let jumpVelocity = 0;
 let jumping = false;
+let duckFrames = 0;
 const speed = 0.25;
 let score = 0;
 let health = 3;
 let lastTime = 0;
+let falling = false;
+let fallProgress = 0;
+const fallDuration = 42; // approximately 0.7 seconds at 60 FPS
 
 function start() {
+  if (falling) return;
   if (ended) {
     window.location.reload();
     return;
@@ -985,12 +2074,14 @@ function start() {
 }
 
 function move(direction) {
+  if (falling) return;
   if (!running) start();
 
   lane = Math.max(0, Math.min(2, lane + direction));
 }
 
 function jump() {
+  if (falling) return;
   if (!running) start();
 
   if (!jumping) {
@@ -1002,11 +2093,16 @@ function jump() {
 leftButton.onclick = () => move(-1);
 rightButton.onclick = () => move(1);
 jumpButton.onclick = jump;
+duckButton.onclick = () => {
+  if (falling) return;
+  if (!running) start();
+  if (!jumping) duckFrames = 42;
+};
 
 // The end-of-run overlay tells players to tap to restart. Allow that tap
 // to reach start(), which already handles the ended state by reloading.
 canvas.addEventListener('pointerdown', () => {
-  if (!running) start();
+  if (!running && !falling) start();
 });
 
 window.addEventListener('keydown', event => {
@@ -1031,9 +2127,25 @@ function animate(time) {
   const dt = Math.min(((time - lastTime) / 16.67) || 1, 2);
   lastTime = time;
 
+  if (falling) {
+    // A brief forward tumble plays before the restart prompt appears.
+    fallProgress = Math.min(1, fallProgress + dt / fallDuration);
+    const eased = 1 - Math.pow(1 - fallProgress, 3);
+    player.rotation.x = -1.30 * eased;
+    player.rotation.z = Math.sin(fallProgress * Math.PI) * 0.13;
+    player.position.y = Math.sin(eased * Math.PI * 0.5) * 0.13;
+    if (fallProgress >= 1) {
+      falling = false;
+      ended = true;
+      message.textContent = 'SEI CADUTO — TOCCA PER RIPROVARE';
+    }
+  }
+
   if (running) {
+    if (duckFrames > 0) duckFrames = Math.max(0, duckFrames - dt);
+    player.scale.y = THREE.MathUtils.damp(player.scale.y, duckFrames > 0 ? 0.72 : 1, 12, dt / 60);
     distance += speed * dt;
-    stats.textContent = `❤️ ${'♥'.repeat(health)}  |  PUNTI: ${score}  |  TRAGUARDO: ${Math.max(0, 1000 - Math.floor(distance * 2))} m`;
+    stats.textContent = `❤️ ${'♥'.repeat(health)}  |  PUNTI: ${score}  |  TRAGUARDO: ${Math.max(0, 200 - Math.floor(distance * 0.46))} m`;
 
     // Movimento laterale
     player.position.x = THREE.MathUtils.damp(
@@ -1049,6 +2161,13 @@ function animate(time) {
       0.15,
       dt
     );
+
+    // Recover from invalid/out-of-bounds vertical positions before updating jump.
+    if (!Number.isFinite(player.position.y) || player.position.y < 0) {
+      player.position.y = 0;
+      jumpVelocity = 0;
+      jumping = false;
+    }
 
     // Salto
     if (jumping) {
@@ -1080,15 +2199,47 @@ if (soldierMixer) {
     soldierActiveAction = desiredAction;
   }
 
-  soldierMixer.update(soldierClock.getDelta());
+  // GLTF clips can animate the scene root (especially on repeated starts).
+  // Keep the model's ground anchor fixed; jumping belongs to player.position.y.
+  soldierMixer.update(Math.min(soldierClock.getDelta(), 0.05));
+  const soldierRoot = player.children[0];
+  if (soldierRoot && Number.isFinite(soldierRoot.userData.groundAnchorY)) {
+    soldierRoot.position.y = soldierRoot.userData.groundAnchorY;
+    // Check the skinned mesh, not just the group origin: some GLBs move
+    // the feet through bone transforms on their first animation frame.
+    if (soldierRoot.userData.keepInCamera) soldierRoot.userData.keepInCamera();
+    if (soldierRoot.userData.keepGrounded) soldierRoot.userData.keepGrounded();
+  }
 }
 
-    // Il portale si avvicina solo nell'ultimo tratto del livello.
-    if (distance >= 400) {
-      finishGate.visible = true;
-      // Ferma il portale prima che oltrepassi il personaggio o la camera.
-      finishGate.position.z = -97 + Math.min(distance - 400, 100) * 0.90;
+    if (finishGuardMixer && finishGate.visible) finishGuardMixer.update(Math.min(dt / 60, 0.05));
+
+    // The historical finish set is visible from the first frame, as in
+    // the reference image. Bring it forward gradually but never past player.
+    finishGate.position.z = -27 + Math.min(distance * 0.055, 22);
+
+    for (const rock of boulderPositions) {
+      rock.z += speed * dt;
+      if (rock.z > 15) rock.z -= 165;
     }
+    if ((debrisUpdateFrame & 1) === 0) updateBoulders();
+
+    for (const fern of fernLocations) {
+      fern.z += speed * dt;
+      if (fern.z > 14) fern.z -= 160;
+    }
+    updateFerns();
+    for (const prop of natureProps) {
+      prop.position.z += speed * dt;
+      if (prop.position.z > 15) prop.position.z -= 165;
+    }
+
+    // Recycle weathered road lines with the scrolling ground.
+    for (const mark of roadMarkPositions) {
+      mark.z += speed * dt;
+      if (mark.z > 15) mark.z -= 168;
+    }
+    if ((debrisUpdateFrame & 1) === 0) updateRoadMarks();
 
     // Strada in movimento
     for (const dash of dashes) {
@@ -1109,6 +2260,26 @@ if (soldierMixer) {
       }
     }
 
+    // Recycle small forest-floor details in the same scrolling world.
+    for (const item of forestDebrisPositions) {
+      item.z += speed * dt;
+      if (item.z > 15) item.z -= 160;
+    }
+    for (const patch of mossPositions) {
+      patch.z += speed * dt;
+      if (patch.z > 15) patch.z -= 160;
+    }
+    if ((debrisUpdateFrame++ & 1) === 0) {
+      updateForestDebris();
+      updateMoss();
+    }
+
+    // Keep wet-soil patches travelling with the terrain.
+    for (const patch of mudPatches) {
+      patch.position.z += speed * dt;
+      if (patch.position.z > 15) patch.position.z -= 160;
+    }
+
     // Riciclo degli elementi del paesaggio
     for (const tree of forest) {
       tree.position.z += speed * dt;
@@ -1117,6 +2288,12 @@ if (soldierMixer) {
         tree.position.z -= 160;
       }
     }
+
+    for (const leaf of litterItems) {
+      leaf.z += speed * dt;
+      if (leaf.z > 15) leaf.z -= 161;
+    }
+    if ((grassUpdateFrame & 1) === 0) updateLitter();
 
     for (const tuft of grassPositions) {
       tuft.z += speed * dt;
@@ -1159,9 +2336,12 @@ if (soldierMixer) {
           player.position.y < 0.65
         ) {
           running = false;
-          ended = true;
-          message.textContent =
-            'SEI STATO FERMATO — TOCCA PER RIPROVARE';
+          falling = true;
+          fallProgress = 0;
+          jumping = false;
+          jumpVelocity = 0;
+          if (soldierActiveAction) soldierActiveAction.paused = true;
+          message.textContent = 'COLPITO!';
         }
       }
 
@@ -1183,21 +2363,31 @@ if (soldierMixer) {
   }
 
   // Camera ravvicinata dietro al soldato
+  const landscape = innerWidth > innerHeight;
   targetCamera.set(
     player.position.x * 0.25,
-    3.35 + player.position.y * 0.22,
-    7.1
+    (landscape ? 3.05 : 3.35) + player.position.y * 0.22,
+    landscape ? 7.8 : 7.1
   );
 
   camera.position.lerp(targetCamera, 0.04);
 
   camera.lookAt(
     player.position.x * 0.18,
-    1.55 + player.position.y * 0.25,
-    -5
+    (landscape ? 1.35 : 1.55) + player.position.y * 0.25,
+    landscape ? -7 : -5
   );
 
-  renderer.render(scene, camera);
+  if (currentQuality === 'ultra' && ultraComposer) {
+    try { ultraComposer.render(); }
+    catch (error) {
+      console.warn('[Corsa Renderer] GTAO failed, switching to safe fallback', error);
+      ultraComposer = null;
+      if (cinematicComposer) cinematicComposer.render();
+      else renderer.render(scene, camera);
+    }
+  } else if (cinematicComposer && qualityPresets[currentQuality].post) cinematicComposer.render();
+  else renderer.render(scene, camera);
 }
 
 requestAnimationFrame(animate);
@@ -1208,6 +2398,8 @@ window.addEventListener('resize', () => {
 
   renderer.setSize(innerWidth, innerHeight);
   renderer.setPixelRatio(
-    Math.min(window.devicePixelRatio || 1, 1.15)
+    Math.min(window.devicePixelRatio || 1, qualityPresets[currentQuality].dpr)
   );
+  if (cinematicComposer) cinematicComposer.setSize(innerWidth, innerHeight);
+  if (ultraComposer) ultraComposer.setSize(innerWidth, innerHeight);
 });
