@@ -92,7 +92,7 @@ try {
   cinematicComposer = new EffectComposer(renderer, { multisampling: 0 });
   cinematicComposer.addPass(new RenderPass(scene, camera));
   cinematicComposer.addPass(new EffectPass(camera,
-    new BloomEffect({ intensity: 0.22, luminanceThreshold: 0.88, mipmapBlur: true }),
+    new BloomEffect({ intensity: 0.16, luminanceThreshold: 0.91, mipmapBlur: true }),
     new SMAAEffect(),
     new VignetteEffect({ eskil: false, offset: 0.36, darkness: 0.35 })
   ));
@@ -129,6 +129,9 @@ function applyQuality(value) {
   currentQuality = Object.prototype.hasOwnProperty.call(qualityPresets, value) ? value : 'high';
   const preset = qualityPresets[currentQuality];
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, preset.dpr));
+  // Stronger filmic grading in Ultra; prevent overexposed foliage highlights.
+  renderer.toneMappingExposure = currentQuality === 'ultra' ? 1.02 : 1.12;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.setSize(innerWidth, innerHeight);
   if (cinematicComposer) cinematicComposer.setSize(innerWidth, innerHeight);
   scene.fog.density = preset.fog;
