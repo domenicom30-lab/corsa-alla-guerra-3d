@@ -573,6 +573,9 @@ function createTree(x, z, scale = 1) {
   for (let i = 0; i < 3; i++) {
     const foliage = new THREE.Mesh(pineFoliageGeo, pineFoliageMat);
     foliage.position.y = 2.85 + (variation - 0.5) * 0.28;
+    // Slight canopy-width differences break up repeated cutout silhouettes.
+    foliage.scale.x = 0.88 + variation * 0.24;
+    foliage.scale.y = 0.94 + variation * 0.13;
     foliage.rotation.y = i * Math.PI / 3 + 0.17;
     foliage.castShadow = i === 0;
     foliage.receiveShadow = false;
