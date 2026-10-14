@@ -814,6 +814,27 @@ const sackGeometry = new THREE.SphereGeometry(0.27, 12, 8);
 const obstacles = [];
 const lanes = [-2.5, 0, 2.5];
 
+// Casse militari in legno con assi e rinforzi: materiali condivisi.
+const crateWood = mat(0x57402d);
+const crateTrim = mat(0x382b21);
+function createSupplyCrate(parent, x, y, z, size = 1) {
+  const g = new THREE.Group();
+  g.position.set(x, y, z);
+  g.scale.setScalar(size);
+  addBox(g, [1, 0.95, 1], crateWood, [0, 0.48, 0]);
+  for (const side of [-1, 1]) {
+    for (const offset of [-0.39, 0.39]) {
+      addBox(g, [0.09, 0.98, 0.09], crateTrim, [offset, 0.48, side*0.52]);
+      addBox(g, [0.09, 0.98, 0.09], crateTrim, [side*0.52, 0.48, offset]);
+    }
+    const brace = addBox(g, [0.08, 1.17, 0.08], crateTrim, [0, 0.48, side*0.53]);
+    brace.rotation.z = 0.72;
+  }
+  addBox(g, [1.09, 0.1, 1.09], crateTrim, [0, 0.99, 0]);
+  parent.add(g);
+  return g;
+}
+
 function createObstacle(z) {
   const lane = lanes[Math.floor(Math.random() * lanes.length)];
   const type = Math.random();
@@ -832,7 +853,7 @@ function createObstacle(z) {
         group.add(sack);
       }
     }
-  } else if (type < 0.7) {
+  } else if (type < 0.62) {
     // Tronco caduto
     const log = addCylinder(
       group, 0.22, 0.25, 2.25,
@@ -840,6 +861,9 @@ function createObstacle(z) {
     );
 
     log.rotation.z = Math.PI / 2;
+  } else if (type < 0.82) {
+    // Cassa di rifornimenti, ostacolo leggibile e coerente con la scena.
+    createSupplyCrate(group, 0, 0, 0, 1.05);
   } else {
     // Barriera militare
     addBox(
