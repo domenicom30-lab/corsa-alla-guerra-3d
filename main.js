@@ -30,11 +30,11 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.12;
+renderer.toneMappingExposure = 1.2;\nrenderer.shadowMap.autoUpdate = true;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x9dbbd1);
-scene.fog = new THREE.FogExp2(0x9dbbd1, 0.007);
+scene.fog = new THREE.FogExp2(0x9dbbd1, 0.0055);
 
 const camera = new THREE.PerspectiveCamera(
   62, innerWidth / innerHeight, 0.1, 180
@@ -51,7 +51,7 @@ scene.add(
 const sun = new THREE.DirectionalLight(0xffdfb8, 2.8);
 sun.position.set(-7, 13, 5);
 sun.castShadow = true;
-sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.left = -11;
 sun.shadow.camera.right = 11;
 sun.shadow.camera.top = 15;
@@ -143,9 +143,42 @@ function createDirtTexture() {
   return texture;
 }
 
+// Texture procedurali leggere: dettagli visivi senza download esterni
+function createSurfaceTexture(kind) {
+  const c = document.createElement('canvas');
+  c.width = c.height = 512;
+  const ctx = c.getContext('2d');
+  const road = kind === 'road';
+  ctx.fillStyle = road ? '#55524d' : '#63533e';
+  ctx.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 17000; i++) {
+    const x = Math.random() * 512, y = Math.random() * 512;
+    const v = Math.floor(35 + Math.random() * 110);
+    ctx.fillStyle = road
+      ? `rgba(${v},${v},${v},${Math.random() * .18})`
+      : `rgba(${v},${Math.floor(v*.82)},${Math.floor(v*.6)},${Math.random()*.2})`;
+    ctx.fillRect(x, y, Math.random()*4+1, Math.random()*4+1);
+  }
+  if (road) {
+    for (let i=0;i<70;i++) {
+      ctx.strokeStyle = `rgba(24,22,20,${Math.random()*.13})`;
+      ctx.lineWidth = Math.random()*2+.3;
+      ctx.beginPath();
+      const x=Math.random()*512, y=Math.random()*512;
+      ctx.moveTo(x,y); ctx.lineTo(x+Math.random()*12-6,y+Math.random()*100);
+      ctx.stroke();
+    }
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping;
+  t.repeat.set(2, 30);
+  t.colorSpace=THREE.SRGBColorSpace;
+  t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+  return t;
+}
 const dirtTexture = createDirtTexture();
 dirtMat.map = dirtTexture;
-roadMat.map = dirtTexture;
+roadMat.map = createSurfaceTexture('road');\nvergeMat.map = createSurfaceTexture('dirt');
 
 // Funzioni per creare oggetti 3D
 function addBox(parent, size, material, pos, cast = true) {
@@ -379,6 +412,32 @@ for (let z = -28; z > -150; z -= 38) {
   sandbagWall(5.3, z - 12);
   watchTower(9.2, z - 18);
   barricade(-5.1, z - 7);
+}
+// Strati di colline lontane per profondità atmosferica
+const mountainMat = mat(0x6f806d, 1, {flatShading: true});
+for (let i=0;i<28;i++) {
+  const mountain = new THREE.Mesh(
+    new THREE.ConeGeometry(12 + Math.random()*13, 18 + Math.random()*16, 7),
+    mountainMat
+  );
+  mountain.position.set((i-14)*15, 5, -125-Math.random()*22);
+  mountain.rotation.y=Math.random()*Math.PI;
+  mountain.receiveShadow=true;
+  scene.add(mountain);
+}
+// Dettagli del sottobosco
+const undergrowth = [];
+const grassMaterial = new THREE.MeshStandardMaterial({color:0x556446,side:THREE.DoubleSide,roughness:1});
+const grassGeometry = new THREE.ConeGeometry(.13,.65,3);
+for (let i=0;i<350;i++) {
+  const x=(Math.random()-.5)*45;
+  if (Math.abs(x)<4.7) continue;
+  const tuft = new THREE.Mesh(grassGeometry, grassMaterial);
+  tuft.position.set(x,.12,10-Math.random()*150);
+  tuft.scale.setScalar(.6+Math.random()*1.1);
+  tuft.rotation.y=Math.random()*6.28;
+  scene.add(tuft);
+  undergrowth.push(tuft);
 }
 // Genera il paesaggio
 for (let z = 15; z > -145; z -= 5.5) {
@@ -700,7 +759,7 @@ if (soldierMixer) {
       }
     }
 
-    for (const bush of bushes) {
+    for (const tuft of undergrowth) {\n      tuft.position.z += speed * dt;\n      if (tuft.position.z > 15) tuft.position.z -= 155;\n    }\n\n    for (const bush of bushes) {
       bush.position.z += speed * dt;
 
       if (bush.position.z > 15) {
