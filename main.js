@@ -122,7 +122,7 @@ scene.add(sun);
 const qualityPresets = {
   balanced: {dpr: 1.0, shadow: 1024, post: false, fog: 0.007, far: 115},
   high: {dpr: 1.5, shadow: 2048, post: true, fog: 0.0045, far: 180},
-  ultra: {dpr: 2.0, shadow: 2048, post: true, fog: 0.0035, far: 230}
+  ultra: {dpr: 2.0, shadow: 4096, post: true, fog: 0.0035, far: 230}
 };
 let currentQuality = 'high';
 function applyQuality(value) {
@@ -548,7 +548,7 @@ scene.add(forestDebris);
 
 // Forest-floor moss and fallen-needle islands: hundreds of patches in one draw call.
 // Positioned outside the road, slightly above the base terrain.
-const mossCount = 1050;
+const mossCount = 1400;
 const mossGeometry = new THREE.IcosahedronGeometry(1, 0);
 const mossMaterial = new THREE.MeshStandardMaterial({
   color: 0x647454, roughness: 1, flatShading: true
@@ -1059,7 +1059,7 @@ fernBladeGeometry.setAttribute('uv', new THREE.Float32BufferAttribute(fernUvs, 2
 fernBladeGeometry.computeVertexNormals();
 const fernMaterial = new THREE.MeshStandardMaterial({color:0x354c2e,
   side:THREE.DoubleSide,roughness:0.97,metalness:0});
-const fernCount = 820;
+const fernCount = 1250;
 const ferns = new THREE.InstancedMesh(fernBladeGeometry, fernMaterial, fernCount);
 const fernDummy = new THREE.Object3D();
 const fernLocations = [];
@@ -1395,7 +1395,7 @@ scene.add(finishGate);
 // Foschia naturale al posto delle montagne coniche artificiali.
 // Dettagli del sottobosco
 // Vegetazione istanziata: una draw call per 500 fili anziché 500 mesh.
-const grassCount = 1800;
+const grassCount = 2600;
 const grassMaterial = new THREE.MeshStandardMaterial({
   color: 0x526747, side: THREE.DoubleSide, roughness: 1
 });
