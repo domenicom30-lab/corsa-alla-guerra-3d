@@ -491,6 +491,44 @@ for (let z = -28; z > -150; z -= 38) {
   watchTower(9.2, z - 18);
   barricade(-5.1, z - 7);
 }
+// Traguardo 3D: portale militare con striscione rosso e sacchi laterali.
+// Compare negli ultimi 200 metri, senza entrare nel riciclo degli ostacoli.
+const finishGate = new THREE.Group();
+const finishTimber = mat(0x443528);
+const finishRed = mat(0x7e2928, 0.95, {side: THREE.DoubleSide});
+for (const side of [-1, 1]) {
+  const x = side * 4.25;
+  addBox(finishGate, [0.35, 5.1, 0.35], finishTimber, [x, 2.55, 0]);
+  addBox(finishGate, [0.55, 0.55, 0.55], finishTimber, [x, 0.28, 0]);
+  // Rinforzi diagonali del portale.
+  const brace = addBox(finishGate, [0.17, 2.0, 0.18], finishTimber, [x-side*0.5, 2.9, 0]);
+  brace.rotation.z = side * 0.52;
+  for (let row = 0; row < 3; row++) for (let i = 0; i < 4; i++) {
+    addSphere(finishGate, 0.26, mat(0x95866b),
+      [side * (5.05 + (i % 2)*0.3), 0.23 + row*0.33, (i-1.5)*0.56],
+      [1.35, 0.65, 1]);
+  }
+}
+addBox(finishGate, [9.0, 0.26, 0.35], finishTimber, [0, 5.05, 0]);
+const bannerCanvas = document.createElement('canvas');
+bannerCanvas.width = 1024; bannerCanvas.height = 192;
+const bannerCtx = bannerCanvas.getContext('2d');
+bannerCtx.fillStyle = '#872c2b'; bannerCtx.fillRect(0, 0, 1024, 192);
+bannerCtx.strokeStyle = '#b87561'; bannerCtx.lineWidth = 12;
+bannerCtx.strokeRect(8, 8, 1008, 176);
+bannerCtx.fillStyle = '#f4e8d6'; bannerCtx.font = 'bold 112px Arial';
+bannerCtx.textAlign = 'center'; bannerCtx.textBaseline = 'middle';
+bannerCtx.fillText('TRAGUARDO', 512, 101);
+const bannerTexture = new THREE.CanvasTexture(bannerCanvas);
+bannerTexture.colorSpace = THREE.SRGBColorSpace;
+const banner = new THREE.Mesh(new THREE.PlaneGeometry(7.8, 1.45),
+  new THREE.MeshBasicMaterial({map: bannerTexture, side: THREE.DoubleSide}));
+banner.position.set(0, 4.2, 0.04);
+finishGate.add(banner);
+finishGate.visible = false;
+finishGate.position.set(0, 0, -97);
+scene.add(finishGate);
+
 // Foschia naturale al posto delle montagne coniche artificiali.
 // Dettagli del sottobosco
 // Vegetazione istanziata: una draw call per 500 fili anziché 500 mesh.
@@ -879,6 +917,12 @@ if (soldierMixer) {
 
   soldierMixer.update(soldierClock.getDelta());
 }
+
+    // Il portale si avvicina solo nell'ultimo tratto del livello.
+    if (distance >= 400) {
+      finishGate.visible = true;
+      finishGate.position.z = -97 + (distance - 400);
+    }
 
     // Strada in movimento
     for (const dash of dashes) {
