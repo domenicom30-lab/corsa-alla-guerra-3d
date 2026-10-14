@@ -1106,8 +1106,8 @@ for (const x of [-4.25,4.25]) {
   flag.position.set(x, 3.18, 0.25);
   finishGate.add(flag);
 }
-finishGate.visible = false;
-finishGate.position.set(0, 0, -97);
+finishGate.visible = true;
+finishGate.position.set(0, 0, -49);
 scene.add(finishGate);
 
 // Foschia naturale al posto delle montagne coniche artificiali.
@@ -1570,7 +1570,7 @@ function animate(time) {
 
   if (running) {
     distance += speed * dt;
-    stats.textContent = `❤️ ${'♥'.repeat(health)}  |  PUNTI: ${score}  |  TRAGUARDO: ${Math.max(0, 1000 - Math.floor(distance * 2))} m`;
+    stats.textContent = `❤️ ${'♥'.repeat(health)}  |  PUNTI: ${score}  |  TRAGUARDO: ${Math.max(0, 200 - Math.floor(distance * 0.46))} m`;
 
     // Movimento laterale
     player.position.x = THREE.MathUtils.damp(
@@ -1638,12 +1638,9 @@ if (soldierMixer) {
 
     if (finishGuardMixer && finishGate.visible) finishGuardMixer.update(Math.min(dt / 60, 0.05));
 
-    // Il portale si avvicina solo nell'ultimo tratto del livello.
-    if (distance >= 400) {
-      finishGate.visible = true;
-      // Ferma il portale prima che oltrepassi il personaggio o la camera.
-      finishGate.position.z = -97 + Math.min(distance - 400, 100) * 0.90;
-    }
+    // The historical finish set is visible from the first frame, as in
+    // the reference image. Bring it forward gradually but never past player.
+    finishGate.position.z = -49 + Math.min(distance * 0.105, 44);
 
     // Recycle weathered road lines with the scrolling ground.
     for (const mark of roadMarkPositions) {
