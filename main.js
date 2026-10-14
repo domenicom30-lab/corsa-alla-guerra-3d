@@ -695,6 +695,17 @@ function watchTower(x, z) {
   for (const dx of [-0.7, 0.7]) for (const dz of [-0.7, 0.7]) {
     addBox(g, [0.18, 5.6, 0.18], timber, [dx, 2.8, dz]);
   }
+  // Cross-braced supports prevent the tower from reading as four floating posts.
+  for (const side of [-1, 1]) {
+    for (const height of [1.65, 3.75]) {
+      const frontBrace = addBox(g, [0.11, 2.1, 0.13], timber,
+        [0, height, side * 0.7]);
+      frontBrace.rotation.z = side * 0.59;
+      const sideBrace = addBox(g, [0.13, 2.1, 0.11], timber,
+        [side * 0.7, height, 0]);
+      sideBrace.rotation.x = side * 0.59;
+    }
+  }
   addBox(g, [2.2, 0.25, 2.2], timber, [0, 5.25, 0]);
   addBox(g, [2.5, 0.24, 2.5], timber, [0, 6.7, 0]);
   // Ringhiere e parapetti per dare alla torre una silhouette credibile.
