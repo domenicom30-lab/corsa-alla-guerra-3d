@@ -1220,6 +1220,7 @@ let fallProgress = 0;
 const fallDuration = 42; // approximately 0.7 seconds at 60 FPS
 
 function start() {
+  if (falling) return;
   if (ended) {
     window.location.reload();
     return;
@@ -1253,7 +1254,7 @@ jumpButton.onclick = jump;
 // The end-of-run overlay tells players to tap to restart. Allow that tap
 // to reach start(), which already handles the ended state by reloading.
 canvas.addEventListener('pointerdown', () => {
-  if (!running) start();
+  if (!running && !falling) start();
 });
 
 window.addEventListener('keydown', event => {
