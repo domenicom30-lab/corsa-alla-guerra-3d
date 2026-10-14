@@ -654,7 +654,19 @@ for (let i = 0; i < 128; i += 4) {
 const sackTexture = new THREE.CanvasTexture(sackCanvas);
 sackTexture.colorSpace = THREE.SRGBColorSpace;
 const sackMat = new THREE.MeshStandardMaterial({map: sackTexture, roughness: 1});
+// A softened, slightly flattened sack shape avoids perfect ball-like sandbags.
+// Shared geometry keeps the fortification detail inexpensive on mobile.
 const sackGeometry = new THREE.SphereGeometry(0.27, 12, 8);
+const sackPosition = sackGeometry.getAttribute('position');
+for (let i = 0; i < sackPosition.count; i++) {
+  const x = sackPosition.getX(i);
+  const y = sackPosition.getY(i);
+  const z = sackPosition.getZ(i);
+  const wrinkle = 1 + 0.035 * Math.sin(x * 37 + z * 19) * Math.cos(y * 28);
+  sackPosition.setXYZ(i, x * wrinkle, y * 0.82, z * wrinkle);
+}
+sackPosition.needsUpdate = true;
+sackGeometry.computeVertexNormals();
 
 // Scenario militare ispirato a un percorso forestale storico
 const scenery = [];
