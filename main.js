@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { clone as cloneSkinnedModel } from 'three/addons/utils/SkeletonUtils.js';
 import { EffectComposer, RenderPass, EffectPass, VignetteEffect } from 'postprocessing';
 import './style.css';
 
@@ -1138,6 +1139,20 @@ const player = new THREE.Group();
 scene.add(player);
 player.position.set(0, 0, 3);
 
+// A second, independent rig waits beneath the finish banner.
+// Uses the existing GLB and shares its geometry/textures to keep APK size low.
+let finishGuardMixer = null;
+const finishGuard = new THREE.Group();
+finishGuard.position.set(0, 0, -0.7);
+finishGate.add(finishGuard);
+const finishPlatform = new THREE.Mesh(
+  new THREE.CylinderGeometry(1.15, 1.15, 0.10, 24),
+  new THREE.MeshStandardMaterial({color: 0x8c2c29, roughness: 0.88})
+);
+finishPlatform.position.set(0, 0.05, -0.7);
+finishPlatform.receiveShadow = true;
+finishGate.add(finishPlatform);
+
 const soldierClock = new THREE.Clock();
 let soldierMixer = null;
 let soldierRun = null;
@@ -1223,6 +1238,29 @@ loader.load(
     soldier.userData.keepGrounded = keepSoldierGrounded;
     keepSoldierGrounded();
 
+    // Separate skeletal clone: a stationary officer-like figure at the goal.
+    // No external model is claimed; appearance derives from Soldier.glb.
+    const guard = cloneSkinnedModel(soldier);
+    guard.position.copy(soldier.position);
+    guard.scale.copy(soldier.scale);
+    guard.rotation.y = Math.PI; // Faces the approaching runner.
+    guard.traverse((part) => {
+      if (!part.isMesh) return;
+      part.castShadow = true;
+      part.receiveShadow = true;
+      const originals = Array.isArray(part.material) ? part.material : [part.material];
+      const copies = originals.map((m) => {
+        if (!m) return m;
+        const copy = m.clone();
+        if (copy.color) copy.color.multiply(new THREE.Color(0xc2c6bd));
+        return copy;
+      });
+      part.material = Array.isArray(part.material) ? copies : copies[0];
+      if (part.isSkinnedMesh) part.frustumCulled = false;
+    });
+    finishGuard.add(guard);
+    finishGuardMixer = new THREE.AnimationMixer(guard);
+
     soldierMixer = new THREE.AnimationMixer(soldier);
 
     const clips = gltf.animations;
@@ -1257,6 +1295,10 @@ loader.load(
       soldierJump.clampWhenFinished = true;
     }
 
+    if (idleClip) {
+      const guardIdle = finishGuardMixer.clipAction(groundedClip(idleClip));
+      guardIdle.play();
+    }
     if (idleClip) {
       soldierIdle = soldierMixer.clipAction(groundedClip(idleClip));
     } else if (clips.length && !soldierRun) {
@@ -1522,6 +1564,8 @@ if (soldierMixer) {
     if (soldierRoot.userData.keepGrounded) soldierRoot.userData.keepGrounded();
   }
 }
+
+    if (finishGuardMixer && finishGate.visible) finishGuardMixer.update(dt / 60);
 
     // Il portale si avvicina solo nell'ultimo tratto del livello.
     if (distance >= 400) {
