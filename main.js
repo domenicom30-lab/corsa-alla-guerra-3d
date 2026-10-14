@@ -401,7 +401,27 @@ scene.add(forestDebris);
 
 // Pozzanghere e fango umido lungo i margini della carreggiata.
 // Geometria condivisa e materiale senza ombre: effetto leggero per Android.
-const puddleGeometry = new THREE.CircleGeometry(1, 18);
+// Slightly jagged, asymmetric puddle outline rather than perfect circles.
+// Shared between all puddles, so the geometry cost remains constant.
+function createPuddleGeometry() {
+  const segments = 24;
+  const vertices = [0, 0, 0];
+  const indices = [];
+  for (let i = 0; i <= segments; i++) {
+    const angle = i / segments * Math.PI * 2;
+    const ripple = 1 + 0.12 * Math.sin(angle * 5 + 0.8)
+      + 0.08 * Math.sin(angle * 9 - 0.6)
+      + 0.04 * Math.cos(angle * 13);
+    vertices.push(Math.cos(angle) * ripple, Math.sin(angle) * ripple, 0);
+    if (i > 0) indices.push(0, i, i + 1);
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+const puddleGeometry = createPuddleGeometry();
 const puddleMaterial = new THREE.MeshStandardMaterial({
   color: 0x293b37, roughness: 0.18, metalness: 0.08,
   transparent: true, opacity: 0.69, depthWrite: false,
