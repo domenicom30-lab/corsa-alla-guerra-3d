@@ -178,7 +178,35 @@ function createSurfaceTexture(kind) {
 }
 const dirtTexture = createDirtTexture();
 dirtMat.map = dirtTexture;
-roadMat.map = createSurfaceTexture('road');\nvergeMat.map = createSurfaceTexture('dirt');
+roadMat.map = createSurfaceTexture('road');
+// Preferisce mappe PBR locali quando presenti; mantiene le texture generate come fallback.
+const pbrLoader = new THREE.TextureLoader();
+function installPBR(material, basePath, repeatX, repeatY) {
+  const configure = (texture, color = false) => {
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(repeatX, repeatY);
+    texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    if (color) texture.colorSpace = THREE.SRGBColorSpace;
+    return texture;
+  };
+  pbrLoader.load(basePath + '_color.jpg', tex => {
+    material.map = configure(tex, true);
+    material.needsUpdate = true;
+  }, undefined, () => {});
+  pbrLoader.load(basePath + '_normal.jpg', tex => {
+    material.normalMap = configure(tex);
+    material.normalScale = new THREE.Vector2(0.6, 0.6);
+    material.needsUpdate = true;
+  }, undefined, () => {});
+  pbrLoader.load(basePath + '_roughness.jpg', tex => {
+    material.roughnessMap = configure(tex);
+    material.roughness = 1;
+    material.needsUpdate = true;
+  }, undefined, () => {});
+}
+installPBR(roadMat, './assets/textures/road', 2, 30);
+installPBR(dirtMat, './assets/textures/forest', 2, 25);
+\nvergeMat.map = createSurfaceTexture('dirt');
 
 // Funzioni per creare oggetti 3D
 function addBox(parent, size, material, pos, cast = true) {
