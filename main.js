@@ -442,11 +442,13 @@ for (let i = 0; i < 28; i++) {
   const sz = 0.7 + puddleRand() * 1.25;
   const rim = new THREE.Mesh(puddleGeometry, mudRimMaterial);
   rim.rotation.x = -Math.PI / 2;
+  rim.rotation.y = puddleRand() * Math.PI * 2;
   rim.scale.set(sx * 1.2, sz * 1.16, 1);
   rim.position.set(x, -0.047, z);
   scene.add(rim);
   const water = new THREE.Mesh(puddleGeometry, puddleMaterial);
   water.rotation.x = -Math.PI / 2;
+  water.rotation.y = rim.rotation.y;
   water.scale.set(sx, sz, 1);
   water.position.set(x, -0.043, z);
   scene.add(water);
