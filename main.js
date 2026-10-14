@@ -16,6 +16,7 @@ const leftButton = document.querySelector('#left');
 const rightButton = document.querySelector('#right');
 const jumpButton = document.querySelector('#jump');
 const duckButton = document.querySelector('#duck');
+const qualitySelect = document.querySelector('#quality-select');
 
 if (!canvas || !message || !stats ||
     !leftButton || !rightButton || !jumpButton || !duckButton) {
@@ -117,6 +118,32 @@ sun.shadow.normalBias = 0.035;
 sun.shadow.bias = -0.00015;
 sun.shadow.radius = 2.2;
 scene.add(sun);
+// Three actual runtime graphics profiles; no app restart needed.
+const qualityPresets = {
+  balanced: {dpr: 1.0, shadow: 1024, post: false, fog: 0.007, far: 115},
+  high: {dpr: 1.5, shadow: 2048, post: true, fog: 0.0045, far: 180},
+  ultra: {dpr: 2.0, shadow: 2048, post: true, fog: 0.0035, far: 230}
+};
+let currentQuality = 'high';
+function applyQuality(value) {
+  currentQuality = Object.prototype.hasOwnProperty.call(qualityPresets, value) ? value : 'high';
+  const preset = qualityPresets[currentQuality];
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, preset.dpr));
+  renderer.setSize(innerWidth, innerHeight);
+  if (cinematicComposer) cinematicComposer.setSize(innerWidth, innerHeight);
+  scene.fog.density = preset.fog;
+  camera.far = preset.far;
+  camera.updateProjectionMatrix();
+  sun.shadow.mapSize.set(preset.shadow, preset.shadow);
+  if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
+  sun.shadow.needsUpdate = true;
+  if (qualitySelect) qualitySelect.value = currentQuality;
+  try { localStorage.setItem('corsa-quality', currentQuality); } catch (_) {}
+}
+if (qualitySelect) qualitySelect.addEventListener('change', () => applyQuality(qualitySelect.value));
+try { applyQuality(localStorage.getItem('corsa-quality') || 'high'); }
+catch (_) { applyQuality('high'); }
+
 
 const fillLight = new THREE.DirectionalLight(0xc8d8e2, 0.92);
 fillLight.position.set(6, 5, -8);
@@ -1925,7 +1952,7 @@ if (soldierMixer) {
     landscape ? -7 : -5
   );
 
-  if (cinematicComposer) cinematicComposer.render();
+  if (cinematicComposer && qualityPresets[currentQuality].post) cinematicComposer.render();
   else renderer.render(scene, camera);
 }
 
@@ -1937,7 +1964,7 @@ window.addEventListener('resize', () => {
 
   renderer.setSize(innerWidth, innerHeight);
   renderer.setPixelRatio(
-    Math.min(window.devicePixelRatio || 1, 1.5)
+    Math.min(window.devicePixelRatio || 1, qualityPresets[currentQuality].dpr)
   );
   if (cinematicComposer) cinematicComposer.setSize(innerWidth, innerHeight);
 });
