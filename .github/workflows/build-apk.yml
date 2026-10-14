@@ -33,15 +33,14 @@ jobs:
         uses: android-actions/setup-android@v4
         with:
           accept-android-sdk-licenses: true
-          log-accepted-android-sdk-licenses: false
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --no-audit --no-fund
 
       - name: Build web game
         run: npm run build
 
-      - name: Check Capacitor installation
+      - name: Check Capacitor
         run: npx cap --version
 
       - name: Add Android platform if missing
@@ -53,11 +52,31 @@ jobs:
       - name: Sync Android project
         run: npx cap sync android
 
-      - name: Build APK
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build APK with retry
+        shell: bash
         run: |
           cd android
+
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+
+          for attempt in 1 2 3; do
+            echo "Tentativo Gradle $attempt di 3"
+
+            if ./gradlew assembleDebug --no-daemon; then
+              exit 0
+            fi
+
+            if [ "$attempt" -lt 3 ]; then
+              echo "Build fallita. Attendo prima di riprovare..."
+              sleep 20
+            fi
+          done
+
+          echo "Build fallita dopo 10 tentativi."
+          exit 1
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
