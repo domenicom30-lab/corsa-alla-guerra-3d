@@ -1618,6 +1618,46 @@ loader.load(
       });
       part.material = Array.isArray(part.material) ? adjusted : adjusted[0];
     });
+    // Historical silhouette pass: hide modern tactical backpack and helmet
+    // when those pieces are separate named meshes. Keep the animated rig.
+    let hiddenModernParts = 0;
+    soldier.traverse((part) => {
+      if (!part.isMesh) return;
+      const label = part.name.toLowerCase();
+      if (/(backpack|rucksack|tactical_pack|helmet|kneepad|knee_pad)/.test(label)) {
+        part.visible = false;
+        hiddenModernParts++;
+      }
+    });
+    // The cap follows the animated head bone, rather than floating at a
+    // fixed world coordinate. This is an interim silhouette improvement.
+    let headBone = null;
+    soldier.traverse((part) => {
+      if (!headBone && part.isBone && /(^|[_:.])head($|[_:.])/i.test(part.name)) headBone = part;
+    });
+    if (headBone) {
+      const cap = new THREE.Group();
+      const darkCloth = new THREE.MeshStandardMaterial({color: 0x222624, roughness: 0.94});
+      const capBand = new THREE.MeshStandardMaterial({color: 0x101414, roughness: 0.72});
+      const capTop = new THREE.Mesh(new THREE.CylinderGeometry(0.135, 0.122, 0.055, 24), darkCloth);
+      capTop.position.y = 0.155;
+      cap.add(capTop);
+      const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.125, 0.108, 0.115, 24), darkCloth);
+      crown.position.y = 0.083;
+      cap.add(crown);
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(0.109, 0.109, 0.037, 24), capBand);
+      band.position.y = 0.023;
+      cap.add(band);
+      const visor = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), capBand);
+      visor.scale.set(1.12, 0.12, 0.72);
+      visor.position.set(0, 0.005, -0.092);
+      cap.add(visor);
+      cap.position.set(0, 0.13, 0);
+      cap.scale.setScalar(0.92);
+      cap.traverse((part) => { if (part.isMesh) part.castShadow = true; });
+      headBone.add(cap);
+    }
+    console.info('[Corsa Soldier] hidden modern parts:', hiddenModernParts, 'animated head:', !!headBone);
     // Preserve a stable base transform even if animation clips include root motion.
     soldier.userData.groundAnchorY = 0;
 
