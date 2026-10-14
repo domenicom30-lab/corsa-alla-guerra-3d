@@ -578,6 +578,7 @@ const soldierClock = new THREE.Clock();
 let soldierMixer = null;
 let soldierRun = null;
 let soldierIdle = null;
+let soldierJump = null;
 let soldierActiveAction = null;
 
 const loader = new GLTFLoader();
@@ -631,9 +632,18 @@ loader.load(
     const idleClip = clips.find((clip) =>
       /idle|t-pose|tpose/i.test(clip.name)
     );
+    const jumpClip = clips.find((clip) =>
+      /jump|vault|hop/i.test(clip.name)
+    );
 
     if (runClip) {
       soldierRun = soldierMixer.clipAction(runClip);
+    }
+
+    if (jumpClip) {
+      soldierJump = soldierMixer.clipAction(jumpClip);
+      soldierJump.setLoop(THREE.LoopOnce, 1);
+      soldierJump.clampWhenFinished = true;
     }
 
     if (idleClip) {
@@ -841,10 +851,10 @@ function animate(time) {
     // Animazione del soldato 3D
 if (soldierMixer) {
   const desiredAction =
-    jumping && soldierRun
-      ? soldierRun
+    jumping && soldierJump
+      ? soldierJump
       : running
-        ? soldierRun
+        ? soldierRun || soldierIdle
         : soldierIdle || soldierRun;
 
   if (desiredAction && desiredAction !== soldierActiveAction) {
