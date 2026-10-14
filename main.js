@@ -309,46 +309,67 @@ const bushes = [];
 const rocks = [];
 
 // Alberi
+// Chiome con silhouette organiche su piani incrociati: pochi draw call,
+// molto meno geometriche delle precedenti decine di coni per albero.
+function makePineFoliage() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+  let seed = 173;
+  const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+  for (let level = 0; level < 28; level++) {
+    const y = 72 + level * 13;
+    const width = Math.sin((level / 29) * Math.PI * 0.82) * 111 + 7;
+    for (let side of [-1, 1]) {
+      for (let twig = 0; twig < 7; twig++) {
+        const reach = width * (0.55 + rnd() * 0.5);
+        const yy = y + (rnd() - 0.5) * 20;
+        ctx.strokeStyle = ['#253c2d','#304d35','#3b593b','#4b6443'][Math.floor(rnd()*4)];
+        ctx.lineWidth = 3 + rnd() * 7;
+        ctx.beginPath();
+        ctx.moveTo(128 + side * (rnd() * 12), yy - 8);
+        ctx.lineTo(128 + side * reach, yy + 6 + rnd() * 17);
+        ctx.stroke();
+        for (let n = 0; n < 7; n++) {
+          const t = n / 7;
+          const xx = 128 + side * reach * t;
+          const py = yy + t * 12;
+          ctx.strokeStyle = ['#29422e','#355337','#456044'][Math.floor(rnd()*3)];
+          ctx.lineWidth = 1.3 + rnd() * 2;
+          ctx.beginPath();
+          ctx.moveTo(xx, py - 10 - rnd()*8);
+          ctx.lineTo(xx + side * (5 + rnd()*10), py + 6 + rnd()*10);
+          ctx.stroke();
+        }
+      }
+    }
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+  return new THREE.MeshStandardMaterial({map:texture, transparent:true, alphaTest:0.35,
+    side:THREE.DoubleSide, depthWrite:true, roughness:1});
+}
+const pineFoliageMat = makePineFoliage();
+const pineFoliageGeo = new THREE.PlaneGeometry(3.5, 5.2);
+const pineTrunkGeo = new THREE.CylinderGeometry(0.10, 0.22, 4.8, 6);
 function createTree(x, z, scale = 1) {
   const group = new THREE.Group();
   group.position.set(x, 0, z);
   group.scale.setScalar(scale);
-
-  addCylinder(
-    group, 0.16, 0.29, 3.1,
-    barkMat, [0, 1.5, 0], 8
-  );
-
-  // Rami asimmetrici con aghi a ciuffi: silhouette meno geometrica
-  // rispetto alle precedenti quattro chiome coniche.
-  const twigMat = barkMat;
-  for (let tier = 0; tier < 5; tier++) {
-    const h = 1.15 + tier * 0.39;
-    const radius = 1.36 * (1 - tier / 9);
-    const branches = tier < 2 ? 5 : 4;
-    for (let j = 0; j < branches; j++) {
-      const angle = (j / branches) * Math.PI * 2 + tier * 1.17;
-      const reach = radius * (0.77 + Math.random() * 0.3);
-      const branch = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.018, 0.052, reach, 4),
-        twigMat
-      );
-      branch.position.set(Math.cos(angle) * reach * 0.48, h + 0.05, Math.sin(angle) * reach * 0.48);
-      branch.rotation.z = Math.PI / 2 - Math.atan2(0.22, reach);
-      branch.rotation.y = -angle;
-      group.add(branch);
-      const needle = new THREE.Mesh(
-        new THREE.ConeGeometry(0.23 + radius * 0.13, reach * 1.03, 6),
-        leafMats[(Math.random() * leafMats.length) | 0]
-      );
-      needle.position.set(Math.cos(angle) * reach * 0.65, h + 0.13, Math.sin(angle) * reach * 0.65);
-      needle.rotation.z = Math.cos(angle) * 0.65;
-      needle.rotation.x = -Math.sin(angle) * 0.65;
-      needle.castShadow = tier % 2 === 0;
-      group.add(needle);
-    }
+  const trunk = new THREE.Mesh(pineTrunkGeo, barkMat);
+  trunk.position.y = 2.4;
+  trunk.castShadow = true;
+  group.add(trunk);
+  for (let i = 0; i < 3; i++) {
+    const foliage = new THREE.Mesh(pineFoliageGeo, pineFoliageMat);
+    foliage.position.y = 2.9;
+    foliage.rotation.y = i * Math.PI / 3 + 0.17;
+    foliage.castShadow = i === 0;
+    foliage.receiveShadow = false;
+    group.add(foliage);
   }
-
   scene.add(group);
   forest.push(group);
 }
