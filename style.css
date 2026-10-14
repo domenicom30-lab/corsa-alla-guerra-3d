@@ -14,3 +14,8 @@
 #controls #duck{order:3}
 @media (orientation:portrait){#controls button{min-width:clamp(54px,19vw,95px);height:clamp(64px,19vw,95px)}#controls button span{font-size:clamp(23px,7vw,36px)}#controls button small{font-size:clamp(8px,2vw,11px);padding:2px 3px}#controls{bottom:max(22px,env(safe-area-inset-bottom));gap:5px}}
 @media (orientation:landscape){#controls{left:max(15px,env(safe-area-inset-left));right:max(15px,env(safe-area-inset-right));padding:0}#controls button{min-width:clamp(70px,10vw,120px);height:clamp(70px,10vw,120px)}#controls button span{font-size:clamp(32px,5vw,56px)}}
+
+/* Real-time graphics quality selection; remains accessible in portrait and landscape. */
+#quality-panel{position:absolute;top:max(88px,env(safe-area-inset-top) + 76px);right:max(12px,env(safe-area-inset-right));pointer-events:auto;display:flex;align-items:center;gap:6px;background:#101715c9;border:1px solid #ffffff40;border-radius:12px;padding:6px 9px;font-size:10px;letter-spacing:.05em;font-weight:800;text-shadow:none}
+#quality-panel select{appearance:auto;background:#253329;color:#fff;border:1px solid #ffffff60;border-radius:7px;padding:5px 3px;font:inherit;max-width:110px}
+@media (orientation:landscape){#quality-panel{top:max(12px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right))}}
