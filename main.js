@@ -447,11 +447,39 @@ function makePineFoliage() {
 const pineFoliageMat = makePineFoliage();
 const pineFoliageGeo = new THREE.PlaneGeometry(3.5, 5.2);
 const pineTrunkGeo = new THREE.CylinderGeometry(0.10, 0.22, 4.8, 6);
+// A single shared low-resolution bark texture adds vertical grain without
+// adding geometry, draw calls or per-tree materials on Android.
+function makePineBarkMaterial() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#554737';
+  ctx.fillRect(0, 0, 128, 256);
+  let seed = 2147;
+  const random = () => ((seed = (1664525 * seed + 1013904223) >>> 0) / 4294967296);
+  for (let i = 0; i < 440; i++) {
+    const x = random() * 128;
+    const y = random() * 256;
+    ctx.strokeStyle = ['#302b25', '#75624b', '#857258', '#40382d'][Math.floor(random() * 4)];
+    ctx.lineWidth = 0.5 + random() * 2.3;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + (random() - 0.5) * 4, y + 5 + random() * 31);
+    ctx.stroke();
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  return new THREE.MeshStandardMaterial({map: texture, roughness: 1});
+}
+const pineBarkMat = makePineBarkMaterial();
 function createTree(x, z, scale = 1) {
   const group = new THREE.Group();
   group.position.set(x, 0, z);
   group.scale.setScalar(scale);
-  const trunk = new THREE.Mesh(pineTrunkGeo, barkMat);
+  const trunk = new THREE.Mesh(pineTrunkGeo, pineBarkMat);
   trunk.position.y = 2.4;
   trunk.castShadow = true;
   group.add(trunk);
