@@ -429,6 +429,29 @@ function watchTower(x, z) {
   }
   addBox(g, [2.2, 0.25, 2.2], timber, [0, 5.25, 0]);
   addBox(g, [2.5, 0.24, 2.5], timber, [0, 6.7, 0]);
+  // Ringhiere e parapetti per dare alla torre una silhouette credibile.
+  for (const side of [-1, 1]) {
+    addBox(g, [2.35, 0.12, 0.12], timber, [0, 6.15, side * 1.12]);
+    addBox(g, [0.12, 0.12, 2.35], timber, [side * 1.12, 6.15, 0]);
+    for (const offset of [-0.9, 0, 0.9]) {
+      addBox(g, [0.1, 0.95, 0.1], timber, [offset, 5.7, side * 1.12]);
+      addBox(g, [0.1, 0.95, 0.1], timber, [side * 1.12, 5.7, offset]);
+    }
+  }
+  // Scala in legno appoggiata al lato della torre.
+  for (const side of [-0.38, 0.38]) {
+    const rail = addBox(g, [0.1, 5.8, 0.1], timber, [side, 2.8, 1.03]);
+    rail.rotation.x = -0.15;
+  }
+  for (let step = 0; step < 13; step++) {
+    addBox(g, [0.88, 0.09, 0.12], timber, [0, 0.42 + step * 0.4, 1.45 - step * 0.045]);
+  }
+  // Copertura a falde con una piccola sporgenza.
+  const roofMat = mat(0x3f3a32, 1);
+  for (const side of [-1, 1]) {
+    const roof = addBox(g, [2.9, 0.12, 1.75], roofMat, [0, 7.2, side * 0.72]);
+    roof.rotation.x = side * 0.38;
+  }
   for (const y of [1.4, 3.0, 4.6]) {
     for (const side of [-1, 1]) {
       const beam = addBox(g, [0.12, 1.8, 0.12], timber, [side * 0.7, y, 0]);
