@@ -634,6 +634,27 @@ loader.load(
 
 // Il modello Soldier.glb sostituisce il vecchio soldato costruito con cubi.
 
+// Materiale tela dei sacchi con dettaglio superficiale procedurale.
+// Un futuro set PBR locale potrà sostituirlo senza cambiare la geometria.
+const sackCanvas = document.createElement('canvas');
+sackCanvas.width = sackCanvas.height = 128;
+const sackCtx = sackCanvas.getContext('2d');
+sackCtx.fillStyle = '#a99a77';
+sackCtx.fillRect(0, 0, 128, 128);
+for (let i = 0; i < 128; i += 4) {
+  sackCtx.strokeStyle = i % 8 === 0 ? '#877b60' : '#b9ab87';
+  sackCtx.beginPath();
+  sackCtx.moveTo(i, 0);
+  sackCtx.lineTo(i, 128);
+  sackCtx.moveTo(0, i);
+  sackCtx.lineTo(128, i);
+  sackCtx.stroke();
+}
+const sackTexture = new THREE.CanvasTexture(sackCanvas);
+sackTexture.colorSpace = THREE.SRGBColorSpace;
+const sackMat = new THREE.MeshStandardMaterial({map: sackTexture, roughness: 1});
+const sackGeometry = new THREE.SphereGeometry(0.27, 12, 8);
+
 // Ostacoli
 const obstacles = [];
 const lanes = [-2.5, 0, 2.5];
@@ -645,17 +666,15 @@ function createObstacle(z) {
 
   if (type < 0.38) {
     // Sacchi di sabbia
-    const sackMat = mat(0x81745a);
-
     for (let row = 0; row < 3; row++) {
       for (let col = 0; col < 3; col++) {
-        const sack = addSphere(
-          group, 0.27, sackMat,
-          [(col - 1) * 0.38, 0.23 + row * 0.28, 0],
-          [1.3, 0.75, 0.9]
-        );
-
+        const sack = new THREE.Mesh(sackGeometry, sackMat);
+        sack.position.set((col - 1) * 0.39 + (row % 2) * 0.06, 0.23 + row * 0.28, 0);
+        sack.scale.set(1.3, 0.75, 0.9);
         sack.rotation.z = (Math.random() - 0.5) * 0.15;
+        sack.castShadow = true;
+        sack.receiveShadow = true;
+        group.add(sack);
       }
     }
   } else if (type < 0.7) {
