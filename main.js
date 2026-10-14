@@ -1215,6 +1215,9 @@ const speed = 0.25;
 let score = 0;
 let health = 3;
 let lastTime = 0;
+let falling = false;
+let fallProgress = 0;
+const fallDuration = 42; // approximately 0.7 seconds at 60 FPS
 
 function start() {
   if (ended) {
@@ -1227,12 +1230,14 @@ function start() {
 }
 
 function move(direction) {
+  if (falling) return;
   if (!running) start();
 
   lane = Math.max(0, Math.min(2, lane + direction));
 }
 
 function jump() {
+  if (falling) return;
   if (!running) start();
 
   if (!jumping) {
@@ -1272,6 +1277,20 @@ function animate(time) {
 
   const dt = Math.min(((time - lastTime) / 16.67) || 1, 2);
   lastTime = time;
+
+  if (falling) {
+    // A brief forward tumble plays before the restart prompt appears.
+    fallProgress = Math.min(1, fallProgress + dt / fallDuration);
+    const eased = 1 - Math.pow(1 - fallProgress, 3);
+    player.rotation.x = -1.30 * eased;
+    player.rotation.z = Math.sin(fallProgress * Math.PI) * 0.13;
+    player.position.y = Math.sin(eased * Math.PI * 0.5) * 0.13;
+    if (fallProgress >= 1) {
+      falling = false;
+      ended = true;
+      message.textContent = 'SEI CADUTO — TOCCA PER RIPROVARE';
+    }
+  }
 
   if (running) {
     distance += speed * dt;
@@ -1430,9 +1449,12 @@ if (soldierMixer) {
           player.position.y < 0.65
         ) {
           running = false;
-          ended = true;
-          message.textContent =
-            'SEI STATO FERMATO — TOCCA PER RIPROVARE';
+          falling = true;
+          fallProgress = 0;
+          jumping = false;
+          jumpVelocity = 0;
+          if (soldierActiveAction) soldierActiveAction.paused = true;
+          message.textContent = 'COLPITO!';
         }
       }
 
