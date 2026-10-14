@@ -709,6 +709,12 @@ function makePineNeedleTexture() {
   texture.repeat.set(2, 3);
   return texture;
 }
+// Needle-bearing branch tips around each crown: shared small tapered clusters.
+// Adds visible irregular branches to the foreground trees without external assets.
+const pineTwigGeo = new THREE.ConeGeometry(0.24, 0.95, 5, 1);
+const pineTwigMat = new THREE.MeshStandardMaterial({
+  color: 0x293f2d, roughness: 1, flatShading: true, side: THREE.DoubleSide
+});
 const pineCrownMat = new THREE.MeshStandardMaterial({
   map: makePineNeedleTexture(), color: 0xb7c8b0,
   roughness: 1, flatShading: false, side: THREE.DoubleSide
@@ -763,6 +769,22 @@ function createTree(x, z, scale = 1) {
     crown.rotation.y = variation * 2.1 + i * 0.43;
     crown.castShadow = i === 0;
     group.add(crown);
+    // Silhouette branchlets on the nearest row only, avoiding hundreds
+    // of additional draw calls from distant forest trees.
+    if (Math.abs(x) < 11 && i < 2) {
+      for (let j = 0; j < 5; j++) {
+        const angle = j * Math.PI * 2 / 5 + variation * 2.3 + i;
+        const twig = new THREE.Mesh(pineTwigGeo, pineTwigMat);
+        const reach = (1.25 - i * 0.24) * (0.92 + variation * 0.12);
+        twig.position.set(Math.cos(angle) * reach,
+          crown.position.y + 0.38 + j % 2 * 0.25,
+          Math.sin(angle) * reach);
+        twig.rotation.z = -Math.cos(angle) * 0.92;
+        twig.rotation.x = Math.sin(angle) * 0.92;
+        twig.scale.set(0.65, 0.95 + variation * 0.3, 0.65);
+        group.add(twig);
+      }
+    }
   }
   scene.add(group);
   forest.push(group);
