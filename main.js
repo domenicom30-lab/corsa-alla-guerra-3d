@@ -1013,6 +1013,56 @@ for (const [filename, count, height] of [
   }, undefined, () => {});
 }
 
+// Near-road undergrowth: hundreds of crossed, curved leaf blades in a single
+// GPU instanced draw call. Naturalistic silhouettes without billboard sprites.
+const fernBladeGeometry = new THREE.BufferGeometry();
+const fernPositions = [], fernUvs = [];
+for (let frond = 0; frond < 7; frond++) {
+  const angle = frond * Math.PI * 2 / 7;
+  const ux = Math.cos(angle), uz = Math.sin(angle);
+  const vx = -uz, vz = ux;
+  for (let segment = 0; segment < 7; segment++) {
+    const t0 = segment / 7, t1 = (segment + 1) / 7;
+    const width0 = Math.sin(Math.PI * (0.08 + t0 * 0.92)) * 0.14;
+    const width1 = Math.sin(Math.PI * (0.08 + t1 * 0.92)) * 0.14;
+    const point = (t, width, side) => [ux * t * 0.82 + vx * width * side,
+      0.05 + t * 0.88 - t * t * 0.28,
+      uz * t * 0.82 + vz * width * side];
+    const p0 = point(t0, width0, -1), p1 = point(t0, width0, 1);
+    const p2 = point(t1, width1, -1), p3 = point(t1, width1, 1);
+    fernPositions.push(...p0,...p1,...p2,...p2,...p1,...p3);
+    fernUvs.push(0,t0,1,t0,0,t1,0,t1,1,t0,1,t1);
+  }
+}
+fernBladeGeometry.setAttribute('position', new THREE.Float32BufferAttribute(fernPositions, 3));
+fernBladeGeometry.setAttribute('uv', new THREE.Float32BufferAttribute(fernUvs, 2));
+fernBladeGeometry.computeVertexNormals();
+const fernMaterial = new THREE.MeshStandardMaterial({color:0x354c2e,
+  side:THREE.DoubleSide,roughness:0.97,metalness:0});
+const fernCount = 440;
+const ferns = new THREE.InstancedMesh(fernBladeGeometry, fernMaterial, fernCount);
+const fernDummy = new THREE.Object3D();
+const fernLocations = [];
+let fernSeed = 314159;
+const fernRand = () => ((fernSeed = (1664525 * fernSeed + 1013904223) >>> 0) / 4294967296);
+for (let i = 0; i < fernCount; i++) {
+  const side = i % 2 ? 1 : -1;
+  fernLocations.push({x:side*(4.65+fernRand()*21),z:10-fernRand()*160,
+    scale:0.55+fernRand()*1.1,rotation:fernRand()*Math.PI*2});
+}
+function updateFerns() {
+  fernLocations.forEach((fern,i)=>{
+    fernDummy.position.set(fern.x,-0.18,fern.z);
+    fernDummy.rotation.set(0,fern.rotation,0);
+    fernDummy.scale.setScalar(fern.scale);
+    fernDummy.updateMatrix(); ferns.setMatrixAt(i,fernDummy.matrix);
+  });
+  ferns.instanceMatrix.needsUpdate=true;
+}
+updateFerns();
+ferns.frustumCulled=false;
+scene.add(ferns);
+
 // Cespugli
 // Cespugli a foglie ritagliate: silhouette naturali con poche superfici.
 function createShrubMaterial() {
@@ -1867,6 +1917,11 @@ if (soldierMixer) {
     }
     if ((debrisUpdateFrame & 1) === 0) updateBoulders();
 
+    for (const fern of fernLocations) {
+      fern.z += speed * dt;
+      if (fern.z > 14) fern.z -= 160;
+    }
+    updateFerns();
     for (const prop of natureProps) {
       prop.position.z += speed * dt;
       if (prop.position.z > 15) prop.position.z -= 165;
