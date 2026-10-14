@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as cloneSkinnedModel } from 'three/addons/utils/SkeletonUtils.js';
 import { EffectComposer, RenderPass, EffectPass, VignetteEffect, BloomEffect, SMAAEffect } from 'postprocessing';
 import './style.css';
+import { createFinishOfficer } from './period-officer.js';
 
 // CORSA ALLA GUERRA 3D - Enhanced Edition
 // Three.js / Android
@@ -1371,28 +1372,12 @@ loader.load(
     soldier.userData.keepGrounded = keepSoldierGrounded;
     keepSoldierGrounded();
 
-    // Separate skeletal clone: a stationary officer-like figure at the goal.
-    // No external model is claimed; appearance derives from Soldier.glb.
-    const guard = cloneSkinnedModel(soldier);
-    guard.position.copy(soldier.position);
-    guard.scale.copy(soldier.scale);
-    guard.rotation.y = Math.PI; // Faces the approaching runner.
-    guard.traverse((part) => {
-      if (!part.isMesh) return;
-      part.castShadow = true;
-      part.receiveShadow = true;
-      const originals = Array.isArray(part.material) ? part.material : [part.material];
-      const copies = originals.map((m) => {
-        if (!m) return m;
-        const copy = m.clone();
-        if (copy.color) copy.color.multiply(new THREE.Color(0xc2c6bd));
-        return copy;
-      });
-      part.material = Array.isArray(part.material) ? copies : copies[0];
-      if (part.isSkinnedMesh) part.frustumCulled = false;
-    });
+    // Dedicated officer mesh with a peaked cap and gray tunic. It is a
+    // separate 3D character, not another copy of the runner.
+    const guard = createFinishOfficer();
+    guard.rotation.y = Math.PI;
     finishGuard.add(guard);
-    finishGuardMixer = new THREE.AnimationMixer(guard);
+    finishGuardMixer = null;
 
     soldierMixer = new THREE.AnimationMixer(soldier);
 
