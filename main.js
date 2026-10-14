@@ -31,12 +31,12 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.95;
+renderer.toneMappingExposure = 1.12;
 renderer.shadowMap.autoUpdate = true;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x788985);
-scene.fog = new THREE.FogExp2(0x788985, 0.016);
+scene.background = new THREE.Color(0x889b97);
+scene.fog = new THREE.FogExp2(0x889b97, 0.013);
 
 const camera = new THREE.PerspectiveCamera(
   62, innerWidth / innerHeight, 0.1, 180
@@ -47,7 +47,7 @@ camera.lookAt(0, 1.35, -5);
 
 // Illuminazione
 scene.add(
-  new THREE.HemisphereLight(0xc0c9bf, 0x292d24, 1.25)
+  new THREE.HemisphereLight(0xd2d9ce, 0x414538, 1.7)
 );
 
 const sun = new THREE.DirectionalLight(0xd8d2b9, 2.15);
@@ -564,7 +564,7 @@ function createPineCrownGeometry() {
 }
 const pineCrownGeo = createPineCrownGeometry();
 const pineCrownMat = new THREE.MeshStandardMaterial({
-  color: 0x314a32, roughness: 1, flatShading: true, side: THREE.DoubleSide
+  color: 0x314a32, roughness: 1, flatShading: false, side: THREE.DoubleSide
 });
 
 // A single shared low-resolution bark texture adds vertical grain without
