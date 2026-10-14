@@ -745,6 +745,12 @@ const pineCrownMat = new THREE.MeshStandardMaterial({
   map: makePineNeedleTexture(), color: 0xb7c8b0,
   roughness: 1, flatShading: false, side: THREE.DoubleSide
 });
+// Small palette variations share geometry and textures, but break up the
+// single identical dark-green forest color across the whole landscape.
+const pineCrownVariants = [pineCrownMat,
+  pineCrownMat.clone(), pineCrownMat.clone()];
+pineCrownVariants[1].color.set(0x94aa8b);
+pineCrownVariants[2].color.set(0xc3bda0);
 
 // A single shared low-resolution bark texture adds vertical grain without
 // adding geometry, draw calls or per-tree materials on Android.
@@ -788,7 +794,8 @@ function createTree(x, z, scale = 1) {
   group.add(trunk);
   // Overlapping whorls form a volumetric pine canopy with varied proportions.
   for (let i = 0; i < 3; i++) {
-    const crown = new THREE.Mesh(pineCrownGeo, pineCrownMat);
+    const crown = new THREE.Mesh(pineCrownGeo,
+      pineCrownVariants[Math.floor(variation * pineCrownVariants.length) % pineCrownVariants.length]);
     crown.position.y = 1.5 + i * 1.1 + (variation - 0.5) * 0.2;
     crown.scale.set((1.65 - i * 0.34) * (0.91 + variation * 0.18),
       1.03 + variation * 0.13, (1.65 - i * 0.34) * (0.91 + variation * 0.18));
