@@ -43,6 +43,9 @@ jobs:
       - name: Import verified CC0 PBR terrain textures
         run: python3 scripts/download_pbr.py Ground009 Ground005
 
+      - name: Install CC0 nature GLB models
+        run: python3 scripts/download_nature.py
+
       - name: Build web game
         run: npm run build
 
