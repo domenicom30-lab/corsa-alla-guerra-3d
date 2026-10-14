@@ -399,6 +399,42 @@ updateForestDebris();
 forestDebris.frustumCulled = false;
 scene.add(forestDebris);
 
+// Forest-floor moss and fallen-needle islands: hundreds of patches in one draw call.
+// Positioned outside the road, slightly above the base terrain.
+const mossCount = 320;
+const mossGeometry = new THREE.IcosahedronGeometry(1, 0);
+const mossMaterial = new THREE.MeshStandardMaterial({
+  color: 0x647454, roughness: 1, flatShading: true
+});
+const moss = new THREE.InstancedMesh(mossGeometry, mossMaterial, mossCount);
+const mossTransform = new THREE.Object3D();
+const mossPositions = [];
+const mossColor = new THREE.Color();
+let mossSeed = 19472;
+const mossRand = () => ((mossSeed = (1664525 * mossSeed + 1013904223) >>> 0) / 4294967296);
+for (let i = 0; i < mossCount; i++) {
+  const side = mossRand() > 0.5 ? 1 : -1;
+  const x = side * (4.8 + mossRand() * 17);
+  mossPositions.push({x, z: 12 - mossRand() * 158,
+    width: 0.35 + mossRand() * 0.9, angle: mossRand() * Math.PI * 2});
+  mossColor.setHex([0x526348, 0x454f36, 0x656a45, 0x3d4c36][i % 4]);
+  moss.setColorAt(i, mossColor);
+}
+function updateMoss() {
+  for (let i = 0; i < mossCount; i++) {
+    const patch = mossPositions[i];
+    mossTransform.position.set(patch.x, -0.18, patch.z);
+    mossTransform.rotation.set(0, patch.angle, 0);
+    mossTransform.scale.set(patch.width * 1.9, 0.045, patch.width * 1.1);
+    mossTransform.updateMatrix();
+    moss.setMatrixAt(i, mossTransform.matrix);
+  }
+  moss.instanceMatrix.needsUpdate = true;
+}
+updateMoss();
+moss.frustumCulled = false;
+scene.add(moss);
+
 // Pozzanghere e fango umido lungo i margini della carreggiata.
 // Geometria condivisa e materiale senza ombre: effetto leggero per Android.
 // Slightly jagged, asymmetric puddle outline rather than perfect circles.
@@ -1392,7 +1428,14 @@ if (soldierMixer) {
       item.z += speed * dt;
       if (item.z > 15) item.z -= 160;
     }
-    if ((debrisUpdateFrame++ & 1) === 0) updateForestDebris();
+    for (const patch of mossPositions) {
+      patch.z += speed * dt;
+      if (patch.z > 15) patch.z -= 160;
+    }
+    if ((debrisUpdateFrame++ & 1) === 0) {
+      updateForestDebris();
+      updateMoss();
+    }
 
     // Keep wet-soil patches travelling with the terrain.
     for (const patch of mudPatches) {
