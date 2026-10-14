@@ -921,7 +921,8 @@ if (soldierMixer) {
     // Il portale si avvicina solo nell'ultimo tratto del livello.
     if (distance >= 400) {
       finishGate.visible = true;
-      finishGate.position.z = -97 + (distance - 400);
+      // Ferma il portale prima che oltrepassi il personaggio o la camera.
+      finishGate.position.z = -97 + Math.min(distance - 400, 100) * 0.90;
     }
 
     // Strada in movimento
@@ -997,7 +998,8 @@ if (soldierMixer) {
       }
     }
 
-    if (distance > 500) {
+    if (distance >= 500) {
+      finishGate.position.z = -7;
       running = false;
       ended = true;
       message.textContent =
