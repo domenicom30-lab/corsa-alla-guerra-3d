@@ -35,8 +35,44 @@ renderer.toneMappingExposure = 1.12;
 renderer.shadowMap.autoUpdate = true;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x889b97);
-scene.fog = new THREE.FogExp2(0x889b97, 0.013);
+// Procedural daylight sky with a blue upper atmosphere, warm horizon and
+// wispy clouds. Generated once; no network assets or per-frame shader cost.
+function createDaylightSky() {
+  const c = document.createElement('canvas');
+  c.width = 1024;
+  c.height = 512;
+  const ctx = c.getContext('2d');
+  const gradient = ctx.createLinearGradient(0, 0, 0, 512);
+  gradient.addColorStop(0, '#567a9c');
+  gradient.addColorStop(0.45, '#9bbbd0');
+  gradient.addColorStop(0.78, '#d0d3c4');
+  gradient.addColorStop(1, '#a9b7a9');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 1024, 512);
+  let seed = 28411;
+  const rnd = () => ((seed = (1664525 * seed + 1013904223) >>> 0) / 4294967296);
+  for (let i = 0; i < 65; i++) {
+    const x = rnd() * 1024;
+    const y = 80 + rnd() * 245;
+    const rx = 35 + rnd() * 115;
+    const ry = 5 + rnd() * 20;
+    const cloud = ctx.createRadialGradient(x, y, 0, x, y, rx);
+    cloud.addColorStop(0, 'rgba(255,252,243,0.18)');
+    cloud.addColorStop(1, 'rgba(255,252,243,0)');
+    ctx.fillStyle = cloud;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(1, ry / rx);
+    ctx.translate(-x, -y);
+    ctx.fillRect(x-rx, y-rx, rx*2, rx*2);
+    ctx.restore();
+  }
+  const texture = new THREE.CanvasTexture(c);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+scene.background = createDaylightSky();
+scene.fog = new THREE.FogExp2(0xa1afa4, 0.0105);
 
 const camera = new THREE.PerspectiveCamera(
   62, innerWidth / innerHeight, 0.1, 180
