@@ -30,7 +30,8 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.2;\nrenderer.shadowMap.autoUpdate = true;
+renderer.toneMappingExposure = 1.2;
+renderer.shadowMap.autoUpdate = true;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x9dbbd1);
@@ -206,7 +207,8 @@ function installPBR(material, basePath, repeatX, repeatY) {
 }
 installPBR(roadMat, './assets/textures/road', 2, 30);
 installPBR(dirtMat, './assets/textures/forest', 2, 25);
-\nvergeMat.map = createSurfaceTexture('dirt');
+
+vergeMat.map = createSurfaceTexture('dirt');
 
 // Funzioni per creare oggetti 3D
 function addBox(parent, size, material, pos, cast = true) {
@@ -787,7 +789,12 @@ if (soldierMixer) {
       }
     }
 
-    for (const tuft of undergrowth) {\n      tuft.position.z += speed * dt;\n      if (tuft.position.z > 15) tuft.position.z -= 155;\n    }\n\n    for (const bush of bushes) {
+    for (const tuft of undergrowth) {
+      tuft.position.z += speed * dt;
+      if (tuft.position.z > 15) tuft.position.z -= 155;
+    }
+
+    for (const bush of bushes) {
       bush.position.z += speed * dt;
 
       if (bush.position.z > 15) {
