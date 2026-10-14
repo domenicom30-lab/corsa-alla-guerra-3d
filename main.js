@@ -891,6 +891,34 @@ for (const filename of naturePineFiles) {
   });
 }
 
+// Imported CC0 granite and detailed bush models complement the procedural
+// instanced ground clutter. Only a few near-camera props are used.
+const natureProps = [];
+for (const [filename, count, height] of [
+  ['rock-largea.glb', 7, 1.0],
+  ['rock-largeb.glb', 7, 1.25],
+  ['plant-bushdetailed.glb', 12, 1.3]
+]) {
+  natureLoader.load('./models/nature/' + filename, (gltf) => {
+    const box = new THREE.Box3().setFromObject(gltf.scene);
+    const dimensions = new THREE.Vector3(); box.getSize(dimensions);
+    if (dimensions.y < 0.001) return;
+    for (let i = 0; i < count; i++) {
+      const prop = gltf.scene.clone(true);
+      const factor = height / dimensions.y * (0.72 + (i % 4) * 0.16);
+      prop.scale.setScalar(factor);
+      prop.position.set((i % 2 ? 1 : -1) * (5.7 + (i * 7 % 12)),
+        -0.22 - box.min.y * factor,
+        8 - i * 13 - (filename.length % 7));
+      prop.rotation.y = i * 2.39996;
+      prop.traverse((part) => { if (part.isMesh) part.receiveShadow = true; });
+      prop.userData.natureBaseY = prop.position.y;
+      scene.add(prop);
+      natureProps.push(prop);
+    }
+  }, undefined, () => {});
+}
+
 // Cespugli
 // Cespugli a foglie ritagliate: silhouette naturali con poche superfici.
 function createShrubMaterial() {
@@ -1744,6 +1772,11 @@ if (soldierMixer) {
       if (rock.z > 15) rock.z -= 165;
     }
     if ((debrisUpdateFrame & 1) === 0) updateBoulders();
+
+    for (const prop of natureProps) {
+      prop.position.z += speed * dt;
+      if (prop.position.z > 15) prop.position.z -= 165;
+    }
 
     // Recycle weathered road lines with the scrolling ground.
     for (const mark of roadMarkPositions) {
