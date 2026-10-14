@@ -333,10 +333,10 @@ function createTree(x, z, scale = 1) {
   // Rami asimmetrici con aghi a ciuffi: silhouette meno geometrica
   // rispetto alle precedenti quattro chiome coniche.
   const twigMat = barkMat;
-  for (let tier = 0; tier < 8; tier++) {
+  for (let tier = 0; tier < 5; tier++) {
     const h = 1.15 + tier * 0.39;
     const radius = 1.36 * (1 - tier / 9);
-    const branches = tier < 2 ? 6 : 5;
+    const branches = tier < 2 ? 5 : 4;
     for (let j = 0; j < branches; j++) {
       const angle = (j / branches) * Math.PI * 2 + tier * 1.17;
       const reach = radius * (0.77 + Math.random() * 0.3);
@@ -528,7 +528,7 @@ updateGrass();
 grass.frustumCulled = false;
 scene.add(grass);
 // Genera il paesaggio
-for (let z = 15; z > -145; z -= 5.5) {
+for (let z = 15; z > -145; z -= 9) {
   createTree(
     -6 - Math.random() * 5,
     z,
@@ -978,6 +978,6 @@ window.addEventListener('resize', () => {
 
   renderer.setSize(innerWidth, innerHeight);
   renderer.setPixelRatio(
-    Math.min(window.devicePixelRatio || 1, 1.5)
+    Math.min(window.devicePixelRatio || 1, 1.15)
   );
 });
