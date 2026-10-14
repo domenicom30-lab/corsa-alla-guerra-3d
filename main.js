@@ -2,6 +2,10 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as cloneSkinnedModel } from 'three/addons/utils/SkeletonUtils.js';
 import { EffectComposer, RenderPass, EffectPass, VignetteEffect, BloomEffect, SMAAEffect } from 'postprocessing';
+import { EffectComposer as ThreeComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass as ThreeRenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import './style.css';
 import { createFinishOfficer } from './period-officer.js';
 
@@ -101,6 +105,23 @@ try {
   cinematicComposer = null;
 }
 
+// GTAO: screen-space ambient occlusion for contact shadows in Ultra mode.
+// Separate Three.js pipeline so unsupported GPUs can use the existing renderer.
+let ultraComposer = null;
+try {
+  ultraComposer = new ThreeComposer(renderer);
+  ultraComposer.addPass(new ThreeRenderPass(scene, camera));
+  const gtao = new GTAOPass(scene, camera, innerWidth, innerHeight);
+  gtao.output = GTAOPass.OUTPUT.Default;
+  gtao.blendIntensity = 0.7;
+  ultraComposer.addPass(gtao);
+  ultraComposer.addPass(new OutputPass());
+  console.info('[Corsa Renderer] GTAO pipeline initialized');
+} catch (error) {
+  console.warn('[Corsa Renderer] GTAO unavailable, using cinematic pipeline', error);
+  ultraComposer = null;
+}
+
 // Illuminazione
 scene.add(
   new THREE.HemisphereLight(0xd2d9ce, 0x414538, 1.7)
@@ -134,6 +155,7 @@ function applyQuality(value) {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.setSize(innerWidth, innerHeight);
   if (cinematicComposer) cinematicComposer.setSize(innerWidth, innerHeight);
+  if (ultraComposer) ultraComposer.setSize(innerWidth, innerHeight);
   scene.fog.density = preset.fog;
   camera.far = preset.far;
   camera.updateProjectionMatrix();
@@ -2212,7 +2234,15 @@ if (soldierMixer) {
     landscape ? -7 : -5
   );
 
-  if (cinematicComposer && qualityPresets[currentQuality].post) cinematicComposer.render();
+  if (currentQuality === 'ultra' && ultraComposer) {
+    try { ultraComposer.render(); }
+    catch (error) {
+      console.warn('[Corsa Renderer] GTAO failed, switching to safe fallback', error);
+      ultraComposer = null;
+      if (cinematicComposer) cinematicComposer.render();
+      else renderer.render(scene, camera);
+    }
+  } else if (cinematicComposer && qualityPresets[currentQuality].post) cinematicComposer.render();
   else renderer.render(scene, camera);
 }
 
@@ -2227,4 +2257,5 @@ window.addEventListener('resize', () => {
     Math.min(window.devicePixelRatio || 1, qualityPresets[currentQuality].dpr)
   );
   if (cinematicComposer) cinematicComposer.setSize(innerWidth, innerHeight);
+  if (ultraComposer) ultraComposer.setSize(innerWidth, innerHeight);
 });
