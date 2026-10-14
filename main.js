@@ -533,16 +533,18 @@ const pineTrunkGeo = new THREE.CylinderGeometry(0.10, 0.22, 4.8, 6);
 // Real 3D pine crowns: three staggered low-poly branch whorls, not
 // camera-facing crossed billboards. Geometry and materials are shared.
 function createPineCrownGeometry() {
-  const radial = 9;
-  const levels = 5;
+  const radial = 12;
+  const levels = 8;
   const positions = [];
   const indices = [];
   for (let level = 0; level <= levels; level++) {
     const t = level / levels;
-    const radius = Math.max(0.025, (1 - t) * (0.91 + 0.13 * Math.sin(level * 8.1)));
+    // Layered branch tiers interrupt the smooth Christmas-tree cone profile.
+    const tier = 0.72 + 0.28 * Math.pow(Math.sin(t * Math.PI * 5.0), 2);
+    const radius = Math.max(0.025, Math.pow(1 - t, 0.82) * tier);
     for (let side = 0; side < radial; side++) {
       const angle = side * Math.PI * 2 / radial;
-      const irregular = 0.88 + 0.13 * Math.sin(side * 2.7 + level * 4.3);
+      const irregular = 0.83 + 0.17 * Math.sin(side * 2.7 + level * 4.3);
       positions.push(Math.cos(angle) * radius * irregular,
         t * 2.25, Math.sin(angle) * radius * irregular);
     }
