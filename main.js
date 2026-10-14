@@ -537,6 +537,48 @@ updateMoss();
 moss.frustumCulled = false;
 scene.add(moss);
 
+// Irregular granite boulders along the forest verge. GPU instancing keeps
+// the added rocky landscape at one draw call on Android.
+const boulderCount = 95;
+const boulderGeometry = new THREE.IcosahedronGeometry(1, 1);
+const boulderMaterial = new THREE.MeshStandardMaterial({
+  color: 0x77786e, roughness: 0.98, flatShading: true
+});
+const boulders = new THREE.InstancedMesh(boulderGeometry, boulderMaterial, boulderCount);
+const boulderTransform = new THREE.Object3D();
+const boulderPositions = [];
+const boulderColor = new THREE.Color();
+let boulderSeed = 61823;
+const boulderRand = () => ((boulderSeed = (1664525 * boulderSeed + 1013904223) >>> 0) / 4294967296);
+for (let i = 0; i < boulderCount; i++) {
+  const side = boulderRand() > 0.5 ? 1 : -1;
+  const width = 0.35 + boulderRand() * 1.05;
+  boulderPositions.push({
+    x: side * (5.3 + boulderRand() * 17),
+    z: 10 - boulderRand() * 157,
+    width,
+    height: width * (0.38 + boulderRand() * 0.35),
+    angle: boulderRand() * Math.PI * 2
+  });
+  boulderColor.setHex([0x77776d, 0x676a60, 0x898679, 0x5b6058][i % 4]);
+  boulders.setColorAt(i, boulderColor);
+}
+function updateBoulders() {
+  for (let i = 0; i < boulderCount; i++) {
+    const rock = boulderPositions[i];
+    boulderTransform.position.set(rock.x, -0.19 + rock.height * 0.38, rock.z);
+    boulderTransform.rotation.set(0.12, rock.angle, -0.09);
+    boulderTransform.scale.set(rock.width * 1.4, rock.height, rock.width);
+    boulderTransform.updateMatrix();
+    boulders.setMatrixAt(i, boulderTransform.matrix);
+  }
+  boulders.instanceMatrix.needsUpdate = true;
+}
+updateBoulders();
+boulders.frustumCulled = false;
+boulders.receiveShadow = true;
+scene.add(boulders);
+
 // Pozzanghere e fango umido lungo i margini della carreggiata.
 // Geometria condivisa e materiale senza ombre: effetto leggero per Android.
 // Slightly jagged, asymmetric puddle outline rather than perfect circles.
@@ -1652,6 +1694,12 @@ if (soldierMixer) {
     // The historical finish set is visible from the first frame, as in
     // the reference image. Bring it forward gradually but never past player.
     finishGate.position.z = -49 + Math.min(distance * 0.105, 44);
+
+    for (const rock of boulderPositions) {
+      rock.z += speed * dt;
+      if (rock.z > 15) rock.z -= 165;
+    }
+    if ((debrisUpdateFrame & 1) === 0) updateBoulders();
 
     // Recycle weathered road lines with the scrolling ground.
     for (const mark of roadMarkPositions) {
