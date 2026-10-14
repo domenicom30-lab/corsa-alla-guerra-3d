@@ -163,9 +163,9 @@ function weatheredWood(color = 0xffffff) {
   return new THREE.MeshStandardMaterial({map: woodTexture, color, roughness: 0.98});
 }
 
-const dirtMat = mat(0x514634);
+const dirtMat = mat(0x78846b);
 const roadMat = mat(0x74685a);
-const vergeMat = mat(0x665e48);
+const vergeMat = mat(0x4d5945);
 const stripeMat = mat(0xc9c2aa);
 const barkMat = weatheredWood(0x8e806c);
 const darkMat = mat(0x282c28);
@@ -298,7 +298,7 @@ function installPBR(material, basePath, repeatX, repeatY) {
   };
   pbrLoader.load(basePath + '_color.jpg', tex => {
     material.map = configure(tex, true);
-    material.color.set(material === roadMat ? 0x777873 : 0xb1b6a3);
+    material.color.set(material === roadMat ? 0x777873 : 0x77876d);
     material.needsUpdate = true;
   }, undefined, () => {});
   pbrLoader.load(basePath + '_normal.jpg', tex => {
@@ -372,6 +372,8 @@ ground.rotation.x = -Math.PI / 2;
 ground.position.set(0, -0.23, -55);
 ground.receiveShadow = true;
 scene.add(ground);
+// Forest soil uses a dark green-brown tint even when external maps are loaded.
+dirtMat.color.set(0x78846b);
 
 const road = new THREE.Mesh(
   new THREE.PlaneGeometry(8, 180),
