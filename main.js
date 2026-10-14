@@ -602,6 +602,15 @@ loader.load(
         if (!material) continue;
         if (material.isMeshStandardMaterial || material.isMeshPhysicalMaterial) {
           material.envMapIntensity = 0.8;
+          // Variante uniforme scura ispirata al riferimento: preserva
+          // le texture e non altera scheletro, animazioni o numero di mesh.
+          const partName = (object.name + ' ' + (material.name || '')).toLowerCase();
+          const exposedSkin = /skin|face|head|hand|neck|eye|teeth|hair/.test(partName);
+          if (!exposedSkin && material.color) {
+            // Moltiplicatore cromatico, non sostituzione della texture PBR.
+            material.color.multiply(new THREE.Color(0x53575b));
+            material.roughness = Math.max(material.roughness ?? 0.8, 0.83);
+          }
           material.needsUpdate = true;
         }
       }
