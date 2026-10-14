@@ -289,16 +289,42 @@ for (const x of [-4.1, 4.1]) {
   scene.add(verge);
 }
 
-// Tracce di pneumatici
-for (const x of [-1.15, 1.15]) {
-  const track = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.18, 180),
-    mat(0x615545)
-  );
-
-  track.rotation.x = -Math.PI / 2;
-  track.position.set(x, -0.052, -55);
-  scene.add(track);
+// Solchi irregolari da mezzi militari, non due linee perfette.
+// Una sola texture procedurale condivisa dai due solchi, senza mesh extra.
+function createWheelRutTexture() {
+  const c = document.createElement('canvas');
+  c.width = 128; c.height = 512;
+  const ctx = c.getContext('2d');
+  let seed = 41;
+  const rnd = () => ((seed = (1664525 * seed + 1013904223) >>> 0) / 4294967296);
+  for (let y = 0; y < 512; y += 3) {
+    const drift = Math.sin(y * 0.031) * 9 + Math.sin(y * 0.087) * 4;
+    const width = 18 + rnd() * 13;
+    const opacity = 0.11 + rnd() * 0.17;
+    ctx.fillStyle = 'rgba(45,32,23,' + opacity + ')';
+    ctx.fillRect(64 + drift - width / 2, y, width, 2 + rnd() * 5);
+    if (rnd() > 0.45) {
+      ctx.fillStyle = 'rgba(23,20,16,0.14)';
+      ctx.fillRect(64 + drift - width / 2, y, 3, 5 + rnd() * 9);
+      ctx.fillRect(64 + drift + width / 2 - 3, y, 3, 5 + rnd() * 9);
+    }
+  }
+  const texture = new THREE.CanvasTexture(c);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(1, 16);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+const rutMaterial = new THREE.MeshBasicMaterial({
+  map: createWheelRutTexture(), transparent: true,
+  opacity: 0.8, depthWrite: false, polygonOffset: true,
+  polygonOffsetFactor: -1, side: THREE.DoubleSide
+});
+for (const x of [-1.45, 1.45]) {
+  const rut = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 180), rutMaterial);
+  rut.rotation.x = -Math.PI / 2;
+  rut.position.set(x, -0.051, -55);
+  scene.add(rut);
 }
 
 // Strada forestale: niente strisce bianche da asfalto.
