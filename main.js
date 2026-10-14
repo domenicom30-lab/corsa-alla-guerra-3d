@@ -849,6 +849,48 @@ function createTree(x, z, scale = 1) {
   forest.push(group);
 }
 
+// Real CC0 Kenney glTF pine assets are bundled by the Android build.
+// Replace nearby procedural pines with imported meshes; retain fallback
+// crowns if the assets are unavailable in a development preview.
+const natureLoader = new GLTFLoader();
+const naturePineFiles = [
+  'tree-pinetalla-detailed.glb', 'tree-pinetallb-detailed.glb',
+  'tree-pinetallc-detailed.glb', 'tree-pinetalld-detailed.glb'
+];
+const naturePines = [];
+function installImportedPines() {
+  if (!naturePines.length) return;
+  forest.forEach((tree, index) => {
+    if (index % 3 === 2 || tree.userData.importedPine) return;
+    const source = naturePines[index % naturePines.length];
+    const instance = source.clone(true);
+    // Original asset heights vary: normalize to existing forest scale.
+    const bounds = new THREE.Box3().setFromObject(instance);
+    const size = new THREE.Vector3(); bounds.getSize(size);
+    if (size.y < 0.01) return;
+    const factor = 6.7 / size.y;
+    instance.scale.setScalar(factor);
+    instance.position.y = -bounds.min.y * factor - 0.2;
+    instance.traverse((part) => {
+      if (part.isMesh) {
+        part.castShadow = index % 4 === 0;
+        part.receiveShadow = true;
+      }
+    });
+    tree.clear();
+    tree.add(instance);
+    tree.userData.importedPine = true;
+  });
+}
+for (const filename of naturePineFiles) {
+  natureLoader.load('./models/nature/' + filename, (gltf) => {
+    naturePines.push(gltf.scene);
+    installImportedPines();
+  }, undefined, () => {
+    // Procedural pines remain available as a reliable offline fallback.
+  });
+}
+
 // Cespugli
 // Cespugli a foglie ritagliate: silhouette naturali con poche superfici.
 function createShrubMaterial() {
