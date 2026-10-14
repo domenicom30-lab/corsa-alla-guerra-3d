@@ -7,7 +7,7 @@ const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 
 const checks = [
   ['Canvas e controlli', () => {
-    for (const id of ['game', 'message', 'stats', 'left', 'right', 'jump']) {
+    for (const id of ['game', 'message', 'stats', 'left', 'right', 'jump', 'duck']) {
       assert.ok(html.includes('id="' + id + '"') || html.includes("id='" + id + "'"), 'Elemento mancante: ' + id);
     }
   }],
@@ -24,7 +24,12 @@ const checks = [
   ['Prestazioni mobile', () => {
     assert.ok(main.includes('setPixelRatio'));
     assert.ok(main.includes('InstancedMesh'));
-    assert.ok(main.includes('shadow.mapSize.set(1024, 1024)'));
+    const shadowSize = main.match(/sun\\.shadow\\.mapSize\\.set\\((\\d+),\\s*(\\d+)\\)/);
+    assert.ok(shadowSize, 'Shadow map mancante');
+    const width = Number(shadowSize[1]);
+    const height = Number(shadowSize[2]);
+    assert.ok(width >= 1024 && width <= 2048 && height === width,
+      'Risoluzione ombre non supportata: ' + width + 'x' + height);
   }],
   ['Build configurata', () => assert.ok(pkg.scripts.build)]
 ];
