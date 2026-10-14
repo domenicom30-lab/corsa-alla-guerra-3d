@@ -51,6 +51,9 @@ jobs:
       - name: Install CC0 realistic spruce and pine GLBs
         run: python3 scripts/download_realistic_trees.py
 
+      - name: Install CC0 textured officer character
+        run: python3 scripts/download_characters.py
+
       - name: Build web game
         run: npm run build
 
