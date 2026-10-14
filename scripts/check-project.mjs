@@ -8,7 +8,7 @@ const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 const checks = [
   ['Canvas e controlli', () => {
     for (const id of ['game', 'message', 'stats', 'left', 'right', 'jump']) {
-      assert.match(html, new RegExp('id=["\\\']' + id + '["\\\']'), 'Elemento mancante: ' + id);
+      assert.ok(html.includes('id="' + id + '"') || html.includes("id='" + id + "'"), 'Elemento mancante: ' + id);
     }
   }],
   ['Modello soldato presente', () => assert.ok(existsSync('public/models/Soldier.glb'), 'Soldier.glb mancante')],
