@@ -1166,8 +1166,10 @@ loader.load(
           const exposedSkin = /skin|face|head|hand|neck|eye|teeth|hair/.test(partName);
           if (!exposedSkin && material.color) {
             // Moltiplicatore cromatico, non sostituzione della texture PBR.
-            material.color.multiply(new THREE.Color(0x53575b));
-            material.roughness = Math.max(material.roughness ?? 0.8, 0.83);
+            // Preserve the original GLB fabric detail: a strong dark tint
+            // previously crushed most of the soldier's midtone information.
+            material.color.multiply(new THREE.Color(0xb0b5a7));
+            material.roughness = Math.max(material.roughness ?? 0.8, 0.78);
           }
           material.needsUpdate = true;
         }
