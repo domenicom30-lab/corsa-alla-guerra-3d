@@ -327,6 +327,40 @@ for (const x of [-1.45, 1.45]) {
   scene.add(rut);
 }
 
+// Pozzanghere e fango umido lungo i margini della carreggiata.
+// Geometria condivisa e materiale senza ombre: effetto leggero per Android.
+const puddleGeometry = new THREE.CircleGeometry(1, 18);
+const puddleMaterial = new THREE.MeshStandardMaterial({
+  color: 0x48585b, roughness: 0.24, metalness: 0.12,
+  transparent: true, opacity: 0.69, depthWrite: false,
+  polygonOffset: true, polygonOffsetFactor: -2,
+  side: THREE.DoubleSide
+});
+const mudRimMaterial = new THREE.MeshStandardMaterial({
+  color: 0x342e25, roughness: 1, transparent: true,
+  opacity: 0.55, depthWrite: false, side: THREE.DoubleSide
+});
+const puddles = [];
+let puddleSeed = 7829;
+const puddleRand = () => ((puddleSeed = (puddleSeed * 1664525 + 1013904223) >>> 0) / 4294967296);
+for (let i = 0; i < 28; i++) {
+  const z = 10 - i * 5.9;
+  const x = (puddleRand() > 0.5 ? 1 : -1) * (2.25 + puddleRand() * 1.05);
+  const sx = 0.42 + puddleRand() * 0.65;
+  const sz = 0.7 + puddleRand() * 1.25;
+  const rim = new THREE.Mesh(puddleGeometry, mudRimMaterial);
+  rim.rotation.x = -Math.PI / 2;
+  rim.scale.set(sx * 1.2, sz * 1.16, 1);
+  rim.position.set(x, -0.047, z);
+  scene.add(rim);
+  const water = new THREE.Mesh(puddleGeometry, puddleMaterial);
+  water.rotation.x = -Math.PI / 2;
+  water.scale.set(sx, sz, 1);
+  water.position.set(x, -0.043, z);
+  scene.add(water);
+  puddles.push({rim, water});
+}
+
 // Strada forestale: niente strisce bianche da asfalto.
 const dashes = [];
 
@@ -970,6 +1004,16 @@ if (soldierMixer) {
 
       if (dash.position.z > 12) {
         dash.position.z -= 168;
+      }
+    }
+
+    // Riciclo delle pozze insieme alla strada, senza creare nuove mesh.
+    for (const p of puddles) {
+      p.rim.position.z += speed * dt;
+      p.water.position.z += speed * dt;
+      if (p.water.position.z > 16) {
+        p.rim.position.z -= 165;
+        p.water.position.z -= 165;
       }
     }
 
