@@ -33,15 +33,15 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.12;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87958e);
-scene.fog = new THREE.FogExp2(0x87958e, 0.0115);
+scene.background = new THREE.Color(0x9dbbd1);
+scene.fog = new THREE.FogExp2(0x9dbbd1, 0.007);
 
 const camera = new THREE.PerspectiveCamera(
   62, innerWidth / innerHeight, 0.1, 180
 );
 
-camera.position.set(0, 4.25, 9.6);
-camera.lookAt(0, 1.5, -3);
+camera.position.set(0, 3.15, 7.4);
+camera.lookAt(0, 1.4, -5);
 
 // Illuminazione
 scene.add(
@@ -73,9 +73,9 @@ function mat(color, roughness = 0.9, extra = {}) {
 }
 
 const dirtMat = mat(0x514634);
-const roadMat = mat(0x393a34);
-const vergeMat = mat(0x716954);
-const stripeMat = mat(0xbdb49a);
+const roadMat = mat(0x53504a);
+const vergeMat = mat(0x897b61);
+const stripeMat = mat(0xc9c2aa);
 const barkMat = mat(0x403024);
 const darkMat = mat(0x282c28);
 const uniformMat = mat(0x555d3d);
@@ -267,7 +267,7 @@ function createTree(x, z, scale = 1) {
 
   for (let i = 0; i < 4; i++) {
     const crown = new THREE.Mesh(
-      new THREE.ConeGeometry(1.2 - i * 0.17, 2.5, 7),
+      new THREE.ConeGeometry(1.2 - i * 0.17, 2.5, 10),
       leafMats[(Math.random() * leafMats.length) | 0]
     );
 
@@ -327,6 +327,59 @@ function createRock(x, z, scale = 1) {
   rocks.push(rock);
 }
 
+// Scenario militare ispirato a un percorso forestale storico
+const scenery = [];
+function sandbagWall(x, z, width = 2.4) {
+  const group = new THREE.Group();
+  const sack = mat(0x99856a);
+  for (let row = 0; row < 4; row++) {
+    for (let i = 0; i < 6; i++) {
+      const mesh = addSphere(group, 0.24, sack,
+        [(i - 2.5) * width / 6 + (row % 2) * 0.12, 0.2 + row * 0.27, 0],
+        [1.3, 0.68, 0.85]);
+      mesh.rotation.z = (i % 2 ? 1 : -1) * 0.05;
+    }
+  }
+  group.position.set(x, 0, z);
+  scene.add(group);
+  scenery.push(group);
+}
+function watchTower(x, z) {
+  const g = new THREE.Group();
+  const timber = mat(0x54422e);
+  for (const dx of [-0.7, 0.7]) for (const dz of [-0.7, 0.7]) {
+    addBox(g, [0.18, 5.6, 0.18], timber, [dx, 2.8, dz]);
+  }
+  addBox(g, [2.2, 0.25, 2.2], timber, [0, 5.25, 0]);
+  addBox(g, [2.5, 0.24, 2.5], timber, [0, 6.7, 0]);
+  for (const y of [1.4, 3.0, 4.6]) {
+    for (const side of [-1, 1]) {
+      const beam = addBox(g, [0.12, 1.8, 0.12], timber, [side * 0.7, y, 0]);
+      beam.rotation.z = side * 0.65;
+    }
+  }
+  g.position.set(x, 0, z);
+  scene.add(g);
+  scenery.push(g);
+}
+function barricade(x, z) {
+  const g = new THREE.Group();
+  const wood = mat(0x54412d);
+  for (const angle of [-0.72, 0.72]) {
+    const beam = addBox(g, [0.18, 2.5, 0.18], wood, [0, 1.05, 0]);
+    beam.rotation.z = angle;
+  }
+  addBox(g, [2.2, 0.16, 0.16], wood, [0, 1.1, 0]);
+  g.position.set(x, 0, z);
+  scene.add(g);
+  scenery.push(g);
+}
+for (let z = -28; z > -150; z -= 38) {
+  sandbagWall(-5.3, z);
+  sandbagWall(5.3, z - 12);
+  watchTower(9.2, z - 18);
+  barricade(-5.1, z - 7);
+}
 // Genera il paesaggio
 for (let z = 15; z > -145; z -= 5.5) {
   createTree(
@@ -517,7 +570,7 @@ let distance = 0;
 let lane = 1;
 let jumpVelocity = 0;
 let jumping = false;
-const speed = 0.25;
+const speed = 0.25;\nlet score = 0;\nlet health = 3;
 let lastTime = 0;
 
 function start() {
@@ -577,7 +630,7 @@ function animate(time) {
 
   if (running) {
     distance += speed * dt;
-    stats.textContent = `Distanza: ${Math.floor(distance * 2)} m`;
+    stats.textContent = `❤️ ${'♥'.repeat(health)}  |  PUNTI: ${score}  |  TRAGUARDO: ${Math.max(0, 1000 - Math.floor(distance * 2))} m`;
 
     // Movimento laterale
     player.position.x = THREE.MathUtils.damp(
@@ -653,7 +706,7 @@ if (soldierMixer) {
       }
     }
 
-    for (const rock of rocks) {
+    for (const item of scenery) {\n      item.position.z += speed * dt;\n      if (item.position.z > 17) item.position.z -= 152;\n    }\n\n    for (const rock of rocks) {
       rock.position.z += speed * dt;
 
       if (rock.position.z > 15) {
@@ -666,7 +719,7 @@ if (soldierMixer) {
       obstacle.mesh.position.z += speed * dt;
 
       if (!obstacle.passed && obstacle.mesh.position.z > 3.1) {
-        obstacle.passed = true;
+        obstacle.passed = true;\n        score += 10;
 
         if (
           Math.abs(obstacle.mesh.position.x - player.position.x) < 1.15 &&
