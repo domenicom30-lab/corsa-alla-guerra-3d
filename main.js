@@ -1035,6 +1035,77 @@ const banner = new THREE.Mesh(new THREE.PlaneGeometry(7.8, 1.45),
   new THREE.MeshBasicMaterial({map: bannerTexture, side: THREE.DoubleSide}));
 banner.position.set(0, 4.2, 0.04);
 finishGate.add(banner);
+// Period-style environmental graphics matching the supplied WWII game reference.
+// Painted onto canvases to avoid image downloads and additional dependencies.
+function paintedSign(lines, background, ink, width = 512, height = 768) {
+  const canvas = document.createElement('canvas');
+  canvas.width = width; canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = background; ctx.fillRect(0, 0, width, height);
+  let seed = 7203;
+  const random = () => ((seed = (1664525 * seed + 1013904223) >>> 0) / 4294967296);
+  for (let i = 0; i < 2700; i++) {
+    ctx.fillStyle = random() > 0.5 ? 'rgba(0,0,0,0.09)' : 'rgba(255,240,205,0.055)';
+    ctx.fillRect(random()*width, random()*height, 2+random()*18, 1+random()*8);
+  }
+  ctx.strokeStyle = '#ab9a76'; ctx.lineWidth = 14;
+  ctx.strokeRect(18, 18, width-36, height-36);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = ink;
+  const fontSize = Math.floor(Math.min(width / 6.5, height / (lines.length * 2.3)));
+  ctx.font = 'bold ' + fontSize + 'px Georgia,serif';
+  lines.forEach((line, index) => ctx.fillText(line, width/2,
+    height * (0.32 + index * 0.15), width - 70));
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+function addFinishSign(lines, background, ink, x, y, z, w, h) {
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(w, h),
+    new THREE.MeshStandardMaterial({map: paintedSign(lines, background, ink),
+      roughness: 0.95, side: THREE.DoubleSide}));
+  sign.position.set(x, y, z);
+  finishGate.add(sign);
+  return sign;
+}
+// Green propaganda placard on the left and tall DUX standard on the right.
+addFinishSign(['VINCERE', 'PER', "L'ITALIA"], '#34443b', '#e1d6b4',
+  -9.5, 2.8, 3.5, 3.5, 3.0);
+addFinishSign(['DUX', '★', 'SPQR'], '#34362c', '#b7a277',
+  9.1, 4.1, 3.5, 2.7, 5.4);
+// Two vertical red banners with white roundels and black hooked-cross
+// historical symbols, only as scenery in the fictional period setting.
+function makeHistoricalBanner() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256; canvas.height = 640;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#9c302e'; ctx.fillRect(0,0,256,640);
+  const grad = ctx.createLinearGradient(0,0,256,0);
+  grad.addColorStop(0,'rgba(0,0,0,0.28)');
+  grad.addColorStop(0.48,'rgba(255,255,255,0.08)');
+  grad.addColorStop(1,'rgba(0,0,0,0.23)');
+  ctx.fillStyle=grad;ctx.fillRect(0,0,256,640);
+  ctx.fillStyle='#ece5d8'; ctx.beginPath();ctx.arc(128,138,96,0,Math.PI*2);ctx.fill();
+  ctx.save();ctx.translate(128,138);ctx.rotate(Math.PI/4);
+  ctx.fillStyle='#191919';
+  ctx.fillRect(-14,-72,28,144);ctx.fillRect(-72,-14,144,28);
+  ctx.fillRect(0,-72,70,25);ctx.fillRect(47,-72,23,58);
+  ctx.fillRect(0,47,70,25);ctx.fillRect(47,14,23,58);
+  ctx.fillRect(-70,47,70,25);ctx.fillRect(-70,14,23,58);
+  ctx.fillRect(-70,-72,70,25);ctx.fillRect(-70,-72,23,58);
+  ctx.restore();
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+const periodFlagMat = new THREE.MeshStandardMaterial({
+  map: makeHistoricalBanner(), side: THREE.DoubleSide, roughness: 0.97
+});
+for (const x of [-4.25,4.25]) {
+  const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.45, 3.55), periodFlagMat);
+  flag.position.set(x, 3.18, 0.25);
+  finishGate.add(flag);
+}
 finishGate.visible = false;
 finishGate.position.set(0, 0, -97);
 scene.add(finishGate);
