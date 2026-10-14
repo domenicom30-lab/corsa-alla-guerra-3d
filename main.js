@@ -1,5 +1,5 @@
-
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import './style.css';
 
 // CORSA ALLA GUERRA 3D - Enhanced Edition
@@ -370,19 +370,84 @@ for (let z = 15; z > -145; z -= 5.5) {
   }
 }
 
-// Soldato
+
+ // Soldato 3D animato
 const player = new THREE.Group();
 scene.add(player);
 player.position.set(0, 0, 3);
 
-const torso = new THREE.Group();
-torso.position.set(0, 1.35, 0);
-player.add(torso);
+const soldierClock = new THREE.Clock();
+let soldierMixer = null;
+let soldierRun = null;
+let soldierIdle = null;
+let soldierActiveAction = null;
+
+const loader = new GLTFLoader();
+
+loader.load(
+  './models/Soldier.glb',
+  (gltf) => {
+    const soldier = gltf.scene;
+
+    soldier.rotation.y = Math.PI;
+
+    soldier.traverse((object) => {
+      if (object.isMesh) {
+        object.castShadow = true;
+        object.receiveShadow = true;
+      }
+    });
+
+    player.add(soldier);
+
+    // Adatta il modello a un'altezza di circa 1,9 metri
+    soldier.updateMatrixWorld(true);
+    const bounds = new THREE.Box3().setFromObject(soldier);
+    const height = bounds.max.y - bounds.min.y;
+
+    if (height > 0) {
+      const scale = 1.9 / height;
+      soldier.scale.setScalar(scale);
+      soldier.position.y = -bounds.min.y * scale;
+    }
+
+    soldierMixer = new THREE.AnimationMixer(soldier);
+
+    const clips = gltf.animations;
+    const runClip = clips.find((clip) =>
+      /run|walk/i.test(clip.name)
+    );
+    const idleClip = clips.find((clip) =>
+      /idle|t-pose|tpose/i.test(clip.name)
+    );
+
+    if (runClip) {
+      soldierRun = soldierMixer.clipAction(runClip);
+    }
+
+    if (idleClip) {
+      soldierIdle = soldierMixer.clipAction(idleClip);
+    } else if (clips.length && !soldierRun) {
+      soldierIdle = soldierMixer.clipAction(clips[0]);
+    }
+
+    console.log(
+      'Soldato caricato. Animazioni:',
+      clips.map((clip) => clip.name)
+    );
+  },
+  undefined,
+  (error) => {
+    console.error('Errore caricamento Soldier.glb:', error);
+    message.textContent = 'ERRORE NEL CARICAMENTO DEL SOLDATO';
+  }
+);
+
 
 // Corpo e giubbotto
 addBox(torso, [0.68, 0.9, 0.36], uniformMat, [0, 0.1, 0]);
 addBox(torso, [0.72, 0.13, 0.4], beltMat, [0, -0.17, 0]);
-addBox(torso, [0.56, 0.35, 0.39], uniformDarkMat, [0, 0.25, -0.02]);
+
 
 // Tasche e cinturone
 for (const side of [-1, 1]) {
@@ -602,24 +667,26 @@ function animate(time) {
       }
     }
 
-    // Animazione corsa
-    const phase = time * 0.012;
+    // Animazione del soldato 3D
+if (soldierMixer) {
+  const desiredAction =
+    jumping && soldierRun
+      ? soldierRun
+      : running
+        ? soldierRun
+        : soldierIdle || soldierRun;
 
-    for (const leg of legs) {
-      leg.group.rotation.x = jumping
-        ? -0.25
-        : Math.sin(phase + leg.side * Math.PI) * 0.42;
+  if (desiredAction && desiredAction !== soldierActiveAction) {
+    if (soldierActiveAction) {
+      soldierActiveAction.fadeOut(0.18);
     }
 
-    for (const arm of arms) {
-      arm.group.rotation.x = jumping
-        ? 0.35
-        : Math.sin(phase + arm.side * Math.PI) * 0.28;
-    }
+    desiredAction.reset().fadeIn(0.18).play();
+    soldierActiveAction = desiredAction;
+  }
 
-    torso.rotation.x = jumping
-      ? -0.08
-      : Math.sin(phase * 2) * 0.018;
+  soldierMixer.update(soldierClock.getDelta());
+}
 
     // Strada in movimento
     for (const dash of dashes) {
