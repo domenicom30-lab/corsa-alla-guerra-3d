@@ -782,6 +782,15 @@ for (let z = 15; z > -145; z -= 9) {
     0.75 + Math.random() * 0.65
   );
 
+  // Staggered background trunks add forest depth without narrowing the
+  // playable road. Sparse enough to preserve Android draw-call budget.
+  if (Math.random() > 0.46) {
+    createTree(-11.5 - Math.random() * 5, z - 4, 0.6 + Math.random() * 0.5);
+  }
+  if (Math.random() > 0.46) {
+    createTree(11.5 + Math.random() * 5, z - 6, 0.6 + Math.random() * 0.5);
+  }
+
   if (Math.random() > 0.25) {
     createBush(
       -4.8 - Math.random() * 3,
