@@ -316,6 +316,18 @@ roadMat.color.set(0x777873);
 roadMat.roughness = 0.94;
 // Preferisce mappe PBR locali quando presenti; mantiene le texture generate come fallback.
 const pbrLoader = new THREE.TextureLoader();
+// Asset diagnostics: reports actual texture/model success on the device.
+const assetDiagnostics = {textures: new Set(), models: new Set(), errors: new Set()};
+window.corsaAssetDiagnostics = assetDiagnostics;
+function assetLoaded(kind, name) {
+  assetDiagnostics[kind].add(name);
+  console.info('[Corsa Assets] loaded', kind, name);
+}
+function assetFailed(name, error) {
+  assetDiagnostics.errors.add(name);
+  console.warn('[Corsa Assets] unavailable:', name, error || 'load error');
+}
+
 function installPBR(material, basePath, repeatX, repeatY) {
   const configure = (texture, color = false) => {
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
@@ -326,16 +338,19 @@ function installPBR(material, basePath, repeatX, repeatY) {
   };
   pbrLoader.load(basePath + '_color.jpg', tex => {
     material.map = configure(tex, true);
+    assetLoaded('textures', basePath + '_color');
     material.color.set(material === roadMat ? 0x777873 : 0x77876d);
     material.needsUpdate = true;
   }, undefined, () => {});
   pbrLoader.load(basePath + '_normal.jpg', tex => {
     material.normalMap = configure(tex);
+    assetLoaded('textures', basePath + '_normal');
     material.normalScale = new THREE.Vector2(0.6, 0.6);
     material.needsUpdate = true;
   }, undefined, () => {});
   pbrLoader.load(basePath + '_roughness.jpg', tex => {
     material.roughnessMap = configure(tex);
+    assetLoaded('textures', basePath + '_roughness');
     material.roughness = 1;
     material.needsUpdate = true;
   }, undefined, () => {});
@@ -916,8 +931,10 @@ function installImportedPines() {
 for (const filename of naturePineFiles) {
   natureLoader.load('./models/nature/' + filename, (gltf) => {
     naturePines.set(filename, gltf.scene);
+    assetLoaded('models', filename);
     installImportedPines();
-  }, undefined, () => {
+  }, undefined, (error) => {
+    assetFailed(filename, error);
     // Procedural pines remain available as a reliable offline fallback.
   });
 }
@@ -996,6 +1013,7 @@ for (const [filename, count, height] of [
   ['grass-large.glb', 24, 0.65]
 ]) {
   natureLoader.load('./models/nature/' + filename, (gltf) => {
+    assetLoaded('models', filename);
     const box = new THREE.Box3().setFromObject(gltf.scene);
     const dimensions = new THREE.Vector3(); box.getSize(dimensions);
     if (dimensions.y < 0.001) return;
