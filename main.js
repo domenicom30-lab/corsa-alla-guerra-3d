@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as cloneSkinnedModel } from 'three/addons/utils/SkeletonUtils.js';
-import { EffectComposer, RenderPass, EffectPass, VignetteEffect } from 'postprocessing';
+import { EffectComposer, RenderPass, EffectPass, VignetteEffect, BloomEffect, SMAAEffect } from 'postprocessing';
 import './style.css';
 
 // CORSA ALLA GUERRA 3D - Enhanced Edition
@@ -28,7 +28,7 @@ const renderer = new THREE.WebGLRenderer({
 });
 
 // Limita i pixel elaborati sui display Android ad alta densità.
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.15));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -90,7 +90,9 @@ try {
   cinematicComposer = new EffectComposer(renderer, { multisampling: 0 });
   cinematicComposer.addPass(new RenderPass(scene, camera));
   cinematicComposer.addPass(new EffectPass(camera,
-    new VignetteEffect({ eskil: false, offset: 0.36, darkness: 0.42 })
+    new BloomEffect({ intensity: 0.22, luminanceThreshold: 0.88, mipmapBlur: true }),
+    new SMAAEffect(),
+    new VignetteEffect({ eskil: false, offset: 0.36, darkness: 0.35 })
   ));
 } catch (error) {
   console.warn('Postprocessing non disponibile: renderer standard attivo', error);
@@ -105,7 +107,7 @@ scene.add(
 const sun = new THREE.DirectionalLight(0xffe4bd, 2.35);
 sun.position.set(-11, 18, -9);
 sun.castShadow = true;
-sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.left = -11;
 sun.shadow.camera.right = 11;
 sun.shadow.camera.top = 15;
@@ -1801,7 +1803,7 @@ window.addEventListener('resize', () => {
 
   renderer.setSize(innerWidth, innerHeight);
   renderer.setPixelRatio(
-    Math.min(window.devicePixelRatio || 1, 1.15)
+    Math.min(window.devicePixelRatio || 1, 1.5)
   );
   if (cinematicComposer) cinematicComposer.setSize(innerWidth, innerHeight);
 });
