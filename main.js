@@ -1799,6 +1799,32 @@ loader.load(
         soldier.userData.groundAnchorY = soldier.position.y;
       }
     };
+    // Protect the camera against Mixamo retarget pose explosions.
+    // The uploaded rig has a different bind pose than Soldier.glb; a bad
+    // retarget can expand the skinned mesh tens of times beyond its rest size.
+    const safetyBounds = new THREE.Box3();
+    const safetySize = new THREE.Vector3();
+    let safetyFrames = 0;
+    soldier.userData.keepInCamera = () => {
+      if (++safetyFrames % 3 !== 0) return;
+      soldier.updateMatrixWorld(true);
+      safetyBounds.setFromObject(soldier);
+      if (safetyBounds.isEmpty()) return;
+      safetyBounds.getSize(safetySize);
+      if (![safetySize.x, safetySize.y, safetySize.z].every(Number.isFinite)) return;
+      const maxRatio = Math.max(safetySize.x / 1.5, safetySize.y / 2.15, safetySize.z / 1.5);
+      if (maxRatio > 1.05) {
+        const factor = Math.max(0.05, 1 / maxRatio);
+        soldier.scale.multiplyScalar(factor);
+        soldier.updateMatrixWorld(true);
+        safetyBounds.setFromObject(soldier);
+        soldier.position.x -= (safetyBounds.min.x + safetyBounds.max.x) * 0.5 - player.position.x;
+        soldier.position.z -= (safetyBounds.min.z + safetyBounds.max.z) * 0.5 - player.position.z;
+        soldier.position.y += player.position.y - safetyBounds.min.y;
+        soldier.userData.groundAnchorY = soldier.position.y;
+        console.warn('[Corsa Character] oversized animated rig clamped', maxRatio);
+      }
+    };
     soldier.userData.keepGrounded = keepSoldierGrounded;
     keepSoldierGrounded();
 
@@ -1859,6 +1885,9 @@ loader.load(
           names, hip: targetSkin.skeleton.bones.find(b => /hips/i.test(b.name))?.name,
           useFirstFramePosition: false
         }));
+        // Retargeted hip translation is in source-rig units and can throw
+        // the model into the camera. Only preserve joint rotations.
+        for (const clip of clips) clip.tracks = clip.tracks.filter(track => !track.name.endsWith('.position') && !track.name.endsWith('.scale'));
         window.corsaCharacterRetarget = { bones: Object.keys(names).length, clips: clips.map(c => c.name) };
       } catch (error) {
         console.warn('[Corsa Character] retarget failed', error);
@@ -2178,6 +2207,7 @@ if (soldierMixer) {
     soldierRoot.position.y = soldierRoot.userData.groundAnchorY;
     // Check the skinned mesh, not just the group origin: some GLBs move
     // the feet through bone transforms on their first animation frame.
+    if (soldierRoot.userData.keepInCamera) soldierRoot.userData.keepInCamera();
     if (soldierRoot.userData.keepGrounded) soldierRoot.userData.keepGrounded();
   }
 }
