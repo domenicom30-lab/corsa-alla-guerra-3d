@@ -522,16 +522,37 @@ function createRock(x, z, scale = 1) {
   rocks.push(rock);
 }
 
+const sackCanvas = document.createElement('canvas');
+sackCanvas.width = sackCanvas.height = 128;
+const sackCtx = sackCanvas.getContext('2d');
+sackCtx.fillStyle = '#a99a77';
+sackCtx.fillRect(0, 0, 128, 128);
+for (let i = 0; i < 128; i += 4) {
+  sackCtx.strokeStyle = i % 8 === 0 ? '#877b60' : '#b9ab87';
+  sackCtx.beginPath();
+  sackCtx.moveTo(i, 0);
+  sackCtx.lineTo(i, 128);
+  sackCtx.moveTo(0, i);
+  sackCtx.lineTo(128, i);
+  sackCtx.stroke();
+}
+const sackTexture = new THREE.CanvasTexture(sackCanvas);
+sackTexture.colorSpace = THREE.SRGBColorSpace;
+const sackMat = new THREE.MeshStandardMaterial({map: sackTexture, roughness: 1});
+const sackGeometry = new THREE.SphereGeometry(0.27, 12, 8);
+
 // Scenario militare ispirato a un percorso forestale storico
 const scenery = [];
 function sandbagWall(x, z, width = 2.4) {
   const group = new THREE.Group();
-  const sack = mat(0x99856a);
   for (let row = 0; row < 4; row++) {
     for (let i = 0; i < 6; i++) {
-      const mesh = addSphere(group, 0.24, sack,
-        [(i - 2.5) * width / 6 + (row % 2) * 0.12, 0.2 + row * 0.27, 0],
-        [1.3, 0.68, 0.85]);
+      const mesh = new THREE.Mesh(sackGeometry, sackMat);
+      mesh.position.set((i - 2.5) * width / 6 + (row % 2) * 0.12, 0.2 + row * 0.27, 0);
+      mesh.scale.set(1.3, 0.68, 0.85);
+      mesh.castShadow = row === 3;
+      mesh.receiveShadow = true;
+      group.add(mesh);
       mesh.rotation.z = (i % 2 ? 1 : -1) * 0.05;
     }
   }
@@ -611,9 +632,11 @@ for (const side of [-1, 1]) {
   const brace = addBox(finishGate, [0.17, 2.0, 0.18], finishTimber, [x-side*0.5, 2.9, 0]);
   brace.rotation.z = side * 0.52;
   for (let row = 0; row < 3; row++) for (let i = 0; i < 4; i++) {
-    addSphere(finishGate, 0.26, mat(0x95866b),
-      [side * (5.05 + (i % 2)*0.3), 0.23 + row*0.33, (i-1.5)*0.56],
-      [1.35, 0.65, 1]);
+    const finishSack = new THREE.Mesh(sackGeometry, sackMat);
+    finishSack.position.set(side * (5.05 + (i % 2)*0.3), 0.23 + row*0.33, (i-1.5)*0.56);
+    finishSack.scale.set(1.35, 0.65, 1);
+    finishSack.receiveShadow = true;
+    finishGate.add(finishSack);
   }
 }
 addBox(finishGate, [9.0, 0.26, 0.35], finishTimber, [0, 5.05, 0]);
@@ -853,25 +876,6 @@ loader.load(
 
 // Materiale tela dei sacchi con dettaglio superficiale procedurale.
 // Un futuro set PBR locale potrà sostituirlo senza cambiare la geometria.
-const sackCanvas = document.createElement('canvas');
-sackCanvas.width = sackCanvas.height = 128;
-const sackCtx = sackCanvas.getContext('2d');
-sackCtx.fillStyle = '#a99a77';
-sackCtx.fillRect(0, 0, 128, 128);
-for (let i = 0; i < 128; i += 4) {
-  sackCtx.strokeStyle = i % 8 === 0 ? '#877b60' : '#b9ab87';
-  sackCtx.beginPath();
-  sackCtx.moveTo(i, 0);
-  sackCtx.lineTo(i, 128);
-  sackCtx.moveTo(0, i);
-  sackCtx.lineTo(128, i);
-  sackCtx.stroke();
-}
-const sackTexture = new THREE.CanvasTexture(sackCanvas);
-sackTexture.colorSpace = THREE.SRGBColorSpace;
-const sackMat = new THREE.MeshStandardMaterial({map: sackTexture, roughness: 1});
-const sackGeometry = new THREE.SphereGeometry(0.27, 12, 8);
-
 // Ostacoli
 const obstacles = [];
 const lanes = [-2.5, 0, 2.5];
