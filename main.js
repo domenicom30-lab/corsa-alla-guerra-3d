@@ -75,7 +75,7 @@ function createDaylightSky() {
   return texture;
 }
 scene.background = createDaylightSky();
-scene.fog = new THREE.FogExp2(0xa1afa4, 0.006);
+scene.fog = new THREE.FogExp2(0x9baaa0, 0.0045);
 
 const camera = new THREE.PerspectiveCamera(
   62, innerWidth / innerHeight, 0.1, 180
@@ -1109,9 +1109,9 @@ function addFinishSign(lines, background, ink, x, y, z, w, h) {
 }
 // Green propaganda placard on the left and tall DUX standard on the right.
 addFinishSign(['VINCERE', 'PER', "L'ITALIA"], '#34443b', '#e1d6b4',
-  -9.5, 2.8, 3.5, 3.5, 3.0);
+  -6.8, 2.9, 5.8, 3.5, 3.0);
 addFinishSign(['DUX', '★', 'SPQR'], '#34362c', '#b7a277',
-  9.1, 4.1, 3.5, 2.7, 5.4);
+  6.7, 4.1, 5.8, 2.7, 5.4);
 // Two vertical red banners with white roundels and black hooked-cross
 // historical symbols, only as scenery in the fictional period setting.
 function makeHistoricalBanner() {
@@ -1146,7 +1146,7 @@ for (const x of [-4.25,4.25]) {
   finishGate.add(flag);
 }
 finishGate.visible = true;
-finishGate.position.set(0, 0, -34);
+finishGate.position.set(0, 0, -27);
 scene.add(finishGate);
 
 // Foschia naturale al posto delle montagne coniche artificiali.
@@ -1262,6 +1262,13 @@ const finishPlatform = new THREE.Mesh(
 finishPlatform.position.set(0, 0.05, -0.7);
 finishPlatform.receiveShadow = true;
 finishGate.add(finishPlatform);
+// Small front-facing marker makes the waiting character readable at distance.
+const podiumRim = new THREE.Mesh(
+  new THREE.CylinderGeometry(1.20, 1.20, 0.045, 24),
+  new THREE.MeshStandardMaterial({color: 0xb44b3b, roughness: 0.74})
+);
+podiumRim.position.set(0, 0.115, -0.7);
+finishGate.add(podiumRim);
 
 const soldierClock = new THREE.Clock();
 let soldierMixer = null;
@@ -1703,7 +1710,7 @@ if (soldierMixer) {
 
     // The historical finish set is visible from the first frame, as in
     // the reference image. Bring it forward gradually but never past player.
-    finishGate.position.z = -34 + Math.min(distance * 0.07, 29);
+    finishGate.position.z = -27 + Math.min(distance * 0.055, 22);
 
     for (const rock of boulderPositions) {
       rock.z += speed * dt;
