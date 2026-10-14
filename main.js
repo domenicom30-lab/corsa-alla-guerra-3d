@@ -335,6 +335,32 @@ for (const x of [-4.1, 4.1]) {
   scene.add(verge);
 }
 
+// Weathered road markings: two edge lines and broken centre dashes.
+// Single shared mesh/material; recycled with the moving track.
+const roadMarkMaterial = new THREE.MeshBasicMaterial({
+  color: 0xc8c4af, transparent: true, opacity: 0.62,
+  depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2
+});
+const roadMarkGeometry = new THREE.PlaneGeometry(0.10, 3.8);
+const roadMarks = [];
+for (let z = 10; z > -158; z -= 6) {
+  for (const x of [-3.67, 3.67]) {
+    const mark = new THREE.Mesh(roadMarkGeometry, roadMarkMaterial);
+    mark.rotation.x = -Math.PI / 2;
+    mark.position.set(x, -0.058, z);
+    mark.scale.set(1, 1.55, 1);
+    scene.add(mark);
+    roadMarks.push(mark);
+  }
+  if (Math.round(z / 6) % 2 === 0) {
+    const dash = new THREE.Mesh(roadMarkGeometry, roadMarkMaterial);
+    dash.rotation.x = -Math.PI / 2;
+    dash.position.set(0, -0.058, z);
+    scene.add(dash);
+    roadMarks.push(dash);
+  }
+}
+
 // Solchi irregolari da mezzi militari, non due linee perfette.
 // Una sola texture procedurale condivisa dai due solchi, senza mesh extra.
 function createWheelRutTexture() {
@@ -1415,6 +1441,12 @@ if (soldierMixer) {
       finishGate.visible = true;
       // Ferma il portale prima che oltrepassi il personaggio o la camera.
       finishGate.position.z = -97 + Math.min(distance - 400, 100) * 0.90;
+    }
+
+    // Recycle weathered road lines with the scrolling ground.
+    for (const mark of roadMarks) {
+      mark.position.z += speed * dt;
+      if (mark.position.z > 15) mark.position.z -= 168;
     }
 
     // Strada in movimento
