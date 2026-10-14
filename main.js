@@ -857,6 +857,26 @@ loader.load(
       soldier.position.z -= (scaledBounds.min.z + scaledBounds.max.z) / 2;
     }
 
+    // Keep the visible skinned mesh grounded after the initial pose is applied.
+    // Imported rigs may use an offset on an animated bone rather than the scene root.
+    const groundProbe = new THREE.Box3();
+    const groundCorrection = new THREE.Vector3();
+    const keepSoldierGrounded = () => {
+      soldier.updateMatrixWorld(true);
+      groundProbe.setFromObject(soldier);
+      if (groundProbe.isEmpty() || !Number.isFinite(groundProbe.min.y)) return;
+      // Compute in world coordinates: the player is at y=0 while running.
+      const worldFloor = player.position.y;
+      const penetration = worldFloor - groundProbe.min.y;
+      if (penetration > 0.035 && penetration < 2.5) {
+        groundCorrection.set(0, penetration, 0);
+        soldier.position.y += groundCorrection.y;
+        soldier.userData.groundAnchorY = soldier.position.y;
+      }
+    };
+    soldier.userData.keepGrounded = keepSoldierGrounded;
+    keepSoldierGrounded();
+
     soldierMixer = new THREE.AnimationMixer(soldier);
 
     const clips = gltf.animations;
@@ -1131,6 +1151,9 @@ if (soldierMixer) {
   const soldierRoot = player.children[0];
   if (soldierRoot && Number.isFinite(soldierRoot.userData.groundAnchorY)) {
     soldierRoot.position.y = soldierRoot.userData.groundAnchorY;
+    // Check the skinned mesh, not just the group origin: some GLBs move
+    // the feet through bone transforms on their first animation frame.
+    if (soldierRoot.userData.keepGrounded) soldierRoot.userData.keepGrounded();
   }
 }
 
