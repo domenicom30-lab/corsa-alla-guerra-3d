@@ -915,7 +915,7 @@ const naturePines = new Map();
 function installImportedPines() {
   if (!naturePines.size) return;
   forest.forEach((tree, index) => {
-    if (index % 6 === 5 || tree.userData.importedPine) return;
+    if (index % 6 === 5 || tree.userData.importedPine || tree.userData.realisticPine) return;
     const preferred = naturePineFiles[index % naturePineFiles.length];
     const source = naturePines.get(preferred);
     if (!source) return; // Retry this tree when its exact GLB finishes loading.
@@ -942,6 +942,53 @@ function installImportedPines() {
     tree.userData.assetName = preferred;
   });
 }
+// Photographic-style textured CC0 conifers replace the Kenney trees nearest
+// the road. Load asynchronously and keep existing trees as safe fallback.
+const realisticTreeFiles = ['norway-spruce.glb', 'scots-pine.glb'];
+const realisticTrees = new Map();
+function installRealisticTrees() {
+  if (!realisticTrees.size) return;
+  forest.forEach((tree, index) => {
+    // Use the detailed models on both sides of the road, while limiting
+    // draw calls and texture duplication on mobile.
+    if (index % 3 === 2 || tree.userData.realisticPine) return;
+    const filename = realisticTreeFiles[index % realisticTreeFiles.length];
+    const source = realisticTrees.get(filename);
+    if (!source) return;
+    const instance = source.clone(true);
+    const bounds = new THREE.Box3().setFromObject(instance);
+    const height = bounds.max.y - bounds.min.y;
+    if (!Number.isFinite(height) || height < 0.01) return;
+    const targetHeight = 7.0 + ((index * 13) % 9) * 0.46;
+    const scale = targetHeight / height;
+    instance.scale.setScalar(scale);
+    instance.position.y = -bounds.min.y * scale - 0.12;
+    instance.traverse((part) => {
+      if (!part.isMesh) return;
+      part.castShadow = index % 6 === 0;
+      part.receiveShadow = true;
+      if (part.material) {
+        const materials = Array.isArray(part.material) ? part.material : [part.material];
+        for (const mat of materials) {
+          if (mat.map) mat.map.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+          mat.side = THREE.DoubleSide;
+        }
+      }
+    });
+    tree.clear();
+    tree.add(instance);
+    tree.userData.realisticPine = true;
+    tree.userData.assetName = filename;
+  });
+}
+for (const filename of realisticTreeFiles) {
+  natureLoader.load('./models/realistic/' + filename, (gltf) => {
+    realisticTrees.set(filename, gltf.scene);
+    assetLoaded('models', filename);
+    installRealisticTrees();
+  }, undefined, (error) => assetFailed(filename, error));
+}
+
 for (const filename of naturePineFiles) {
   natureLoader.load('./models/nature/' + filename, (gltf) => {
     naturePines.set(filename, gltf.scene);
