@@ -1696,7 +1696,24 @@ loader.load(
       cap.traverse((part) => { if (part.isMesh) part.castShadow = true; });
       headBone.add(cap);
     }
+    // Record the actual mesh/bone layout so the next character replacement
+    // can target this GLB rather than guessing from a screenshot.
+    const soldierParts = [];
+    soldier.traverse((part) => {
+      if (part.isMesh || part.isBone) soldierParts.push({
+        type: part.isBone ? 'bone' : 'mesh',
+        name: part.name || '(unnamed)',
+        visible: part.visible
+      });
+    });
+    window.corsaCharacterDiagnostics = {
+      source: 'Soldier.glb',
+      headBone: headBone?.name || null,
+      hiddenModernParts,
+      parts: soldierParts
+    };
     console.info('[Corsa Soldier] hidden modern parts:', hiddenModernParts, 'animated head:', !!headBone);
+    console.info('[Corsa Soldier] model hierarchy:', window.corsaCharacterDiagnostics);
     // Preserve a stable base transform even if animation clips include root motion.
     soldier.userData.groundAnchorY = 0;
 
