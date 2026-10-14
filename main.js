@@ -954,9 +954,11 @@ function installRealisticTrees() {
   forest.forEach((tree, index) => {
     // Use the detailed models on both sides of the road, while limiting
     // draw calls and texture duplication on mobile.
-    if (index % 3 === 2 || tree.userData.realisticPine) return;
+    if (tree.userData.realisticPine) return;
     const filename = realisticTreeFiles[index % realisticTreeFiles.length];
-    const source = realisticTrees.get(filename);
+    // While the second asset is loading, show the first realistic conifer
+    // instead of leaving visible stylized trees near the camera.
+    const source = realisticTrees.get(filename) || realisticTrees.values().next().value;
     if (!source) return;
     const instance = source.clone(true);
     const bounds = new THREE.Box3().setFromObject(instance);
@@ -965,7 +967,7 @@ function installRealisticTrees() {
       assetFailed(filename + ': invalid scene bounds', new Error('GLB has no usable tree geometry'));
       return;
     }
-    const targetHeight = 7.0 + ((index * 13) % 9) * 0.46;
+    const targetHeight = 8.5 + ((index * 13) % 9) * 0.65;
     const scale = targetHeight / height;
     instance.scale.setScalar(scale);
     instance.position.y = -bounds.min.y * scale - 0.12;
