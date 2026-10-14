@@ -530,6 +530,43 @@ function makePineFoliage() {
 const pineFoliageMat = makePineFoliage();
 const pineFoliageGeo = new THREE.PlaneGeometry(3.5, 5.2);
 const pineTrunkGeo = new THREE.CylinderGeometry(0.10, 0.22, 4.8, 6);
+// Real 3D pine crowns: three staggered low-poly branch whorls, not
+// camera-facing crossed billboards. Geometry and materials are shared.
+function createPineCrownGeometry() {
+  const radial = 9;
+  const levels = 5;
+  const positions = [];
+  const indices = [];
+  for (let level = 0; level <= levels; level++) {
+    const t = level / levels;
+    const radius = Math.max(0.025, (1 - t) * (0.91 + 0.13 * Math.sin(level * 8.1)));
+    for (let side = 0; side < radial; side++) {
+      const angle = side * Math.PI * 2 / radial;
+      const irregular = 0.88 + 0.13 * Math.sin(side * 2.7 + level * 4.3);
+      positions.push(Math.cos(angle) * radius * irregular,
+        t * 2.25, Math.sin(angle) * radius * irregular);
+    }
+  }
+  for (let level = 0; level < levels; level++) {
+    for (let side = 0; side < radial; side++) {
+      const a = level * radial + side;
+      const b = level * radial + (side + 1) % radial;
+      const c = (level + 1) * radial + side;
+      const d = (level + 1) * radial + (side + 1) % radial;
+      indices.push(a, c, b, b, c, d);
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+const pineCrownGeo = createPineCrownGeometry();
+const pineCrownMat = new THREE.MeshStandardMaterial({
+  color: 0x314a32, roughness: 1, flatShading: true, side: THREE.DoubleSide
+});
+
 // A single shared low-resolution bark texture adds vertical grain without
 // adding geometry, draw calls or per-tree materials on Android.
 function makePineBarkMaterial() {
@@ -570,16 +607,15 @@ function createTree(x, z, scale = 1) {
   trunk.position.y = 2.4;
   trunk.castShadow = true;
   group.add(trunk);
+  // Overlapping whorls form a volumetric pine canopy with varied proportions.
   for (let i = 0; i < 3; i++) {
-    const foliage = new THREE.Mesh(pineFoliageGeo, pineFoliageMat);
-    foliage.position.y = 2.85 + (variation - 0.5) * 0.28;
-    // Slight canopy-width differences break up repeated cutout silhouettes.
-    foliage.scale.x = 0.88 + variation * 0.24;
-    foliage.scale.y = 0.94 + variation * 0.13;
-    foliage.rotation.y = i * Math.PI / 3 + 0.17;
-    foliage.castShadow = i === 0;
-    foliage.receiveShadow = false;
-    group.add(foliage);
+    const crown = new THREE.Mesh(pineCrownGeo, pineCrownMat);
+    crown.position.y = 1.5 + i * 1.1 + (variation - 0.5) * 0.2;
+    crown.scale.set((1.65 - i * 0.34) * (0.91 + variation * 0.18),
+      1.03 + variation * 0.13, (1.65 - i * 0.34) * (0.91 + variation * 0.18));
+    crown.rotation.y = variation * 2.1 + i * 0.43;
+    crown.castShadow = i === 0;
+    group.add(crown);
   }
   scene.add(group);
   forest.push(group);
