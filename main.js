@@ -1923,7 +1923,7 @@ loader.load(
   }
 );
 }
-loadRunnerModel('./models/characters/historical-runner.glb');
+loadRunnerModel('./models/historical-runner.glb');
 
 
 // Il modello Soldier.glb sostituisce il vecchio soldato costruito con cubi.
