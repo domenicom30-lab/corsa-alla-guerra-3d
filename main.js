@@ -961,7 +961,10 @@ function installRealisticTrees() {
     const instance = source.clone(true);
     const bounds = new THREE.Box3().setFromObject(instance);
     const height = bounds.max.y - bounds.min.y;
-    if (!Number.isFinite(height) || height < 0.01) return;
+    if (!Number.isFinite(height) || height < 0.01) {
+      assetFailed(filename + ': invalid scene bounds', new Error('GLB has no usable tree geometry'));
+      return;
+    }
     const targetHeight = 7.0 + ((index * 13) % 9) * 0.46;
     const scale = targetHeight / height;
     instance.scale.setScalar(scale);
@@ -983,6 +986,9 @@ function installRealisticTrees() {
     tree.userData.realisticPine = true;
     tree.userData.assetName = filename;
   });
+  const active = forest.filter(tree => tree.userData.realisticPine).length;
+  console.info('[Corsa Forest] realistic conifers active:', active, '/', forest.length);
+  window.corsaRealisticTreeCount = active;
 }
 for (const filename of realisticTreeFiles) {
   natureLoader.load('./models/realistic/' + filename, (gltf) => {
