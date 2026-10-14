@@ -227,6 +227,9 @@ function createSurfaceTexture(kind) {
 const dirtTexture = createDirtTexture();
 dirtMat.map = dirtTexture;
 roadMat.map = createSurfaceTexture('road');
+// Keep the roadway darker than the surrounding soil, including when PBR maps load.
+roadMat.color.set(0x777873);
+roadMat.roughness = 0.94;
 // Preferisce mappe PBR locali quando presenti; mantiene le texture generate come fallback.
 const pbrLoader = new THREE.TextureLoader();
 function installPBR(material, basePath, repeatX, repeatY) {
@@ -239,7 +242,7 @@ function installPBR(material, basePath, repeatX, repeatY) {
   };
   pbrLoader.load(basePath + '_color.jpg', tex => {
     material.map = configure(tex, true);
-    material.color.set(0xffffff);
+    material.color.set(material === roadMat ? 0x777873 : 0xb1b6a3);
     material.needsUpdate = true;
   }, undefined, () => {});
   pbrLoader.load(basePath + '_normal.jpg', tex => {
