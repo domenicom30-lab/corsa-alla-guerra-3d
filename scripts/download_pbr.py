@@ -18,14 +18,14 @@ def fetch(asset_id, prefix):
     if not re.fullmatch(r"[A-Za-z]+[0-9]{3,5}", asset_id):
         raise ValueError("Invalid ambientCG asset ID")
     resolution = os.environ.get("PBR_RESOLUTION", "1K")
-    if resolution not in {"1K", "2K"}:
-        raise ValueError("PBR_RESOLUTION must be 1K or 2K")
+    if resolution not in {"1K", "2K", "4K"}:
+        raise ValueError("PBR_RESOLUTION must be 1K, 2K or 4K")
     url = f"https://ambientcg.com/get?file={asset_id}_{resolution}-JPG.zip"
     req = urllib.request.Request(url, headers={"User-Agent": "CorsaAllaGuerra3D/1.0"})
     with urllib.request.urlopen(req, timeout=90) as response:
-        payload = response.read(65 * 1024 * 1024 + 1)
-    if len(payload) > 35 * 1024 * 1024:
-        raise ValueError("Texture archive exceeds 65 MB")
+        payload = response.read(150 * 1024 * 1024 + 1)
+    if len(payload) > 150 * 1024 * 1024:
+        raise ValueError("Texture archive exceeds 150 MB")
     OUT.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(io.BytesIO(payload)) as archive:
         for channel, suffix in CHANNELS.items():
