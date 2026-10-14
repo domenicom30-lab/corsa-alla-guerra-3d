@@ -870,28 +870,31 @@ loader.load(
       /jump|vault|hop/i.test(clip.name)
     );
 
-    // Rimuove la traslazione verticale del nodo radice dalla corsa:
-    // il personaggio resta appoggiato al terreno, mentre le ossa si animano.
-    const groundedRunClip = runClip ? runClip.clone() : null;
-    if (groundedRunClip) {
-      groundedRunClip.tracks = groundedRunClip.tracks.filter((track) => {
+    // Root/hip translation from imported clips may shift the entire skinned
+    // character below ground at startup. Strip translation only from the
+    // armature/root/hips; preserve limb rotation and all other animation.
+    const groundedClip = (clip) => {
+      if (!clip) return null;
+      const grounded = clip.clone();
+      grounded.tracks = grounded.tracks.filter((track) => {
         if (!track.name.endsWith('.position')) return true;
         const node = track.name.slice(0, -'.position'.length).toLowerCase();
-        return !/^(root|armature|hips|pelvis|mixamorig:hips)$/.test(node);
+        return !/(^|[|/:])(root|armature|hips|pelvis|mixamorig:hips)$/.test(node);
       });
-      soldierRun = soldierMixer.clipAction(groundedRunClip);
-    }
+      return grounded;
+    };
+    if (runClip) soldierRun = soldierMixer.clipAction(groundedClip(runClip));
 
     if (jumpClip) {
-      soldierJump = soldierMixer.clipAction(jumpClip);
+      soldierJump = soldierMixer.clipAction(groundedClip(jumpClip));
       soldierJump.setLoop(THREE.LoopOnce, 1);
       soldierJump.clampWhenFinished = true;
     }
 
     if (idleClip) {
-      soldierIdle = soldierMixer.clipAction(idleClip);
+      soldierIdle = soldierMixer.clipAction(groundedClip(idleClip));
     } else if (clips.length && !soldierRun) {
-      soldierIdle = soldierMixer.clipAction(clips[0]);
+      soldierIdle = soldierMixer.clipAction(groundedClip(clips[0]));
     }
 
     console.log(
