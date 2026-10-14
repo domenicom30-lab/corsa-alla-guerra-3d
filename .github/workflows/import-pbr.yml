@@ -1,0 +1,32 @@
+name: Import CC0 PBR textures
+on:
+  workflow_dispatch:
+    inputs:
+      road_asset:
+        description: "Verified ambientCG road/dirt asset ID (e.g. Ground###)"
+        required: true
+        type: string
+      forest_asset:
+        description: "Verified ambientCG forest ground asset ID"
+        required: true
+        type: string
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/load-soldier-glb
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download and validate CC0 texture maps
+        run: python scripts/download_pbr.py "${{ inputs.road_asset }}" "${{ inputs.forest_asset }}"
+      - name: Commit imported texture assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/assets/textures/
+          git diff --cached --quiet || (git commit -m "Import ambientCG CC0 PBR texture maps" && git push origin HEAD:fix/load-soldier-glb)
