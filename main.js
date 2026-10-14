@@ -342,24 +342,28 @@ const roadMarkMaterial = new THREE.MeshBasicMaterial({
   depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2
 });
 const roadMarkGeometry = new THREE.PlaneGeometry(0.10, 3.8);
-const roadMarks = [];
+const roadMarkPositions = [];
 for (let z = 10; z > -158; z -= 6) {
-  for (const x of [-3.67, 3.67]) {
-    const mark = new THREE.Mesh(roadMarkGeometry, roadMarkMaterial);
-    mark.rotation.x = -Math.PI / 2;
-    mark.position.set(x, -0.058, z);
-    mark.scale.set(1, 1.55, 1);
-    scene.add(mark);
-    roadMarks.push(mark);
-  }
-  if (Math.round(z / 6) % 2 === 0) {
-    const dash = new THREE.Mesh(roadMarkGeometry, roadMarkMaterial);
-    dash.rotation.x = -Math.PI / 2;
-    dash.position.set(0, -0.058, z);
-    scene.add(dash);
-    roadMarks.push(dash);
-  }
+  roadMarkPositions.push({x: -3.67, z, stretch: 1.55});
+  roadMarkPositions.push({x: 3.67, z, stretch: 1.55});
+  if (Math.round(z / 6) % 2 === 0) roadMarkPositions.push({x: 0, z, stretch: 1});
 }
+const roadMarks = new THREE.InstancedMesh(roadMarkGeometry, roadMarkMaterial, roadMarkPositions.length);
+const roadMarkTransform = new THREE.Object3D();
+function updateRoadMarks() {
+  for (let i = 0; i < roadMarkPositions.length; i++) {
+    const mark = roadMarkPositions[i];
+    roadMarkTransform.position.set(mark.x, -0.058, mark.z);
+    roadMarkTransform.rotation.set(-Math.PI / 2, 0, 0);
+    roadMarkTransform.scale.set(1, mark.stretch, 1);
+    roadMarkTransform.updateMatrix();
+    roadMarks.setMatrixAt(i, roadMarkTransform.matrix);
+  }
+  roadMarks.instanceMatrix.needsUpdate = true;
+}
+updateRoadMarks();
+roadMarks.frustumCulled = false;
+scene.add(roadMarks);
 
 // Solchi irregolari da mezzi militari, non due linee perfette.
 // Una sola texture procedurale condivisa dai due solchi, senza mesh extra.
@@ -1444,10 +1448,11 @@ if (soldierMixer) {
     }
 
     // Recycle weathered road lines with the scrolling ground.
-    for (const mark of roadMarks) {
-      mark.position.z += speed * dt;
-      if (mark.position.z > 15) mark.position.z -= 168;
+    for (const mark of roadMarkPositions) {
+      mark.z += speed * dt;
+      if (mark.z > 15) mark.z -= 168;
     }
+    if ((debrisUpdateFrame & 1) === 0) updateRoadMarks();
 
     // Strada in movimento
     for (const dash of dashes) {
