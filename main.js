@@ -447,7 +447,7 @@ const mudRandom = () => ((mudSeed = (1664525 * mudSeed + 1013904223) >>> 0) / 42
 for (let i = 0; i < 46; i++) {
   const patch = new THREE.Mesh(mudPatchGeometry, mudPatchMaterial);
   patch.rotation.x = -Math.PI / 2;
-  patch.rotation.z = mudRandom() * Math.PI;
+  patch.rotation.y = mudRandom() * Math.PI;
   const side = mudRandom() > 0.5 ? 1 : -1;
   patch.position.set(side * (1.25 + mudRandom() * 2.1), -0.057, 11 - i * 3.45);
   patch.scale.set(0.3 + mudRandom() * 0.95, 0.5 + mudRandom() * 1.45, 1);
