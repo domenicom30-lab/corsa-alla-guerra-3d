@@ -548,7 +548,7 @@ scene.add(forestDebris);
 
 // Forest-floor moss and fallen-needle islands: hundreds of patches in one draw call.
 // Positioned outside the road, slightly above the base terrain.
-const mossCount = 760;
+const mossCount = 1050;
 const mossGeometry = new THREE.IcosahedronGeometry(1, 0);
 const mossMaterial = new THREE.MeshStandardMaterial({
   color: 0x647454, roughness: 1, flatShading: true
@@ -1059,7 +1059,7 @@ fernBladeGeometry.setAttribute('uv', new THREE.Float32BufferAttribute(fernUvs, 2
 fernBladeGeometry.computeVertexNormals();
 const fernMaterial = new THREE.MeshStandardMaterial({color:0x354c2e,
   side:THREE.DoubleSide,roughness:0.97,metalness:0});
-const fernCount = 440;
+const fernCount = 820;
 const ferns = new THREE.InstancedMesh(fernBladeGeometry, fernMaterial, fernCount);
 const fernDummy = new THREE.Object3D();
 const fernLocations = [];
@@ -1082,6 +1082,14 @@ function updateFerns() {
 updateFerns();
 ferns.frustumCulled=false;
 scene.add(ferns);
+// Randomized fern color per instance, avoiding a flat monochrome carpet.
+const fernTint = new THREE.Color();
+for (let i=0; i<fernCount; i++) {
+  const variation = (i*37%113)/113;
+  fernTint.setHSL(0.26+variation*0.035,0.19+variation*0.16,0.26+variation*0.18);
+  ferns.setColorAt(i,fernTint);
+}
+if (ferns.instanceColor) ferns.instanceColor.needsUpdate=true;
 
 // Cespugli
 // Cespugli a foglie ritagliate: silhouette naturali con poche superfici.
@@ -1387,7 +1395,7 @@ scene.add(finishGate);
 // Foschia naturale al posto delle montagne coniche artificiali.
 // Dettagli del sottobosco
 // Vegetazione istanziata: una draw call per 500 fili anziché 500 mesh.
-const grassCount = 1100;
+const grassCount = 1800;
 const grassMaterial = new THREE.MeshStandardMaterial({
   color: 0x526747, side: THREE.DoubleSide, roughness: 1
 });
