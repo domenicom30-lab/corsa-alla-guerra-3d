@@ -1565,7 +1565,7 @@ if (soldierMixer) {
   }
 }
 
-    if (finishGuardMixer && finishGate.visible) finishGuardMixer.update(dt / 60);
+    if (finishGuardMixer && finishGate.visible) finishGuardMixer.update(soldierClock.getDelta());
 
     // Il portale si avvicina solo nell'ultimo tratto del livello.
     if (distance >= 400) {
