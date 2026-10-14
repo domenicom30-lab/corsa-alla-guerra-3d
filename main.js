@@ -470,19 +470,38 @@ for (let i=0;i<28;i++) {
   scene.add(mountain);
 }
 // Dettagli del sottobosco
-const undergrowth = [];
-const grassMaterial = new THREE.MeshStandardMaterial({color:0x556446,side:THREE.DoubleSide,roughness:1});
-const grassGeometry = new THREE.ConeGeometry(.13,.65,3);
-for (let i=0;i<350;i++) {
-  const x=(Math.random()-.5)*45;
-  if (Math.abs(x)<4.7) continue;
-  const tuft = new THREE.Mesh(grassGeometry, grassMaterial);
-  tuft.position.set(x,.12,10-Math.random()*150);
-  tuft.scale.setScalar(.6+Math.random()*1.1);
-  tuft.rotation.y=Math.random()*6.28;
-  scene.add(tuft);
-  undergrowth.push(tuft);
+// Vegetazione istanziata: una draw call per 500 fili anziché 500 mesh.
+const grassCount = 500;
+const grassMaterial = new THREE.MeshStandardMaterial({
+  color: 0x647552, side: THREE.DoubleSide, roughness: 1
+});
+const grassGeometry = new THREE.ConeGeometry(0.12, 0.7, 3);
+const grass = new THREE.InstancedMesh(grassGeometry, grassMaterial, grassCount);
+const grassTransform = new THREE.Object3D();
+const grassPositions = [];
+for (let i = 0; i < grassCount; i++) {
+  const side = Math.random() < 0.5 ? -1 : 1;
+  grassPositions.push({
+    x: side * (4.7 + Math.random() * 17),
+    z: 10 - Math.random() * 150,
+    size: 0.45 + Math.random() * 1.25,
+    angle: Math.random() * Math.PI * 2
+  });
 }
+function updateGrass() {
+  for (let i = 0; i < grassCount; i++) {
+    const g = grassPositions[i];
+    grassTransform.position.set(g.x, 0.13, g.z);
+    grassTransform.rotation.set(0, g.angle, 0);
+    grassTransform.scale.setScalar(g.size);
+    grassTransform.updateMatrix();
+    grass.setMatrixAt(i, grassTransform.matrix);
+  }
+  grass.instanceMatrix.needsUpdate = true;
+}
+updateGrass();
+grass.frustumCulled = false;
+scene.add(grass);
 // Genera il paesaggio
 for (let z = 15; z > -145; z -= 5.5) {
   createTree(
@@ -803,10 +822,11 @@ if (soldierMixer) {
       }
     }
 
-    for (const tuft of undergrowth) {
-      tuft.position.z += speed * dt;
-      if (tuft.position.z > 15) tuft.position.z -= 155;
+    for (const tuft of grassPositions) {
+      tuft.z += speed * dt;
+      if (tuft.z > 15) tuft.z -= 155;
     }
+    updateGrass();
 
     for (const bush of bushes) {
       bush.position.z += speed * dt;
