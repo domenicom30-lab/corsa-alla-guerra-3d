@@ -14,9 +14,10 @@ const stats = document.querySelector('#stats');
 const leftButton = document.querySelector('#left');
 const rightButton = document.querySelector('#right');
 const jumpButton = document.querySelector('#jump');
+const duckButton = document.querySelector('#duck');
 
 if (!canvas || !message || !stats ||
-    !leftButton || !rightButton || !jumpButton) {
+    !leftButton || !rightButton || !jumpButton || !duckButton) {
   throw new Error('Elementi del gioco mancanti in index.html');
 }
 
@@ -1486,6 +1487,7 @@ let distance = 0;
 let lane = 1;
 let jumpVelocity = 0;
 let jumping = false;
+let duckFrames = 0;
 const speed = 0.25;
 let score = 0;
 let health = 3;
@@ -1525,6 +1527,11 @@ function jump() {
 leftButton.onclick = () => move(-1);
 rightButton.onclick = () => move(1);
 jumpButton.onclick = jump;
+duckButton.onclick = () => {
+  if (falling) return;
+  if (!running) start();
+  if (!jumping) duckFrames = 42;
+};
 
 // The end-of-run overlay tells players to tap to restart. Allow that tap
 // to reach start(), which already handles the ended state by reloading.
@@ -1569,6 +1576,8 @@ function animate(time) {
   }
 
   if (running) {
+    if (duckFrames > 0) duckFrames = Math.max(0, duckFrames - dt);
+    player.scale.y = THREE.MathUtils.damp(player.scale.y, duckFrames > 0 ? 0.72 : 1, 12, dt / 60);
     distance += speed * dt;
     stats.textContent = `❤️ ${'♥'.repeat(health)}  |  PUNTI: ${score}  |  TRAGUARDO: ${Math.max(0, 200 - Math.floor(distance * 0.46))} m`;
 
