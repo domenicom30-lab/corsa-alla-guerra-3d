@@ -42,8 +42,8 @@ const camera = new THREE.PerspectiveCamera(
   62, innerWidth / innerHeight, 0.1, 180
 );
 
-camera.position.set(0, 3.15, 7.4);
-camera.lookAt(0, 1.4, -5);
+camera.position.set(0, 2.9, 6.1);
+camera.lookAt(0, 1.35, -5);
 
 // Illuminazione
 scene.add(
@@ -280,11 +280,11 @@ scene.add(road);
 
 for (const x of [-4.1, 4.1]) {
   const verge = new THREE.Mesh(
-    new THREE.BoxGeometry(0.22, 0.12, 180),
+    new THREE.BoxGeometry(0.08, 0.025, 180),
     vergeMat
   );
 
-  verge.position.set(x, -0.02, -55);
+  verge.position.set(x, -0.065, -55);
   verge.receiveShadow = true;
   scene.add(verge);
 }
@@ -292,8 +292,8 @@ for (const x of [-4.1, 4.1]) {
 // Tracce di pneumatici
 for (const x of [-1.15, 1.15]) {
   const track = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.28, 180),
-    mat(0x302e26)
+    new THREE.PlaneGeometry(0.18, 180),
+    mat(0x615545)
   );
 
   track.rotation.x = -Math.PI / 2;
@@ -301,19 +301,8 @@ for (const x of [-1.15, 1.15]) {
   scene.add(track);
 }
 
-// Strisce centrali della strada
+// Strada forestale: niente strisce bianche da asfalto.
 const dashes = [];
-
-for (let z = 10; z > -155; z -= 7) {
-  const dash = new THREE.Mesh(
-    new THREE.BoxGeometry(0.1, 0.018, 2.1),
-    stripeMat
-  );
-
-  dash.position.set(0, -0.035, z);
-  scene.add(dash);
-  dashes.push(dash);
-}
 
 const forest = [];
 const bushes = [];
@@ -481,18 +470,7 @@ for (let z = -28; z > -150; z -= 38) {
   watchTower(9.2, z - 18);
   barricade(-5.1, z - 7);
 }
-// Strati di colline lontane per profondità atmosferica
-const mountainMat = mat(0x6f806d, 1, {flatShading: true});
-for (let i=0;i<28;i++) {
-  const mountain = new THREE.Mesh(
-    new THREE.ConeGeometry(12 + Math.random()*13, 18 + Math.random()*16, 7),
-    mountainMat
-  );
-  mountain.position.set((i-14)*15, 5, -125-Math.random()*22);
-  mountain.rotation.y=Math.random()*Math.PI;
-  mountain.receiveShadow=true;
-  scene.add(mountain);
-}
+// Foschia naturale al posto delle montagne coniche artificiali.
 // Dettagli del sottobosco
 // Vegetazione istanziata: una draw call per 500 fili anziché 500 mesh.
 const grassCount = 300;
