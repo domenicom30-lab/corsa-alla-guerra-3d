@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { EffectComposer, RenderPass, EffectPass, VignetteEffect } from 'postprocessing';
 import './style.css';
 
 // CORSA ALLA GUERRA 3D - Enhanced Edition
@@ -80,6 +81,19 @@ const camera = new THREE.PerspectiveCamera(
 
 camera.position.set(0, 3.3, 7.0);
 camera.lookAt(0, 1.35, -5);
+
+// Lightweight cinematic postprocessing; mobile fallback uses direct rendering.
+let cinematicComposer = null;
+try {
+  cinematicComposer = new EffectComposer(renderer, { multisampling: 0 });
+  cinematicComposer.addPass(new RenderPass(scene, camera));
+  cinematicComposer.addPass(new EffectPass(camera,
+    new VignetteEffect({ eskil: false, offset: 0.36, darkness: 0.42 })
+  ));
+} catch (error) {
+  console.warn('Postprocessing non disponibile: renderer standard attivo', error);
+  cinematicComposer = null;
+}
 
 // Illuminazione
 scene.add(
@@ -1645,7 +1659,8 @@ if (soldierMixer) {
     landscape ? -7 : -5
   );
 
-  renderer.render(scene, camera);
+  if (cinematicComposer) cinematicComposer.render();
+  else renderer.render(scene, camera);
 }
 
 requestAnimationFrame(animate);
@@ -1658,4 +1673,5 @@ window.addEventListener('resize', () => {
   renderer.setPixelRatio(
     Math.min(window.devicePixelRatio || 1, 1.15)
   );
+  if (cinematicComposer) cinematicComposer.setSize(innerWidth, innerHeight);
 });
