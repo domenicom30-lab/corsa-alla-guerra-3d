@@ -143,8 +143,21 @@ function createDirtTexture() {
   c.height = 256;
 
   const ctx = c.getContext('2d');
-  ctx.fillStyle = '#514634';
+  ctx.fillStyle = '#373d2e';
   ctx.fillRect(0, 0, 256, 256);
+  // Broad, soft patches of damp soil and moss break up the sandy background.
+  let soilSeed = 3491;
+  const soilRand = () => ((soilSeed = (1664525 * soilSeed + 1013904223) >>> 0) / 4294967296);
+  for (let i = 0; i < 170; i++) {
+    const x = soilRand() * 256, y = soilRand() * 256;
+    const radius = 7 + soilRand() * 28;
+    const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+    const shade = soilRand() > 0.46 ? '53,69,44' : '40,35,28';
+    gradient.addColorStop(0, 'rgba(' + shade + ',0.28)');
+    gradient.addColorStop(1, 'rgba(' + shade + ',0)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+  }
 
   for (let i = 0; i < 6000; i++) {
     const shade = 35 + Math.random() * 60;
@@ -184,7 +197,7 @@ function createSurfaceTexture(kind) {
   c.width = c.height = 512;
   const ctx = c.getContext('2d');
   const road = kind === 'road';
-  ctx.fillStyle = road ? '#5d5346' : '#403f31';
+  ctx.fillStyle = road ? '#5d5346' : '#363d2f';
   ctx.fillRect(0, 0, 512, 512);
   for (let i = 0; i < 17000; i++) {
     const x = Math.random() * 512, y = Math.random() * 512;
