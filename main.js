@@ -75,7 +75,7 @@ function createDaylightSky() {
   return texture;
 }
 scene.background = createDaylightSky();
-scene.fog = new THREE.FogExp2(0xa1afa4, 0.0105);
+scene.fog = new THREE.FogExp2(0xa1afa4, 0.006);
 
 const camera = new THREE.PerspectiveCamera(
   62, innerWidth / innerHeight, 0.1, 180
@@ -713,51 +713,43 @@ const pineTrunkGeo = new THREE.CylinderGeometry(0.10, 0.22, 4.8, 6);
 // Real 3D pine crowns: three staggered low-poly branch whorls, not
 // camera-facing crossed billboards. Geometry and materials are shared.
 function createPineCrownGeometry() {
-  const radial = 12;
-  const levels = 8;
-  const positions = [];
-  const indices = [];
-  for (let level = 0; level <= levels; level++) {
-    const t = level / levels;
-    // Layered branch tiers interrupt the smooth Christmas-tree cone profile.
-    const tier = 0.72 + 0.28 * Math.pow(Math.sin(t * Math.PI * 5.0), 2);
-    const radius = Math.max(0.025, Math.pow(1 - t, 0.82) * tier);
-    for (let side = 0; side < radial; side++) {
-      const angle = side * Math.PI * 2 / radial;
-      const irregular = 0.83 + 0.17 * Math.sin(side * 2.7 + level * 4.3);
-      positions.push(Math.cos(angle) * radius * irregular,
-        t * 2.25, Math.sin(angle) * radius * irregular);
-    }
+  // Layered radial spruce boughs instead of the previous continuous cone.
+  // All needle sprays are part of ONE shared geometry for every pine.
+  const positions = [], uvs = [], indices = [];
+  function triangle(a, b, c) {
+    const base = positions.length / 3;
+    positions.push(...a, ...b, ...c);
+    uvs.push(0, 0, 1, 0, 0.5, 1);
+    indices.push(base, base + 1, base + 2);
   }
-  for (let level = 0; level < levels; level++) {
-    for (let side = 0; side < radial; side++) {
-      const a = level * radial + side;
-      const b = level * radial + (side + 1) % radial;
-      const c = (level + 1) * radial + side;
-      const d = (level + 1) * radial + (side + 1) % radial;
-      indices.push(a, c, b, b, c, d);
-    }
-  }
-  // Integrated branch tips extend the crown silhouette with no extra meshes.
-  // Each triangular spray is double-sided via the shared crown material.
-  for (let level = 1; level < levels; level += 2) {
-    const t = level / levels;
-    const baseRadius = Math.pow(1 - t, 0.82) * 0.78;
-    for (let side = 0; side < radial; side += 2) {
-      const angle = side * Math.PI * 2 / radial;
-      const spread = 0.20 + (1 - t) * 0.38;
-      const tip = positions.length / 3;
-      positions.push(Math.cos(angle - 0.18) * baseRadius, t * 2.25,
-        Math.sin(angle - 0.18) * baseRadius);
-      positions.push(Math.cos(angle) * (baseRadius + spread), t * 2.25 - 0.14,
-        Math.sin(angle) * (baseRadius + spread));
-      positions.push(Math.cos(angle + 0.18) * baseRadius,
-        t * 2.25 + 0.32, Math.sin(angle + 0.18) * baseRadius);
-      indices.push(tip, tip + 2, tip + 1);
+  const whorls = 10;
+  const branches = 11;
+  for (let ring = 0; ring < whorls; ring++) {
+    const t = ring / whorls;
+    const y = 0.24 + t * 2.12;
+    const reach = Math.pow(1 - t, 0.92) * 1.14;
+    for (let j = 0; j < branches; j++) {
+      const angle = j * Math.PI * 2 / branches + ring * 1.73;
+      const ux = Math.cos(angle), uz = Math.sin(angle);
+      const sideX = -uz, sideZ = ux;
+      const r = reach * (0.82 + 0.18 * Math.sin(j * 9.1 + ring * 3.7));
+      const droop = 0.15 + 0.10 * (1 - t);
+      const inner = [ux * 0.09, y + 0.17, uz * 0.09];
+      const tip = [ux * r, y - droop, uz * r];
+      const halfWidth = 0.14 + (1 - t) * 0.18;
+      triangle(inner,
+        [ux * r * 0.60 + sideX * halfWidth, y + 0.07, uz * r * 0.60 + sideZ * halfWidth], tip);
+      triangle(inner, tip,
+        [ux * r * 0.60 - sideX * halfWidth, y + 0.07, uz * r * 0.60 - sideZ * halfWidth]);
+      // Secondary sprays give branches depth when viewed from above.
+      triangle([ux * r * 0.26, y + 0.14, uz * r * 0.26],
+        [ux * r * 0.69 + sideX * halfWidth * 0.67, y + 0.26, uz * r * 0.69 + sideZ * halfWidth * 0.67],
+        [ux * r * 0.88, y - droop * 0.55, uz * r * 0.88]);
     }
   }
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
   return geometry;
@@ -1152,7 +1144,7 @@ for (const x of [-4.25,4.25]) {
   finishGate.add(flag);
 }
 finishGate.visible = true;
-finishGate.position.set(0, 0, -49);
+finishGate.position.set(0, 0, -34);
 scene.add(finishGate);
 
 // Foschia naturale al posto delle montagne coniche artificiali.
@@ -1709,7 +1701,7 @@ if (soldierMixer) {
 
     // The historical finish set is visible from the first frame, as in
     // the reference image. Bring it forward gradually but never past player.
-    finishGate.position.z = -49 + Math.min(distance * 0.105, 44);
+    finishGate.position.z = -34 + Math.min(distance * 0.07, 29);
 
     for (const rock of boulderPositions) {
       rock.z += speed * dt;
