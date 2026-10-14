@@ -924,7 +924,10 @@ function installImportedPines() {
     const bounds = new THREE.Box3().setFromObject(instance);
     const size = new THREE.Vector3(); bounds.getSize(size);
     if (size.y < 0.01) return;
-    const factor = 6.7 / size.y;
+    // Keep the original mesh proportions, but vary the height to prevent
+    // identical forest silhouettes from repeating along the road.
+    const variation = 0.86 + (index * 37 % 17) / 17 * 0.35;
+    const factor = 6.7 * variation / size.y;
     instance.scale.setScalar(factor);
     instance.position.y = -bounds.min.y * factor - 0.2;
     instance.traverse((part) => {
@@ -936,6 +939,7 @@ function installImportedPines() {
     tree.clear();
     tree.add(instance);
     tree.userData.importedPine = true;
+    tree.userData.assetName = preferred;
   });
 }
 for (const filename of naturePineFiles) {
