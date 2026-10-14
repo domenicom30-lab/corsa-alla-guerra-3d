@@ -609,9 +609,11 @@ function createBush(x, z, scale = 1) {
   const group = new THREE.Group();
   group.position.set(x, 0, z);
   group.scale.setScalar(scale);
+  const variation = Math.abs(Math.sin(x * 7.31 + z * 3.97));
+  group.rotation.y = variation * Math.PI * 2;
   for (let i = 0; i < 3; i++) {
     const foliage = new THREE.Mesh(shrubGeometry, shrubMaterial);
-    foliage.position.y = 0.64;
+    foliage.position.y = 0.60 + variation * 0.13;
     foliage.rotation.y = i * Math.PI / 3;
     foliage.castShadow = false;
     group.add(foliage);
