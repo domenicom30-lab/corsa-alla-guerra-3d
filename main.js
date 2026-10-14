@@ -86,8 +86,8 @@ scene.add(
   new THREE.HemisphereLight(0xd2d9ce, 0x414538, 1.7)
 );
 
-const sun = new THREE.DirectionalLight(0xd8d2b9, 2.15);
-sun.position.set(-7, 13, 5);
+const sun = new THREE.DirectionalLight(0xffe4bd, 2.35);
+sun.position.set(-11, 18, -9);
 sun.castShadow = true;
 sun.shadow.mapSize.set(1024, 1024);
 sun.shadow.camera.left = -11;
@@ -95,9 +95,11 @@ sun.shadow.camera.right = 11;
 sun.shadow.camera.top = 15;
 sun.shadow.camera.bottom = -10;
 sun.shadow.normalBias = 0.035;
+sun.shadow.bias = -0.00015;
+sun.shadow.radius = 2.2;
 scene.add(sun);
 
-const fillLight = new THREE.DirectionalLight(0xaac4d2, 0.65);
+const fillLight = new THREE.DirectionalLight(0xc8d8e2, 0.92);
 fillLight.position.set(6, 5, -8);
 scene.add(fillLight);
 
