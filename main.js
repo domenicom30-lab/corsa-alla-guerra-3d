@@ -589,7 +589,8 @@ loader.load(
   (gltf) => {
     const soldier = gltf.scene;
 
-    soldier.rotation.y = Math.PI;
+    // Il GLB guarda gia verso -Z: non ruotarlo verso la telecamera.
+    soldier.rotation.y = 0;
 
     soldier.traverse((object) => {
       if (!object.isMesh) return;
