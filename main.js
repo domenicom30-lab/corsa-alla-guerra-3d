@@ -24,7 +24,8 @@ const renderer = new THREE.WebGLRenderer({
   powerPreference: 'high-performance'
 });
 
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+// Limita i pixel elaborati sui display Android ad alta densità.
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.15));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -52,7 +53,7 @@ scene.add(
 const sun = new THREE.DirectionalLight(0xffdfb8, 2.8);
 sun.position.set(-7, 13, 5);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.mapSize.set(1024, 1024);
 sun.shadow.camera.left = -11;
 sun.shadow.camera.right = 11;
 sun.shadow.camera.top = 15;
@@ -494,7 +495,7 @@ for (let i=0;i<28;i++) {
 }
 // Dettagli del sottobosco
 // Vegetazione istanziata: una draw call per 500 fili anziché 500 mesh.
-const grassCount = 500;
+const grassCount = 300;
 const grassMaterial = new THREE.MeshStandardMaterial({
   color: 0x647552, side: THREE.DoubleSide, roughness: 1
 });
@@ -502,6 +503,7 @@ const grassGeometry = new THREE.ConeGeometry(0.12, 0.7, 3);
 const grass = new THREE.InstancedMesh(grassGeometry, grassMaterial, grassCount);
 const grassTransform = new THREE.Object3D();
 const grassPositions = [];
+let grassUpdateFrame = 0;
 for (let i = 0; i < grassCount; i++) {
   const side = Math.random() < 0.5 ? -1 : 1;
   grassPositions.push({
@@ -891,7 +893,8 @@ if (soldierMixer) {
       tuft.z += speed * dt;
       if (tuft.z > 15) tuft.z -= 155;
     }
-    updateGrass();
+    // Aggiorna le matrici GPU a frame alterni per ridurre il carico CPU.
+    if ((grassUpdateFrame++ & 1) === 0) updateGrass();
 
     for (const bush of bushes) {
       bush.position.z += speed * dt;
