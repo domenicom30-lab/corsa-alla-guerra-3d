@@ -30,16 +30,19 @@ jobs:
           java-version: 21
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Accept Android SDK licenses
-        run: yes | sdkmanager --licenses
+        uses: android-actions/setup-android@v4
+        with:
+          accept-android-sdk-licenses: true
+          log-accepted-android-sdk-licenses: false
 
       - name: Install dependencies
         run: npm install
 
       - name: Build web game
         run: npm run build
+
+      - name: Check Capacitor installation
+        run: npx cap --version
 
       - name: Add Android platform if missing
         run: |
