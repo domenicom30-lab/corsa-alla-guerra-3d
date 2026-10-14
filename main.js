@@ -567,23 +567,36 @@ loader.load(
     soldier.rotation.y = Math.PI;
 
     soldier.traverse((object) => {
-      if (object.isMesh) {
-        object.castShadow = true;
-        object.receiveShadow = true;
+      if (!object.isMesh) return;
+      object.castShadow = true;
+      object.receiveShadow = true;
+      // Mantieni i materiali PBR originali del GLB, senza appiattirli.
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      for (const material of materials) {
+        if (!material) continue;
+        if (material.isMeshStandardMaterial || material.isMeshPhysicalMaterial) {
+          material.envMapIntensity = 0.8;
+          material.needsUpdate = true;
+        }
+      }
+      if (object.isSkinnedMesh) {
+        object.frustumCulled = false;
       }
     });
 
     player.add(soldier);
 
-    // Adatta il modello a un'altezza di circa 1,9 metri
+    // Dimensioni e centratura: calcolo prima dello scaling, poi verifica.
     soldier.updateMatrixWorld(true);
-    const bounds = new THREE.Box3().setFromObject(soldier);
-    const height = bounds.max.y - bounds.min.y;
-
-    if (height > 0) {
-      const scale = 1.9 / height;
-      soldier.scale.setScalar(scale);
-      soldier.position.y = -bounds.min.y * scale;
+    const originalBounds = new THREE.Box3().setFromObject(soldier);
+    const originalHeight = originalBounds.max.y - originalBounds.min.y;
+    if (originalHeight > 0.001) {
+      soldier.scale.setScalar(1.9 / originalHeight);
+      soldier.updateMatrixWorld(true);
+      const scaledBounds = new THREE.Box3().setFromObject(soldier);
+      soldier.position.y -= scaledBounds.min.y;
+      soldier.position.x -= (scaledBounds.min.x + scaledBounds.max.x) / 2;
+      soldier.position.z -= (scaledBounds.min.z + scaledBounds.max.z) / 2;
     }
 
     soldierMixer = new THREE.AnimationMixer(soldier);
