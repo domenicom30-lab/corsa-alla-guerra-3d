@@ -539,7 +539,20 @@ addBox(finishGate, [9.0, 0.26, 0.35], finishTimber, [0, 5.05, 0]);
 const bannerCanvas = document.createElement('canvas');
 bannerCanvas.width = 1024; bannerCanvas.height = 192;
 const bannerCtx = bannerCanvas.getContext('2d');
-bannerCtx.fillStyle = '#872c2b'; bannerCtx.fillRect(0, 0, 1024, 192);
+bannerCtx.fillStyle = '#722927'; bannerCtx.fillRect(0, 0, 1024, 192);
+// Tessuto consumato: pieghe, macchie e bordi scoloriti senza texture esterne.
+let bannerSeed = 93;
+const bannerRandom = () => ((bannerSeed = (bannerSeed * 1664525 + 1013904223) >>> 0) / 4294967296);
+for (let i = 0; i < 1800; i++) {
+  const x = bannerRandom() * 1024, y = bannerRandom() * 192;
+  bannerCtx.fillStyle = bannerRandom() > 0.5 ? 'rgba(235,171,135,0.07)' : 'rgba(23,13,12,0.10)';
+  bannerCtx.fillRect(x, y, 1 + bannerRandom() * 21, 1 + bannerRandom() * 4);
+}
+for (let i = 0; i < 13; i++) {
+  const x = 35 + bannerRandom() * 954;
+  bannerCtx.fillStyle = 'rgba(20,12,12,0.10)';
+  bannerCtx.fillRect(x, 0, 3 + bannerRandom() * 11, 192);
+}
 bannerCtx.strokeStyle = '#b87561'; bannerCtx.lineWidth = 12;
 bannerCtx.strokeRect(8, 8, 1008, 176);
 bannerCtx.fillStyle = '#f4e8d6'; bannerCtx.font = 'bold 112px Arial';
