@@ -435,25 +435,39 @@ function createTree(x, z, scale = 1) {
 }
 
 // Cespugli
+// Cespugli a foglie ritagliate: silhouette naturali con poche superfici.
+function createShrubMaterial() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256; canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  let seed = 521;
+  const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+  for (let i = 0; i < 95; i++) {
+    const x = 24 + rnd() * 208, y = 38 + rnd() * 192;
+    const radius = 8 + rnd() * 23;
+    ctx.fillStyle = ['#233e2c','#304c32','#41623a','#506d40','#62794a'][Math.floor(rnd()*5)];
+    ctx.beginPath();
+    ctx.ellipse(x, y, radius, radius * (0.4 + rnd()*0.4), rnd()*6.28, 0, Math.PI*2);
+    ctx.fill();
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return new THREE.MeshStandardMaterial({map:texture, transparent:true, alphaTest:0.35,
+    side:THREE.DoubleSide, roughness:1, depthWrite:true});
+}
+const shrubMaterial = createShrubMaterial();
+const shrubGeometry = new THREE.PlaneGeometry(1.7, 1.35);
 function createBush(x, z, scale = 1) {
   const group = new THREE.Group();
   group.position.set(x, 0, z);
   group.scale.setScalar(scale);
-
-  for (let i = 0; i < 5; i++) {
-    addSphere(
-      group,
-      0.4,
-      leafMats[i % leafMats.length],
-      [
-        (Math.random() - 0.5) * 0.9,
-        0.22 + Math.random() * 0.35,
-        (Math.random() - 0.5) * 0.8
-      ],
-      [1.1, 0.75, 1]
-    );
+  for (let i = 0; i < 3; i++) {
+    const foliage = new THREE.Mesh(shrubGeometry, shrubMaterial);
+    foliage.position.y = 0.64;
+    foliage.rotation.y = i * Math.PI / 3;
+    foliage.castShadow = false;
+    group.add(foliage);
   }
-
   scene.add(group);
   bushes.push(group);
 }
@@ -609,7 +623,14 @@ const grassCount = 300;
 const grassMaterial = new THREE.MeshStandardMaterial({
   color: 0x647552, side: THREE.DoubleSide, roughness: 1
 });
-const grassGeometry = new THREE.ConeGeometry(0.12, 0.7, 3);
+// Lama d'erba incurvata invece di coni appuntiti.
+const grassGeometry = new THREE.BufferGeometry();
+grassGeometry.setAttribute('position', new THREE.Float32BufferAttribute([
+  -0.11,0,0, 0.11,0,0, -0.065,0.32,0.03,
+   0.11,0,0, 0.065,0.32,0.03, -0.065,0.32,0.03,
+  -0.065,0.32,0.03, 0.065,0.32,0.03, 0.02,0.76,0.13
+], 3));
+grassGeometry.computeVertexNormals();
 const grass = new THREE.InstancedMesh(grassGeometry, grassMaterial, grassCount);
 const grassTransform = new THREE.Object3D();
 const grassPositions = [];
@@ -626,7 +647,7 @@ for (let i = 0; i < grassCount; i++) {
 function updateGrass() {
   for (let i = 0; i < grassCount; i++) {
     const g = grassPositions[i];
-    grassTransform.position.set(g.x, 0.13, g.z);
+    grassTransform.position.set(g.x, 0, g.z);
     grassTransform.rotation.set(0, g.angle, 0);
     grassTransform.scale.setScalar(g.size);
     grassTransform.updateMatrix();
