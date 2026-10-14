@@ -920,6 +920,64 @@ for (const filename of naturePineFiles) {
   });
 }
 
+// Dense natural forest-floor leaf litter, batched into a single GPU draw call.
+// Alpha-cutout silhouettes and varied warm/cool colors avoid polygonal boulders.
+const litterCanvas = document.createElement('canvas');
+litterCanvas.width = 128; litterCanvas.height = 128;
+const litterCtx = litterCanvas.getContext('2d');
+litterCtx.clearRect(0, 0, 128, 128);
+litterCtx.translate(64, 64);
+litterCtx.beginPath();
+litterCtx.moveTo(0, -54);
+litterCtx.bezierCurveTo(39, -39, 39, 11, 0, 53);
+litterCtx.bezierCurveTo(-39, 11, -39, -39, 0, -54);
+litterCtx.fillStyle = '#ddd3a7'; litterCtx.fill();
+litterCtx.strokeStyle = '#8d7755'; litterCtx.lineWidth = 3;
+litterCtx.beginPath(); litterCtx.moveTo(0, -49); litterCtx.lineTo(0, 47); litterCtx.stroke();
+for (const side of [-1, 1]) for (let j = 0; j < 6; j++) {
+  const y = -33 + j * 13;
+  litterCtx.beginPath(); litterCtx.moveTo(0, y + 10);
+  litterCtx.lineTo(side * (16 + (5 - j) * 2), y - 6); litterCtx.stroke();
+}
+const litterTexture = new THREE.CanvasTexture(litterCanvas);
+litterTexture.colorSpace = THREE.SRGBColorSpace;
+const litterMaterial = new THREE.MeshStandardMaterial({
+  map: litterTexture, transparent: false, alphaTest: 0.35,
+  side: THREE.DoubleSide, roughness: 1, depthWrite: true
+});
+const litterCount = 1900;
+const litter = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.32, 0.66), litterMaterial, litterCount);
+const litterTransform = new THREE.Object3D();
+const litterItems = [];
+let litterSeed = 4093;
+const litterRand = () => ((litterSeed = (1664525 * litterSeed + 1013904223) >>> 0) / 4294967296);
+const litterColors = [0x756b49, 0x85734d, 0x6e7650, 0x554f37, 0x9b8456];
+for (let i = 0; i < litterCount; i++) {
+  const side = litterRand() < 0.5 ? -1 : 1;
+  const item = {
+    x: side * (4.3 + litterRand() * 19),
+    z: 12 - litterRand() * 161,
+    rotation: litterRand() * Math.PI * 2,
+    scale: 0.3 + litterRand() * 1.5
+  };
+  litterItems.push(item);
+  litter.setColorAt(i, new THREE.Color(litterColors[Math.floor(litterRand() * litterColors.length)]));
+}
+function updateLitter() {
+  for (let i = 0; i < litterCount; i++) {
+    const leaf = litterItems[i];
+    litterTransform.position.set(leaf.x, -0.208 + i % 4 * 0.002, leaf.z);
+    litterTransform.rotation.set(-Math.PI / 2, 0, leaf.rotation);
+    litterTransform.scale.setScalar(leaf.scale);
+    litterTransform.updateMatrix();
+    litter.setMatrixAt(i, litterTransform.matrix);
+  }
+  litter.instanceMatrix.needsUpdate = true;
+}
+updateLitter();
+litter.frustumCulled = false;
+scene.add(litter);
+
 // Imported CC0 granite and detailed bush models complement the procedural
 // instanced ground clutter. Only a few near-camera props are used.
 const natureProps = [];
@@ -1868,6 +1926,12 @@ if (soldierMixer) {
         tree.position.z -= 160;
       }
     }
+
+    for (const leaf of litterItems) {
+      leaf.z += speed * dt;
+      if (leaf.z > 15) leaf.z -= 161;
+    }
+    if ((grassUpdateFrame & 1) === 0) updateLitter();
 
     for (const tuft of grassPositions) {
       tuft.z += speed * dt;
