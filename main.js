@@ -1655,6 +1655,7 @@ loader.load(
       return;
     }
     window.corsaRunnerAsset = fallback ? 'Soldier.glb (modern fallback)' : path;
+    console.info('[Corsa Character] active runner asset:', window.corsaRunnerAsset);
     const soldier = gltf.scene;
 
     // Il GLB guarda gia verso -Z: non ruotarlo verso la telecamera.
@@ -1690,7 +1691,7 @@ loader.load(
     // fixed world coordinate. This is an interim silhouette improvement.
     let headBone = null;
     soldier.traverse((part) => {
-      if (!headBone && part.isBone && /(^|[_:.])head($|[_:.])/i.test(part.name)) headBone = part;
+      if (!headBone && part.isBone && /(?:^|[:_.])head(?:[_0-9]*|$)/i.test(part.name)) headBone = part;
     });
     if (headBone) {
       const cap = new THREE.Group();
