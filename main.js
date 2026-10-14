@@ -1285,6 +1285,22 @@ loader.load(
 
     // Il GLB guarda gia verso -Z: non ruotarlo verso la telecamera.
     soldier.rotation.y = 0;
+    // Neutral charcoal uniform treatment inspired by the reference runner.
+    // Retain original GLB textures and skinning instead of replacing them.
+    soldier.traverse((part) => {
+      if (!part.isMesh || !part.material) return;
+      const mats = Array.isArray(part.material) ? part.material : [part.material];
+      const adjusted = mats.map((original) => {
+        const mat = original.clone();
+        const name = ((part.name || '') + ' ' + (original.name || '')).toLowerCase();
+        if (mat.color && /uniform|jacket|coat|pants|trouser|shirt|fabric|cloth|vest/.test(name)) {
+          mat.color.multiply(new THREE.Color(0x666b67));
+          mat.roughness = Math.max(mat.roughness ?? 0.8, 0.88);
+        }
+        return mat;
+      });
+      part.material = Array.isArray(part.material) ? adjusted : adjusted[0];
+    });
     // Preserve a stable base transform even if animation clips include root motion.
     soldier.userData.groundAnchorY = 0;
 
