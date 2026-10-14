@@ -1003,8 +1003,10 @@ leftButton.onclick = () => move(-1);
 rightButton.onclick = () => move(1);
 jumpButton.onclick = jump;
 
+// The end-of-run overlay tells players to tap to restart. Allow that tap
+// to reach start(), which already handles the ended state by reloading.
 canvas.addEventListener('pointerdown', () => {
-  if (!running && !ended) start();
+  if (!running) start();
 });
 
 window.addEventListener('keydown', event => {
