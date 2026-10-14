@@ -5,6 +5,7 @@ Asset IDs must be verified at https://ambientcg.com before running.
 """
 from pathlib import Path
 import io
+import os
 import re
 import sys
 import urllib.request
@@ -16,12 +17,15 @@ CHANNELS = {"Color": "color", "NormalGL": "normal", "Roughness": "roughness"}
 def fetch(asset_id, prefix):
     if not re.fullmatch(r"[A-Za-z]+[0-9]{3,5}", asset_id):
         raise ValueError("Invalid ambientCG asset ID")
-    url = f"https://ambientcg.com/get?file={asset_id}_1K-JPG.zip"
+    resolution = os.environ.get("PBR_RESOLUTION", "1K")
+    if resolution not in {"1K", "2K"}:
+        raise ValueError("PBR_RESOLUTION must be 1K or 2K")
+    url = f"https://ambientcg.com/get?file={asset_id}_{resolution}-JPG.zip"
     req = urllib.request.Request(url, headers={"User-Agent": "CorsaAllaGuerra3D/1.0"})
     with urllib.request.urlopen(req, timeout=90) as response:
-        payload = response.read(35 * 1024 * 1024 + 1)
+        payload = response.read(65 * 1024 * 1024 + 1)
     if len(payload) > 35 * 1024 * 1024:
-        raise ValueError("Texture archive exceeds 35 MB")
+        raise ValueError("Texture archive exceeds 65 MB")
     OUT.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(io.BytesIO(payload)) as archive:
         for channel, suffix in CHANNELS.items():
