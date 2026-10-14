@@ -394,6 +394,28 @@ for (let i = 0; i < 28; i++) {
   puddles.push({rim, water});
 }
 
+// Mud is not perfectly flat: add a few shared-geometry, irregular wet-soil
+// patches around the ruts. Cheap unlit decals avoid costly reflection passes.
+const mudPatchGeometry = new THREE.CircleGeometry(1, 11);
+const mudPatchMaterial = new THREE.MeshBasicMaterial({
+  color: 0x302e25, transparent: true, opacity: 0.23,
+  depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1,
+  side: THREE.DoubleSide
+});
+const mudPatches = [];
+let mudSeed = 9381;
+const mudRandom = () => ((mudSeed = (1664525 * mudSeed + 1013904223) >>> 0) / 4294967296);
+for (let i = 0; i < 46; i++) {
+  const patch = new THREE.Mesh(mudPatchGeometry, mudPatchMaterial);
+  patch.rotation.x = -Math.PI / 2;
+  patch.rotation.z = mudRandom() * Math.PI;
+  const side = mudRandom() > 0.5 ? 1 : -1;
+  patch.position.set(side * (1.25 + mudRandom() * 2.1), -0.057, 11 - i * 3.45);
+  patch.scale.set(0.3 + mudRandom() * 0.95, 0.5 + mudRandom() * 1.45, 1);
+  scene.add(patch);
+  mudPatches.push(patch);
+}
+
 // Strada forestale: niente strisce bianche da asfalto.
 const dashes = [];
 
@@ -1182,6 +1204,12 @@ if (soldierMixer) {
         p.rim.position.z -= 165;
         p.water.position.z -= 165;
       }
+    }
+
+    // Keep wet-soil patches travelling with the terrain.
+    for (const patch of mudPatches) {
+      patch.position.z += speed * dt;
+      if (patch.position.z > 15) patch.position.z -= 160;
     }
 
     // Riciclo degli elementi del paesaggio
