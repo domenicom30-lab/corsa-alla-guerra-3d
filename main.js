@@ -888,10 +888,12 @@ const naturePineFiles = [
 ];
 const naturePines = new Map();
 function installImportedPines() {
-  if (naturePines.size !== naturePineFiles.length) return;
+  if (!naturePines.size) return;
   forest.forEach((tree, index) => {
     if (index % 6 === 5 || tree.userData.importedPine) return;
-    const source = naturePines.get(naturePineFiles[index % naturePineFiles.length]);
+    const preferred = naturePineFiles[index % naturePineFiles.length];
+    const source = naturePines.get(preferred);
+    if (!source) return; // Retry this tree when its exact GLB finishes loading.
     const instance = source.clone(true);
     // Original asset heights vary: normalize to existing forest scale.
     const bounds = new THREE.Box3().setFromObject(instance);
