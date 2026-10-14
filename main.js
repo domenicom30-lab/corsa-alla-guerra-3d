@@ -954,11 +954,12 @@ function installRealisticTrees() {
   forest.forEach((tree, index) => {
     // Use the detailed models on both sides of the road, while limiting
     // draw calls and texture duplication on mobile.
-    if (tree.userData.realisticPine) return;
     const filename = realisticTreeFiles[index % realisticTreeFiles.length];
-    // While the second asset is loading, show the first realistic conifer
-    // instead of leaving visible stylized trees near the camera.
-    const source = realisticTrees.get(filename) || realisticTrees.values().next().value;
+    // Prefer the intended species when available, but never leave a
+    // procedural tree behind just because its GLB finishes loading later.
+    const chosenName = realisticTrees.has(filename) ? filename : realisticTrees.keys().next().value;
+    if (!chosenName || tree.userData.assetName === chosenName) return;
+    const source = realisticTrees.get(chosenName);
     if (!source) return;
     const instance = source.clone(true);
     const bounds = new THREE.Box3().setFromObject(instance);
@@ -986,7 +987,7 @@ function installRealisticTrees() {
     tree.clear();
     tree.add(instance);
     tree.userData.realisticPine = true;
-    tree.userData.assetName = filename;
+    tree.userData.assetName = chosenName;
   });
   const active = forest.filter(tree => tree.userData.realisticPine).length;
   console.info('[Corsa Forest] realistic conifers active:', active, '/', forest.length);
