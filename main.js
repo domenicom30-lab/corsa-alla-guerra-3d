@@ -31,12 +31,12 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.2;
+renderer.toneMappingExposure = 0.95;
 renderer.shadowMap.autoUpdate = true;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xa8b6b5);
-scene.fog = new THREE.FogExp2(0xa8b6b5, 0.010);
+scene.background = new THREE.Color(0x788985);
+scene.fog = new THREE.FogExp2(0x788985, 0.016);
 
 const camera = new THREE.PerspectiveCamera(
   62, innerWidth / innerHeight, 0.1, 180
@@ -47,10 +47,10 @@ camera.lookAt(0, 1.35, -5);
 
 // Illuminazione
 scene.add(
-  new THREE.HemisphereLight(0xdce8e8, 0x35372b, 1.9)
+  new THREE.HemisphereLight(0xc0c9bf, 0x292d24, 1.25)
 );
 
-const sun = new THREE.DirectionalLight(0xffdfb8, 2.8);
+const sun = new THREE.DirectionalLight(0xd8d2b9, 2.15);
 sun.position.set(-7, 13, 5);
 sun.castShadow = true;
 sun.shadow.mapSize.set(1024, 1024);
@@ -108,8 +108,8 @@ function weatheredWood(color = 0xffffff) {
 }
 
 const dirtMat = mat(0x514634);
-const roadMat = mat(0x53504a);
-const vergeMat = mat(0x897b61);
+const roadMat = mat(0x74685a);
+const vergeMat = mat(0x665e48);
 const stripeMat = mat(0xc9c2aa);
 const barkMat = weatheredWood(0x8e806c);
 const darkMat = mat(0x282c28);
@@ -184,7 +184,7 @@ function createSurfaceTexture(kind) {
   c.width = c.height = 512;
   const ctx = c.getContext('2d');
   const road = kind === 'road';
-  ctx.fillStyle = road ? '#55524d' : '#63533e';
+  ctx.fillStyle = road ? '#5d5346' : '#403f31';
   ctx.fillRect(0, 0, 512, 512);
   for (let i = 0; i < 17000; i++) {
     const x = Math.random() * 512, y = Math.random() * 512;
@@ -364,7 +364,7 @@ for (const x of [-1.45, 1.45]) {
 // Geometria condivisa e materiale senza ombre: effetto leggero per Android.
 const puddleGeometry = new THREE.CircleGeometry(1, 18);
 const puddleMaterial = new THREE.MeshStandardMaterial({
-  color: 0x48585b, roughness: 0.24, metalness: 0.12,
+  color: 0x293b37, roughness: 0.18, metalness: 0.08,
   transparent: true, opacity: 0.69, depthWrite: false,
   polygonOffset: true, polygonOffsetFactor: -2,
   side: THREE.DoubleSide
