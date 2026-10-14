@@ -1634,9 +1634,22 @@ let soldierActiveAction = null;
 
 const loader = new GLTFLoader();
 
+// Historical replacement takes precedence when a verified rigged GLB with
+// embedded locomotion animations is available. A missing/invalid asset falls
+// back to the existing animated soldier rather than breaking gameplay.
+function loadRunnerModel(path, fallback = false) {
 loader.load(
-  './models/Soldier.glb',
+  path,
   (gltf) => {
+    const hasRig = !!gltf.scene.getObjectByProperty('isSkinnedMesh', true) ||
+      (() => { let found = false; gltf.scene.traverse(p => { if (p.isSkinnedMesh) found = true; }); return found; })();
+    const hasRun = gltf.animations.some(clip => /run|walk/i.test(clip.name));
+    if (!fallback && (!hasRig || !hasRun)) {
+      console.warn('[Corsa Character] historical GLB missing rig/run animation; falling back');
+      loadRunnerModel('./models/Soldier.glb', true);
+      return;
+    }
+    window.corsaRunnerAsset = fallback ? 'Soldier.glb (modern fallback)' : path;
     const soldier = gltf.scene;
 
     // Il GLB guarda gia verso -Z: non ruotarlo verso la telecamera.
@@ -1871,9 +1884,16 @@ loader.load(
   undefined,
   (error) => {
     console.error('Errore caricamento Soldier.glb:', error);
-    message.textContent = 'ERRORE NEL CARICAMENTO DEL SOLDATO';
+    if (!fallback) {
+      console.warn('[Corsa Character] historical model not installed, loading existing animated runner');
+      loadRunnerModel('./models/Soldier.glb', true);
+    } else {
+      message.textContent = 'ERRORE NEL CARICAMENTO DEL SOLDATO';
+    }
   }
 );
+}
+loadRunnerModel('./models/characters/historical-runner.glb');
 
 
 // Il modello Soldier.glb sostituisce il vecchio soldato costruito con cubi.
