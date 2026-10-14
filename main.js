@@ -360,6 +360,45 @@ for (const x of [-1.45, 1.45]) {
   scene.add(rut);
 }
 
+// Sparse leaf litter / small stones on the forest floor: one instanced draw
+// call rather than dozens of individual meshes. Avoid the playable road.
+const forestDebrisCount = 240;
+const forestDebrisGeometry = new THREE.DodecahedronGeometry(0.12, 0);
+const forestDebrisMaterial = new THREE.MeshStandardMaterial({
+  color: 0x554c3b, roughness: 1, flatShading: true
+});
+const forestDebris = new THREE.InstancedMesh(
+  forestDebrisGeometry, forestDebrisMaterial, forestDebrisCount
+);
+const forestDebrisTransform = new THREE.Object3D();
+const forestDebrisPositions = [];
+let debrisSeed = 6201;
+const debrisRandom = () => ((debrisSeed = (1664525 * debrisSeed + 1013904223) >>> 0) / 4294967296);
+for (let i = 0; i < forestDebrisCount; i++) {
+  const side = debrisRandom() > 0.5 ? 1 : -1;
+  forestDebrisPositions.push({
+    x: side * (4.6 + debrisRandom() * 15),
+    z: 12 - debrisRandom() * 158,
+    scale: 0.45 + debrisRandom() * 1.4,
+    angle: debrisRandom() * Math.PI * 2
+  });
+}
+let debrisUpdateFrame = 0;
+function updateForestDebris() {
+  for (let i = 0; i < forestDebrisCount; i++) {
+    const item = forestDebrisPositions[i];
+    forestDebrisTransform.position.set(item.x, -0.13, item.z);
+    forestDebrisTransform.rotation.set(0, item.angle, 0);
+    forestDebrisTransform.scale.set(item.scale * 1.2, item.scale * 0.22, item.scale * 0.8);
+    forestDebrisTransform.updateMatrix();
+    forestDebris.setMatrixAt(i, forestDebrisTransform.matrix);
+  }
+  forestDebris.instanceMatrix.needsUpdate = true;
+}
+updateForestDebris();
+forestDebris.frustumCulled = false;
+scene.add(forestDebris);
+
 // Pozzanghere e fango umido lungo i margini della carreggiata.
 // Geometria condivisa e materiale senza ombre: effetto leggero per Android.
 const puddleGeometry = new THREE.CircleGeometry(1, 18);
@@ -1214,6 +1253,13 @@ if (soldierMixer) {
         p.water.position.z -= 165;
       }
     }
+
+    // Recycle small forest-floor details in the same scrolling world.
+    for (const item of forestDebrisPositions) {
+      item.z += speed * dt;
+      if (item.z > 15) item.z -= 160;
+    }
+    if ((debrisUpdateFrame++ & 1) === 0) updateForestDebris();
 
     // Keep wet-soil patches travelling with the terrain.
     for (const patch of mudPatches) {
