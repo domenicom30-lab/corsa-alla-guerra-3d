@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { clone as cloneSkinnedModel } from 'three/addons/utils/SkeletonUtils.js';
+import { clone as cloneSkinnedModel, retargetClip } from 'three/addons/utils/SkeletonUtils.js';
 import { EffectComposer, RenderPass, EffectPass, VignetteEffect, BloomEffect, SMAAEffect } from 'postprocessing';
 import { EffectComposer as ThreeComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass as ThreeRenderPass } from 'three/addons/postprocessing/RenderPass.js';
@@ -1637,16 +1637,21 @@ const loader = new GLTFLoader();
 // Historical replacement takes precedence when a verified rigged GLB with
 // embedded locomotion animations is available. A missing/invalid asset falls
 // back to the existing animated soldier rather than breaking gameplay.
-function loadRunnerModel(path, fallback = false) {
+function loadRunnerModel(path, fallback = false, animationSource = null) {
 loader.load(
   path,
   (gltf) => {
     const hasRig = !!gltf.scene.getObjectByProperty('isSkinnedMesh', true) ||
       (() => { let found = false; gltf.scene.traverse(p => { if (p.isSkinnedMesh) found = true; }); return found; })();
     const hasRun = gltf.animations.some(clip => /run|walk/i.test(clip.name));
-    if (!fallback && (!hasRig || !hasRun)) {
+    if (!fallback && !hasRig) {
       console.warn('[Corsa Character] historical GLB missing rig/run animation; falling back');
       loadRunnerModel('./models/Soldier.glb', true);
+      return;
+    }
+    if (!fallback && !hasRun && !animationSource) {
+      loader.load('./models/Soldier.glb', (source) => loadRunnerModel(path, false, source),
+        undefined, () => loadRunnerModel('./models/Soldier.glb', true));
       return;
     }
     window.corsaRunnerAsset = fallback ? 'Soldier.glb (modern fallback)' : path;
@@ -1834,7 +1839,32 @@ loader.load(
 
     soldierMixer = new THREE.AnimationMixer(soldier);
 
-    const clips = gltf.animations;
+    let clips = gltf.animations;
+    if (animationSource && !hasRun) {
+      try {
+        let targetSkin = null, sourceSkin = null;
+        soldier.traverse(p => { if (!targetSkin && p.isSkinnedMesh) targetSkin = p; });
+        animationSource.scene.traverse(p => { if (!sourceSkin && p.isSkinnedMesh) sourceSkin = p; });
+        if (!targetSkin || !sourceSkin) throw new Error('Missing skinned mesh');
+        const normalize = n => n.toLowerCase().replace(/^mixamorig[:_]?/, '').replace(/[_0-9]+$/g, '');
+        const sourceByName = new Map(sourceSkin.skeleton.bones.map(b => [normalize(b.name), b.name]));
+        const names = {};
+        for (const bone of targetSkin.skeleton.bones) {
+          const sourceName = sourceByName.get(normalize(bone.name));
+          if (sourceName) names[bone.name] = sourceName;
+        }
+        if (Object.keys(names).length < 12) throw new Error('Only ' + Object.keys(names).length + ' matching bones');
+        clips = animationSource.animations.map(clip => retargetClip(targetSkin, sourceSkin, clip, {
+          names, hip: targetSkin.skeleton.bones.find(b => /hips/i.test(b.name))?.name,
+          useFirstFramePosition: false
+        }));
+        window.corsaCharacterRetarget = { bones: Object.keys(names).length, clips: clips.map(c => c.name) };
+      } catch (error) {
+        console.warn('[Corsa Character] retarget failed', error);
+        loadRunnerModel('./models/Soldier.glb', true);
+        return;
+      }
+    }
     const runClip = clips.find((clip) =>
       /run|walk/i.test(clip.name)
     );
