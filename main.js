@@ -875,7 +875,17 @@ function createTree(x, z, scale = 1) {
   trunk.position.y = 2.4;
   trunk.castShadow = true;
   group.add(trunk);
-  // Overlapping whorls form a volumetric pine canopy with varied proportions.
+  // Layer cutout needle silhouettes over the 3D branches to break up
+  // the solid polygonal outlines visible in the Android screenshots.
+  for (let spray = 0; spray < 3; spray++) {
+    const needles = new THREE.Mesh(pineFoliageGeo, pineFoliageMat);
+    needles.position.y = 3.45 + (variation - 0.5) * 0.2;
+    needles.rotation.y = spray * Math.PI / 3;
+    needles.scale.set(1.05 + variation * 0.18, 1.0 + variation * 0.12, 1);
+    needles.castShadow = false;
+    group.add(needles);
+  }
+  // Overlapping whorls retain actual 3D volume and shadows.
   for (let i = 0; i < 3; i++) {
     const crown = new THREE.Mesh(pineCrownGeo,
       pineCrownVariants[Math.floor(variation * pineCrownVariants.length) % pineCrownVariants.length]);
