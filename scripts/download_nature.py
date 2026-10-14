@@ -10,9 +10,20 @@ FILES = [
     'tree-pinetallb-detailed.glb',
     'tree-pinetallc-detailed.glb',
     'tree-pinetalld-detailed.glb',
+    'tree-pinerounda.glb',
+    'tree-pineroundc.glb',
+    'tree-pinesmalla.glb',
+    'tree-pinesmallc.glb',
     'rock-largea.glb',
     'rock-largeb.glb',
+    'rock-largec.glb',
+    'rock-largee.glb',
+    'rock-talla.glb',
+    'rock-tallc.glb',
     'plant-bushdetailed.glb',
+    'plant-bushlarge.glb',
+    'plant-bushsmall.glb',
+    'grass-large.glb',
 ]
 OUT = Path('public/models/nature')
 OUT.mkdir(parents=True, exist_ok=True)
