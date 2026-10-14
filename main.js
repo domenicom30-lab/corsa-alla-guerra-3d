@@ -860,8 +860,10 @@ loader.load(
     // Keep the visible skinned mesh grounded after the initial pose is applied.
     // Imported rigs may use an offset on an animated bone rather than the scene root.
     const groundProbe = new THREE.Box3();
-    const groundCorrection = new THREE.Vector3();
+    let groundCheckFrame = 0;
     const keepSoldierGrounded = () => {
+      // The expensive skinned bounding-box check is periodic, not per-frame.
+      if (++groundCheckFrame > 10 && groundCheckFrame % 30 !== 0) return;
       soldier.updateMatrixWorld(true);
       groundProbe.setFromObject(soldier);
       if (groundProbe.isEmpty() || !Number.isFinite(groundProbe.min.y)) return;
@@ -869,8 +871,7 @@ loader.load(
       const worldFloor = player.position.y;
       const penetration = worldFloor - groundProbe.min.y;
       if (penetration > 0.035 && penetration < 2.5) {
-        groundCorrection.set(0, penetration, 0);
-        soldier.position.y += groundCorrection.y;
+        soldier.position.y += penetration;
         soldier.userData.groundAnchorY = soldier.position.y;
       }
     };
