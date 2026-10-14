@@ -444,68 +444,7 @@ loader.load(
 );
 
 
-// Corpo e giubbotto
-addBox(torso, [0.68, 0.9, 0.36], uniformMat, [0, 0.1, 0]);
-addBox(torso, [0.72, 0.13, 0.4], beltMat, [0, -0.17, 0]);
-
-
-// Tasche e cinturone
-for (const side of [-1, 1]) {
-  addBox(
-    torso, [0.17, 0.22, 0.12],
-    packMat, [side * 0.25, -0.02, 0.22]
-  );
-
-  addBox(
-    torso, [0.16, 0.18, 0.13],
-    beltMat, [side * 0.22, -0.2, 0.23]
-  );
-}
-
-addBox(torso, [0.3, 0.36, 0.2], packMat, [0, 0.22, -0.25]);
-addBox(torso, [0.22, 0.12, 0.08], metalMat, [0, -0.17, 0.25]);
-
-// Testa ed elmetto
-addSphere(
-  torso, 0.235, skinMat,
-  [0, 0.77, 0], [0.9, 1.1, 0.9]
-);
-
-addSphere(
-  torso, 0.255, uniformDarkMat,
-  [0, 0.91, -0.015], [1.08, 0.58, 1.05]
-);
-
-addBox(
-  torso, [0.55, 0.07, 0.5],
-  uniformDarkMat, [0, 0.79, 0.06]
-);
-
-// Braccia, guanti, pantaloni e stivali
-const legs = [];
-const arms = [];
-
-for (const side of [-1, 1]) {
-  const arm = new THREE.Group();
-  arm.position.set(side * 0.43, 0.42, 0);
-  torso.add(arm);
-
-  addBox(arm, [0.22, 0.49, 0.25], uniformMat, [0, -0.12, 0]);
-  addBox(arm, [0.2, 0.22, 0.23], uniformDarkMat, [0, -0.39, 0.015]);
-  addBox(arm, [0.2, 0.14, 0.22], darkMat, [0, -0.52, 0.02]);
-
-  arms.push({ group: arm, side });
-
-  const leg = new THREE.Group();
-  leg.position.set(side * 0.19, 0.83, 0);
-  player.add(leg);
-
-  addBox(leg, [0.25, 0.57, 0.29], uniformDarkMat, [0, -0.27, 0]);
-  addBox(leg, [0.28, 0.17, 0.38], bootMat, [0, -0.59, 0.055]);
-  addBox(leg, [0.3, 0.07, 0.39], darkMat, [0, -0.65, 0.055]);
-
-  legs.push({ group: leg, side });
-}
+// Il modello Soldier.glb sostituisce il vecchio soldato costruito con cubi.
 
 // Ostacoli
 const obstacles = [];
