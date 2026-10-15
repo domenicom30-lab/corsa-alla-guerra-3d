@@ -2,12 +2,12 @@
 export function createArcadeSystems(){
  const pickups=Array.from({length:8},(_,i)=>({x:1400+i*2100,type:i%3===0?'spread':i%3===1?'heavy':'health',taken:false}));
  const grenades=[],enemyShots=[],airBombs=[],airDrops=[];
- const plane={x:-200,active:false,timer:10,dropTimer:0};
+ const plane={x:-200,active:false,timer:10,dropTimer:0,passes:0};
  const covers=[2350,5750,8850].map(x=>({x,hp:100}));
  const prisoners=[1750,4850,7950].map(x=>({x,rescued:false}));
  const boss={x:9600,hp:28,maxHp:28,active:false,defeated:false,cooldown:1.3,velocity:0,turretAngle:0,recoil:0,treadDistance:0};
  let weapon='normal',ammo=Infinity,grenadeCount=8,combo=0,comboTimer=0,screenShake=0;
- const reset=()=>{weapon='normal';ammo=Infinity;grenadeCount=8;combo=0;comboTimer=0;screenShake=0;grenades.length=0;enemyShots.length=0;airBombs.length=0;airDrops.length=0;Object.assign(plane,{x:-200,active:false,timer:10,dropTimer:0});pickups.forEach(p=>p.taken=false);covers.forEach(c=>c.hp=100);prisoners.forEach(p=>p.rescued=false);Object.assign(boss,{hp:28,active:false,defeated:false,cooldown:1.3,velocity:0,turretAngle:0,recoil:0,treadDistance:0})};
+ const reset=()=>{weapon='normal';ammo=Infinity;grenadeCount=8;combo=0;comboTimer=0;screenShake=0;grenades.length=0;enemyShots.length=0;airBombs.length=0;airDrops.length=0;Object.assign(plane,{x:-200,active:false,timer:10,dropTimer:0,passes:0});pickups.forEach(p=>p.taken=false);covers.forEach(c=>c.hp=100);prisoners.forEach(p=>p.rescued=false);Object.assign(boss,{hp:28,active:false,defeated:false,cooldown:1.3,velocity:0,turretAngle:0,recoil:0,treadDistance:0})};
  const collect=(worldX,jump,ground,H)=>{let reward=null;for(const p of pickups){if(p.taken||Math.abs(p.x-worldX)>H*.12||jump>H*.18)continue;p.taken=true;reward=p.type;if(p.type==='health'){}else{weapon=p.type;ammo=p.type==='spread'?100:160}}return reward};
  const rescue=(worldX,jump,H)=>{let n=0;for(const p of prisoners)if(!p.rescued&&Math.abs(p.x-worldX)<H*.12&&jump<H*.2){p.rescued=true;n++}return n};
  const hitCover=(worldX,y,ground,H,damage=10)=>{if(y<ground-H*.15||y>ground+H*.02)return false;for(const c of covers){if(c.hp>0&&Math.abs(c.x-worldX)<H*.09){c.hp=Math.max(0,c.hp-damage);return true}}return false};
@@ -16,8 +16,8 @@ export function createArcadeSystems(){
  const throwGrenade=(x,y,direction,H)=>{if(grenadeCount<=0)return false;grenadeCount--;grenades.push({x,y,vx:direction*H*1.2,vy:-H*.9,fuse:.9,life:1.5});return true};
  const kill=()=>{combo++;comboTimer=3;screenShake=Math.min(12,screenShake+3);return 100+Math.min(combo,15)*20};
  const step=(dt,scroll,playerX,ground,H,onDamage,onExplosion,cameraDelta=0)=>{
-  plane.timer-=dt;if(!plane.active&&plane.timer<=0){plane.active=true;plane.x=-H*.3;plane.dropTimer=0;plane.timer=14}
-  if(plane.active){plane.x+=H*1.15*dt;plane.dropTimer+=dt;if(plane.dropTimer>=.75){plane.dropTimer=0;if(plane.x>0&&plane.x<H*2.5)airBombs.push({x:plane.x,y:H*.12,vy:0})}if(plane.x>H*3.8)plane.active=false}
+  plane.timer-=dt;if(!plane.active&&plane.timer<=0){plane.active=true;plane.x=-H*.3;plane.dropTimer=0;plane.timer=14;plane.passes++}
+  if(plane.active){plane.x+=H*1.15*dt;plane.dropTimer+=dt;if(plane.dropTimer>=.75){plane.dropTimer=0;if(plane.x>0&&plane.x<H*2.5){if(plane.passes%2===0&&airDrops.length===0)airDrops.push({x:plane.x,y:H*.12});else airBombs.push({x:plane.x,y:H*.12,vy:0})}}if(plane.x>H*3.8)plane.active=false}
   for(let i=airBombs.length-1;i>=0;i--){const b=airBombs[i];b.vy+=H*1.2*dt;b.y+=b.vy*dt;if(b.y>=ground){if(Math.abs(b.x-playerX)<H*.12)onDamage();onExplosion(b.x,ground,H*.14);airBombs.splice(i,1)}}
   for(let i=airDrops.length-1;i>=0;i--){const d=airDrops[i];d.y=Math.min(ground-H*.07,d.y+H*.18*dt);if(Math.abs(d.x-playerX)<H*.12&&d.y>=ground-H*.15){weapon='heavy';ammo=100;airDrops.splice(i,1)}}
   comboTimer-=dt;if(comboTimer<=0)combo=0;screenShake=Math.max(0,screenShake-dt*28);
@@ -43,7 +43,7 @@ export function createArcadeSystems(){
    boss.recoil=Math.max(0,boss.recoil-dt*3.5);
    boss.cooldown-=dt;
    if(boss.cooldown<=0&&Math.abs(dx)<H*2.5&&enemyShots.length<=21){
-    boss.cooldown=3;boss.recoil=1;screenShake=Math.min(12,screenShake+6);
+    boss.cooldown=boss.hp<boss.maxHp*.4?1.45:3;boss.recoil=1;screenShake=Math.min(12,screenShake+6);
     const dirX=Math.cos(boss.turretAngle),dirY=Math.sin(boss.turretAngle);
     enemyShots.push({x:boss.x-scroll+dirX*H*.43,y:turretY+dirY*H*.43,vx:dirX*H*.85,vy:dirY*H*.85,life:3});
     boss.velocity-=dirX*H*.045;
