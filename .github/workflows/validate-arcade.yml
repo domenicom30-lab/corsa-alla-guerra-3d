@@ -1,0 +1,19 @@
+name: Validate Arcade Rebuild
+on:
+  push:
+    branches: [rebuild-arcade-final]
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+      - run: python3 scripts/import_2d_assets.py
+      - run: npm run check
+      - run: node --check main.js
+      - run: node --check arcade-mechanics.js
+      - run: npm run build
