@@ -15,6 +15,7 @@ const checks = [
  ['Fucile e nemici rossi',()=>{for(const token of ['function shoot(','function drawTicks(','function drawBullets(','shotCooldown','bullets.push(','score+=arcade.kill()'])assert.ok(main.includes(token),token)}],
  ['Meccaniche arcade',()=>{const combat=readFileSync('arcade-mechanics.js','utf8');for(const token of ['throwGrenade','enemyShots','boss','pickups','spread','heavy','combo'])assert.ok(combat.includes(token),token);assert.ok(main.includes('arcade.step('));assert.ok(main.includes('arcade.fire('))}],
  ['Controlli granata e fine partita',()=>{assert.ok(main.includes("['grenade',grenade]"));assert.ok(main.includes('distance=scroll/50'));assert.ok(main.includes('movement.left=false;movement.right=false'))}],
+ ['Boss: premio assegnato una sola volta',()=>{assert.ok(main.includes('function defeatBoss('));assert.ok(main.includes('if(bossVictoryAwarded)return'));assert.ok(main.includes('bossVictoryAwarded=false;arcade.reset()'))}],
  ['Prestazioni mobile',()=>{assert.ok(main.includes('devicePixelRatio'));assert.ok(main.includes('requestAnimationFrame(frame)'))}],
  ['Build configurata',()=>assert.ok(pkg.scripts.build)]
 ];
