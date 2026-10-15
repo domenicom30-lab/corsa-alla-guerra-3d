@@ -35,6 +35,7 @@ const checks = [
  ['Budget pixel canvas Android',()=>{for(const token of ['const pixelBudget=2400000','Math.sqrt(pixelBudget/Math.max(1,W*H))','Math.max(1,Math.round(W*dpr))'])assert.ok(main.includes(token),token)}],
  ['Pulizia tocchi su pausa e riavvio',()=>{for(const token of ['function clearTouchMovement()','activeMovementPointers.left.clear()','activeMovementPointers.right.clear()','if(!visible){fireHeld=false;clearTouchMovement()','clearTouchMovement();message.style.display','addEventListener(\'blur\',()=>{clearTouchMovement()'])assert.ok(main.includes(token),token)}],
  ['Limite refresh rendering Android',()=>assert.ok(main.includes('if(last&&t-last<1000/65){requestAnimationFrame(frame);return}'))],
+ ['Fiammata pixel art stratificata',()=>{for(const token of ["ctx.fillStyle='#fff6c8'","ctx.fillStyle='#ffc34e'","ctx.fillStyle='#f08b27'",'for(let i=0;i<3;i++){const sparkX=mx+flash'])assert.ok(main.includes(token),token)}],
  ['Prestazioni mobile',()=>{assert.ok(main.includes('devicePixelRatio'));assert.ok(main.includes('requestAnimationFrame(frame)'))}],
  ['Build configurata',()=>assert.ok(pkg.scripts.build)]
 ];
