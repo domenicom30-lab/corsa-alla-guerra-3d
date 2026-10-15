@@ -120,3 +120,22 @@ export function drawWarzoneParallax(ctx,W,H,scroll,ground){
  }
  ctx.restore();
 }
+
+
+// Screen-space storm layer: rain, occasional lightning and darkened warzone sky.
+const stormDrops=Array.from({length:95},(_,i)=>({x:(i*73.37)%997,y:(i*139.71)%557,len:9+i%11}));
+export function drawArcadeStorm(ctx,W,H,seconds,active=true){
+ if(!active)return;
+ ctx.save();
+ ctx.strokeStyle='rgba(180,206,235,.27)';ctx.lineWidth=Math.max(1,H/650);
+ ctx.beginPath();
+ for(const drop of stormDrops){
+  const x=((drop.x+seconds*68)%1000)/1000*W;
+  const y=((drop.y+seconds*420)%560)/560*H;
+  ctx.moveTo(x,y);ctx.lineTo(x-W*.004,y+H*drop.len/650);
+ }
+ ctx.stroke();
+ const lightning=Math.sin(seconds*1.93)*Math.sin(seconds*2.71);
+ if(lightning>.985){ctx.fillStyle='rgba(222,232,255,.16)';ctx.fillRect(0,0,W,H)}
+ ctx.restore();
+}
