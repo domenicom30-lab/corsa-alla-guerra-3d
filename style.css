@@ -2,6 +2,6 @@
 #hud.reference-preview .topbar,#hud.reference-preview .game-title,#hud.reference-preview #controls{opacity:0}#hud.reference-preview #message{top:auto;bottom:4%;font-size:clamp(16px,2.2vw,25px);background:#0c1114c9;border:1px solid #ffffff85;border-radius:16px;padding:12px 20px;pointer-events:auto}
 
 /* Photographic 2D portraits, sourced from the shipped asset pack. */
-.portrait-player{background-image:url('./assets/2d/soldier-back.png');background-size:190% auto;background-position:50% 0;background-repeat:no-repeat;background-color:#333a31}
-.portrait-target{background-image:url('./assets/2d/reference-scene.webp');background-size:950% auto;background-position:50% 22%;background-repeat:no-repeat;background-color:#333a31}
+.portrait-player{background-image:url('/assets/2d/soldier-back.png');background-size:190% auto;background-position:50% 0;background-repeat:no-repeat;background-color:#333a31}
+.portrait-target{background-image:url('/assets/2d/reference-scene.webp');background-size:950% auto;background-position:50% 22%;background-repeat:no-repeat;background-color:#333a31}
 .portrait svg{display:none}
