@@ -9,7 +9,7 @@ import sys
 root = Path(__file__).resolve().parent.parent
 target = root / "public/assets/2d"
 packages = [
-    root / "corsa-alla-guerra-2d-assets.zip",
+    *sorted(root.glob("corsa-alla-guerra-2d-assets*.zip")),
     root / "corsa-alla-guerra-reference-2d.zip",
 ]
 required = [
