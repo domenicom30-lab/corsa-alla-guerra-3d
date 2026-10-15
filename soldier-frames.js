@@ -167,4 +167,22 @@ function makeFrame(pose,index){
 }
 export const soldierFrames={};
 export function loadSoldierFrames(){for(const [pose,count] of Object.entries(frameCounts)){if(soldierFrames[pose]?.length===count)continue;soldierFrames[pose]=Array.from({length:count},(_,i)=>makeFrame(pose,i))}}
-export function drawSoldierFrame(ctx,pose,frame,x,y,w,h){const frames=soldierFrames[pose]||soldierFrames.idle;if(!frames)return false;ctx.imageSmoothingEnabled=false;ctx.drawImage(frames[Math.abs(Math.floor(frame))%frames.length],x,y,w,h);return true}
+export function drawSoldierFrame(ctx,pose,frame,x,y,w,h){if(drawExternalSoldierFrame(ctx,pose,frame,x,y,w,h))return true;const frames=soldierFrames[pose]||soldierFrames.idle;if(!frames)return false;ctx.imageSmoothingEnabled=false;ctx.drawImage(frames[Math.abs(Math.floor(frame))%frames.length],x,y,w,h);return true}
+
+// CC0 drakzlin 32x32 sprite sheet (downloaded at build time).
+// Source: https://opengameart.org/content/space-soldier-sprite-sheet-32x32
+let externalSheet=null;
+const externalRows={idle:0,run:2,jump:3,fire:4,duck:5};
+const externalCounts={idle:4,run:8,jump:8,fire:8,duck:8};
+export function loadExternalSoldier(){
+ const image=new Image();image.onload=()=>{if(image.naturalWidth>=256&&image.naturalHeight>=192)externalSheet=image};
+ image.onerror=()=>{externalSheet=null};image.src='./assets/arcade/space-soldier-cc0.png';
+}
+export function drawExternalSoldierFrame(ctx,pose,frame,x,y,w,h){
+ if(!externalSheet)return false;
+ const row=externalRows[pose]??0,count=externalCounts[pose]??4;
+ const index=Math.abs(Math.floor(frame))%count;
+ ctx.imageSmoothingEnabled=false;
+ ctx.drawImage(externalSheet,index*32,row*32,32,32,x,y,w,h);
+ return true;
+}
