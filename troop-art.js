@@ -89,9 +89,27 @@ export function drawTroop(ctx,e,scroll,H,ground,phase){
  if(e.flinch>0){ctx.shadowColor='#fff2c7';ctx.shadowBlur=H*.015}
  if(dir<0){ctx.translate(px+width*.5,0);ctx.scale(-1,1);ctx.drawImage(frames[Math.abs(f)],0,ypos,width,drawH)}
  else{ctx.drawImage(frames[Math.abs(f)],px-width*.5,ypos,width,drawH)}
+ ctx.restore();
+ ctx.save();
+ if(e.windup>0){
+  const pulse=.65+.35*Math.sin(phase*.8+e.phase*9);
+  ctx.globalAlpha=pulse;
+  ctx.fillStyle=e.type==='heavy'?'#ff9b43':'#ffdb85';
+  const marker=H*(e.type==='heavy'?.017:.013);
+  ctx.fillRect(px-marker*.32,ypos-H*.025,marker*.65,marker*1.55);
+  ctx.fillRect(px-marker*.32,ypos-H*.025+marker*1.8,marker*.65,marker*.5);
+ }
  if(e.fireFlash>0){
-  const x=dir<0?px-width*.6:px+width*.55;
-  ctx.fillStyle='#ffe8a3';ctx.beginPath();ctx.arc(x,ypos+drawH*.45,H*.013,0,Math.PI*2);ctx.fill()
+  const x=dir<0?px-width*.60:px+width*.60;
+  ctx.fillStyle='#fff0c2';ctx.beginPath();ctx.arc(x,ypos+drawH*.45,H*.017,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#ffba54';ctx.fillRect(x+dir*H*.013,ypos+drawH*.445,H*.032,H*.005);
+ }
+ if(e.maxHp>2&&e.alive){
+  const pipSize=H*.01,gap=pipSize*.35;
+  for(let i=0;i<e.maxHp;i++){
+   const x=px-(e.maxHp*(pipSize+gap)-gap)*.5+i*(pipSize+gap);
+   ctx.fillStyle=i<e.hp?'#d8bf83':'#3b4840';ctx.fillRect(x,ypos-H*.041,pipSize,pipSize*.43);
+  }
  }
  ctx.restore();
  return true;

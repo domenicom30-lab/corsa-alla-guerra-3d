@@ -15,7 +15,7 @@ export function createTroopWaves(){
   for(let j=0;j<count;j++){
    const type=pattern[(wave*3+j)%pattern.length],info=ENEMY_TYPES[type],x=start+j*(145+(wave%2)*35);
    enemies.push({x,home:x,type,hp:info.hp,maxHp:info.hp,alive:true,cooldown:.7+j*.35+wave*.06,
-    phase:wave*.7+j*.45,stance:'stand',flinch:0,fireFlash:0,walk:0,vx:0,aim:0,score:info.points});
+    phase:wave*.7+j*.45,stance:'stand',flinch:0,fireFlash:0,walk:0,vx:0,aim:0,windup:0,score:info.points});
   }
  }
  return enemies;
@@ -23,12 +23,12 @@ export function createTroopWaves(){
 export function resetTroopWaves(enemies){
  for(const e of enemies){
   const info=ENEMY_TYPES[e.type];e.x=e.home;e.hp=info.hp;e.maxHp=info.hp;e.alive=true;
-  e.cooldown=.8+(e.phase%1)*.8;e.stance='stand';e.flinch=0;e.fireFlash=0;e.walk=0;e.vx=0;e.aim=0;
+  e.cooldown=.8+(e.phase%1)*.8;e.stance='stand';e.flinch=0;e.fireFlash=0;e.walk=0;e.vx=0;e.aim=0;e.windup=0;
  }
 }
 export function damageTroop(e,damage=1){
  if(!e?.alive||damage<=0)return {hit:false,killed:false,points:0};
- e.hp=Math.max(0,e.hp-damage);e.flinch=.2;
+ e.hp=Math.max(0,e.hp-damage);e.flinch=.2;e.windup=0;e.cooldown=Math.max(e.cooldown,.28);
  if(e.hp===0){e.alive=false;return {hit:true,killed:true,points:e.score}}
  return {hit:true,killed:false,points:0};
 }
@@ -47,19 +47,30 @@ export function advanceTroopWaves(enemies,dt,scroll,playerWorldX,playerScreenX,H
   }else{e.vx=0}
   e.stance=e.type==='rifleman'&&range<H*.63&&Math.sin(e.phase+e.walk+playerWorldX*.001)>0?'crouch':'stand';
   e.cooldown-=dt;
-  if(range<H*type.range&&range>H*.22&&e.cooldown<=0&&enemyShots.length<24){
-   e.cooldown=type.rate+(e.phase%1)*.55;
-   e.fireFlash=.12;e.aim=dir;
-   const x=e.x-scroll+dir*H*.075,y=e.stance==='crouch'?H*.78-H*.095:H*.78-H*.145;
-   if(e.type==='grenadier'){
-    enemyShots.push({x,y:y-H*.035,vx:dir*H*.5,vy:-H*.78,gravity:H*1.55,kind:'grenade',life:2.8});
-    events.push({type:'lob',x,y});
-   }else if(e.type==='heavy'){
-    for(const spread of [-.09,0,.09])enemyShots.push({x,y,vx:dir*H*1.1,vy:spread*H*1.1,kind:'tracer',life:2});
-    events.push({type:'heavyFire',x,y});
-   }else{
-    enemyShots.push({x,y,vx:dir*H*(e.type==='assault'?1.2:.92),vy:0,kind:'tracer',life:2.1});
-    events.push({type:'fire',x,y});
+  const canFire=range<H*type.range&&range>H*.22;
+  if(!canFire&&e.windup>0)e.windup=0;
+  if(canFire&&e.cooldown<=0&&e.windup<=0){
+   e.windup=e.type==='heavy'?.46:e.type==='grenadier'?.58:.29;
+   e.aim=dir;events.push({type:'warning',x:e.x-scroll,y:H*.78-H*.29});
+  }
+  if(e.windup>0){
+   e.windup=Math.max(0,e.windup-dt);
+   if(e.windup===0){
+    e.cooldown=type.rate+(e.phase%1)*.55;
+    if(enemyShots.length<=21){
+     e.fireFlash=.12;e.aim=dir;
+     const x=e.x-scroll+dir*H*.075,y=e.stance==='crouch'?H*.78-H*.095:H*.78-H*.145;
+     if(e.type==='grenadier'){
+      enemyShots.push({x,y:y-H*.035,vx:dir*H*.5,vy:-H*.78,gravity:H*1.55,kind:'grenade',life:2.8});
+      events.push({type:'lob',x,y});
+     }else if(e.type==='heavy'){
+      for(const spread of [-.09,0,.09])enemyShots.push({x,y,vx:dir*H*1.1,vy:spread*H*1.1,kind:'tracer',life:2});
+      events.push({type:'heavyFire',x,y});
+     }else{
+      enemyShots.push({x,y,vx:dir*H*(e.type==='assault'?1.2:.92),vy:0,kind:'tracer',life:2.1});
+      events.push({type:'fire',x,y});
+     }
+    }
    }
   }
   if(range<H*.1&&e.type==='assault')events.push({type:'contact',x:e.x-scroll,y:H*.7});

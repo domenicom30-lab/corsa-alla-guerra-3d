@@ -28,3 +28,14 @@ Per test locale: npm install, python3 scripts/import_2d_assets.py, npm run check
 - Collisioni differenti mentre il giocatore salta o si abbassa. Particelle con pool limitati per Android.
 
 La somiglianza con i classici run-and-gun e l'esperienza sul Samsung vanno valutate provando l'APK: i test automatici verificano logica e compilazione, non garantiscono un risultato artistico identico a giochi commerciali.
+
+## Aggiornamento 1.3 — Lanciarazzi e combattimento reattivo
+
+- **Lanciarazzi originale** con potenziamenti distribuiti lungo la missione, munizioni limitate, scia luminosa e detonazione con danno ad area. Il razzo può distruggere coperture, nemici e danneggiare il boss.
+- Le armi già presenti (normale, spread, heavy) restano disponibili. Il contatore di munizioni compare nell'HUD.
+- **Collisioni continue:** la traiettoria dei proiettili viene verificata tra un fotogramma e l'altro per evitare che attraversino soldati veloci o veicoli.
+- **Attacchi leggibili:** i fucilieri, assaltatori, granatieri e soldati corazzati mostrano un breve preavviso luminoso, che si interrompe se subiscono danni; il boss segnala la prossima cannonata.
+- Sprite nemici corazzati con indicatori di resistenza e razzi direzionati verso il basso, l'alto o in orizzontale.
+- Test automatici dedicati a munizioni, gittata, splash damage, segnale di mira e interruzione dei colpi.
+
+Il progetto è interamente 2D. Le verifiche automatiche non sostituiscono la prova sul dispositivo Android.

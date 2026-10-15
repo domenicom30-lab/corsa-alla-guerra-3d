@@ -20,12 +20,23 @@ assert.ok(troops.every(e=>e.hp===ENEMY_TYPES[e.type].hp&&e.alive&&e.x===e.home))
 for(const type of troopKinds){
  const enemy=troops.find(e=>e.type===type);
  enemy.cooldown=0;enemy.aim=0;
- const shots=[],events=advanceTroopWaves([enemy],.03,enemy.x-200,enemy.x+200,200,380,shots);
- assert.ok(shots.length>0,type+' must attack');
+ const shots=[],warning=advanceTroopWaves([enemy],.03,enemy.x-200,enemy.x+200,200,380,shots);
+ assert.ok(warning.some(e=>e.type==='warning'),type+' must telegraph an attack');
+ assert.equal(shots.length,0,'No projectile before the telegraph finishes');
+ const events=advanceTroopWaves([enemy],.7,enemy.x-200,enemy.x+200,200,380,shots);
+ assert.ok(shots.length>0,type+' must attack after winding up');
  assert.ok(events.some(e=>e.type==='fire'||e.type==='heavyFire'||e.type==='lob'));
  assert.equal(shots.length,type==='heavy'?3:1);
  if(type==='grenadier'){assert.equal(shots[0].kind,'grenade');assert.ok(shots[0].gravity>0)}
 }
+const stagger=createTroopWaves().find(e=>e.type==='heavy');
+stagger.cooldown=0;
+advanceTroopWaves([stagger],.02,stagger.x-200,stagger.x+200,200,380,[]);
+assert.ok(stagger.windup>0);
+const wounded=damageTroop(stagger,1);
+assert.ok(wounded.hit&&!wounded.killed);
+assert.equal(stagger.windup,0,'Damage interrupts a queued enemy shot');
+assert.ok(stagger.cooldown>=.28,'Wounded enemy has a stagger delay');
 const original=globalThis.document;
 let created=0,drawn=0;
 const noop=()=>{};

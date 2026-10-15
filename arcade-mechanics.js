@@ -1,6 +1,7 @@
 // Original arcade run-and-gun systems: weapon pickups, grenades, enemy volleys, boss.
+import {drawRocketPickup} from './arcade-arsenal.js';
 export function createArcadeSystems(){
- const pickups=Array.from({length:8},(_,i)=>({x:1400+i*2100,type:i%3===0?'spread':i%3===1?'heavy':'health',taken:false}));
+ const pickups=Array.from({length:12},(_,i)=>({x:1050+i*745,type:['spread','heavy','rocket','health'][i%4],taken:false}));
  const grenades=[],enemyShots=[],airBombs=[],airDrops=[];
  const plane={x:-200,active:false,timer:10,dropTimer:0,passes:0};
  const covers=[2350,5750,8850].map(x=>({x,hp:100}));
@@ -8,11 +9,23 @@ export function createArcadeSystems(){
  const boss={x:9600,hp:28,maxHp:28,active:false,defeated:false,cooldown:1.3,velocity:0,turretAngle:0,recoil:0,treadDistance:0};
  let weapon='normal',ammo=Infinity,grenadeCount=8,combo=0,comboTimer=0,screenShake=0;
  const reset=()=>{weapon='normal';ammo=Infinity;grenadeCount=8;combo=0;comboTimer=0;screenShake=0;grenades.length=0;enemyShots.length=0;airBombs.length=0;airDrops.length=0;Object.assign(plane,{x:-200,active:false,timer:10,dropTimer:0,passes:0});pickups.forEach(p=>p.taken=false);covers.forEach(c=>c.hp=100);prisoners.forEach(p=>p.rescued=false);Object.assign(boss,{hp:28,active:false,defeated:false,cooldown:1.3,velocity:0,turretAngle:0,recoil:0,treadDistance:0})};
- const collect=(worldX,jump,ground,H)=>{let reward=null;for(const p of pickups){if(p.taken||Math.abs(p.x-worldX)>H*.12||jump>H*.18)continue;p.taken=true;reward=p.type;if(p.type==='health'){}else{weapon=p.type;ammo=p.type==='spread'?100:160}}return reward};
+ const collect=(worldX,jump,ground,H)=>{let reward=null;for(const p of pickups){if(p.taken||Math.abs(p.x-worldX)>H*.12||jump>H*.18)continue;p.taken=true;reward=p.type;if(p.type==='health'){}else{weapon=p.type;ammo=p.type==='rocket'?35:p.type==='spread'?100:160}}return reward};
  const rescue=(worldX,jump,H)=>{let n=0;for(const p of prisoners)if(!p.rescued&&Math.abs(p.x-worldX)<H*.12&&jump<H*.2){p.rescued=true;n++}return n};
  const hitCover=(worldX,y,ground,H,damage=10)=>{if(y<ground-H*.15||y>ground+H*.02)return false;for(const c of covers){if(c.hp>0&&Math.abs(c.x-worldX)<H*.09){c.hp=Math.max(0,c.hp-damage);return true}}return false};
  const melee=(worldX,direction,H,enemies)=>{for(const e of enemies){if(e.alive&&Math.sign(e.x-worldX)===direction&&Math.abs(e.x-worldX)<H*.16){e.alive=false;return e}}return null};
- const fire=(x,y,direction,speed)=>{if(ammo<=0){weapon='normal';ammo=Infinity}const pattern=weapon==='spread'?[-.14,0,.14]:[0];const shots=pattern.map(a=>({x,y,vx:direction*speed,vy:a*speed,damage:weapon==='heavy'?2:1,life:1.8,kind:weapon}));if(Number.isFinite(ammo)){ammo--;if(ammo<=0){weapon='normal';ammo=Infinity}}return shots};
+ const fire=(x,y,direction,speed)=>{
+   if(ammo<=0){weapon='normal';ammo=Infinity}
+   const activeWeapon=weapon;
+   const pattern=activeWeapon==='spread'?[-.14,0,.14]:[0];
+   const shots=pattern.map(a=>({
+    x,y,vx:direction*speed*(activeWeapon==='rocket'?.78:1),vy:a*speed,
+    damage:activeWeapon==='rocket'?5:activeWeapon==='heavy'?2:1,
+    life:activeWeapon==='rocket'?1.85:1.8,
+    kind:activeWeapon
+   }));
+   if(Number.isFinite(ammo)){ammo--;if(ammo<=0){weapon='normal';ammo=Infinity}}
+   return shots;
+  };
  const throwGrenade=(x,y,direction,H)=>{if(grenadeCount<=0)return false;grenadeCount--;grenades.push({x,y,vx:direction*H*1.2,vy:-H*.9,fuse:.9,life:1.5});return true};
  const kill=()=>{combo++;comboTimer=3;screenShake=Math.min(12,screenShake+3);return 100+Math.min(combo,15)*20};
  const step=(dt,scroll,playerX,ground,H,onDamage,onExplosion,cameraDelta=0,playerState={})=>{
@@ -77,7 +90,7 @@ export function createArcadeSystems(){
   if(plane.active){ctx.fillStyle='#343a39';ctx.fillRect(plane.x, H*.09,H*.22,H*.038);ctx.fillRect(plane.x+H*.07,H*.065,H*.06,H*.09);ctx.fillStyle='#c24e37';ctx.fillRect(plane.x+H*.2,H*.1,H*.03,H*.02)}
   for(const b of airBombs){ctx.fillStyle='#292e2b';ctx.fillRect(b.x-H*.012,b.y-H*.017,H*.024,H*.034)}
   for(const d of airDrops){ctx.fillStyle='#eee3c5';ctx.beginPath();ctx.arc(d.x,d.y-H*.06,H*.065,Math.PI,0);ctx.fill();ctx.fillStyle='#a57a43';ctx.fillRect(d.x-H*.03,d.y-H*.03,H*.06,H*.06)}
-  for(const p of pickups){if(p.taken)continue;const x=p.x-scroll;if(x< -80||x>(ctx.canvas.clientWidth||ctx.canvas.width)+80)continue;const y=ground-H*.18+Math.sin(phase*.12)*H*.013;ctx.save();ctx.translate(x,y);ctx.fillStyle=p.type==='health'?'#c63e42':p.type==='spread'?'#d9b64e':'#6cba96';ctx.fillRect(-H*.035,-H*.035,H*.07,H*.07);ctx.strokeStyle='#fff5d4';ctx.lineWidth=2;ctx.strokeRect(-H*.035,-H*.035,H*.07,H*.07);ctx.fillStyle='#171d19';ctx.font='bold '+Math.max(11,H*.042)+'px monospace';ctx.textAlign='center';ctx.fillText(p.type==='health'?'+':p.type==='spread'?'S':'H',0,H*.015);ctx.restore()}
+  for(const p of pickups){if(p.taken)continue;const x=p.x-scroll;if(x< -80||x>(ctx.canvas.clientWidth||ctx.canvas.width)+80)continue;const y=ground-H*.18+Math.sin(phase*.12)*H*.013;if(p.type==='rocket'){drawRocketPickup(ctx,x,y,H*.07);continue}ctx.save();ctx.translate(x,y);ctx.fillStyle=p.type==='health'?'#c63e42':p.type==='spread'?'#d9b64e':'#6cba96';ctx.fillRect(-H*.035,-H*.035,H*.07,H*.07);ctx.strokeStyle='#fff5d4';ctx.lineWidth=2;ctx.strokeRect(-H*.035,-H*.035,H*.07,H*.07);ctx.fillStyle='#171d19';ctx.font='bold '+Math.max(11,H*.042)+'px monospace';ctx.textAlign='center';ctx.fillText(p.type==='health'?'+':p.type==='spread'?'S':'H',0,H*.015);ctx.restore()}
   for(const g of grenades){ctx.fillStyle='#313e30';ctx.beginPath();ctx.arc(g.x,g.y,H*.02,0,Math.PI*2);ctx.fill();ctx.fillStyle='#e2c06d';ctx.fillRect(g.x-2,g.y-H*.03,4,5)}
   for(const b of enemyShots){
      if(b.kind==='grenade'){
@@ -191,6 +204,14 @@ export function createArcadeSystems(){
    ctx.fillStyle='#252f2b';ctx.beginPath();
    ctx.ellipse(1*unit,-43*unit,7*unit,2.5*unit,0,0,Math.PI*2);ctx.fill();
    ctx.fillStyle='#a1a88b';ctx.fillRect(-4*unit,-45*unit,9*unit,unit);
+   // Amber pre-fire signal gives players a readable dodge window.
+   if(boss.cooldown>0&&boss.cooldown<.6){
+    const pulse=.55+.35*Math.sin(phase*2.4);
+    ctx.globalAlpha=pulse;ctx.fillStyle='#ffb65d';
+    ctx.fillRect(32*unit,-45*unit,5*unit,5*unit);
+    ctx.fillStyle='#fff3ab';ctx.fillRect(34*unit,-43*unit,2*unit,2*unit);
+    ctx.globalAlpha=1;
+   }
    for(const [rx,ry] of [[-18,-26],[-7,-25],[5,-25],[17,-26]]){
     ctx.fillStyle='#202a29';ctx.fillRect(rx*unit,ry*unit,2.7*unit,2.7*unit);
     ctx.fillStyle='#d0c59d';ctx.fillRect(rx*unit,ry*unit,unit,unit);
