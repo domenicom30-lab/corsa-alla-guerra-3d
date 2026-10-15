@@ -211,6 +211,59 @@ function createSurfaceTexture(kind) {
   t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
   return t;
 }
+// Procedural micro-normal detail: gives the road and soil visible relief
+// even when optional downloaded PBR assets are unavailable in the APK.
+function createTerrainNormalMap() {
+  const size = 256;
+  const heights = new Float32Array(size * size);
+  let seed = 78123;
+  const random = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+  for (let i = 0; i < heights.length; i++) heights[i] = random();
+  // Smooth the noise to form small soil grains instead of harsh pixels.
+  const smooth = new Float32Array(heights.length);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      let total = 0;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          total += heights[((y + dy + size) % size) * size + ((x + dx + size) % size)];
+        }
+      }
+      smooth[y * size + x] = total / 9;
+    }
+  }
+  const pixels = new Uint8Array(size * size * 4);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const left = smooth[y * size + ((x - 1 + size) % size)];
+      const right = smooth[y * size + ((x + 1) % size)];
+      const up = smooth[((y - 1 + size) % size) * size + x];
+      const down = smooth[((y + 1) % size) * size + x];
+      const normal = new THREE.Vector3((left - right) * 4, (up - down) * 4, 1).normalize();
+      const index = (y * size + x) * 4;
+      pixels[index] = Math.round((normal.x * 0.5 + 0.5) * 255);
+      pixels[index + 1] = Math.round((normal.y * 0.5 + 0.5) * 255);
+      pixels[index + 2] = Math.round((normal.z * 0.5 + 0.5) * 255);
+      pixels[index + 3] = 255;
+    }
+  }
+  const texture = new THREE.DataTexture(pixels, size, size, THREE.RGBAFormat);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(2, 30);
+  texture.generateMipmaps = true;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.needsUpdate = true;
+  return texture;
+}
+const terrainNormal = createTerrainNormalMap();
+roadMat.normalMap = terrainNormal;
+roadMat.normalScale = new THREE.Vector2(0.7, 0.7);
+dirtMat.normalMap = terrainNormal.clone();
+dirtMat.normalMap.repeat.set(2, 25);
+dirtMat.normalMap.needsUpdate = true;
+dirtMat.normalScale = new THREE.Vector2(0.6, 0.6);
+
 const dirtTexture = createDirtTexture();
 dirtMat.map = dirtTexture;
 roadMat.map = createSurfaceTexture('road');
@@ -364,7 +417,7 @@ for (const x of [-1.45, 1.45]) {
 // Geometria condivisa e materiale senza ombre: effetto leggero per Android.
 const puddleGeometry = new THREE.CircleGeometry(1, 18);
 const puddleMaterial = new THREE.MeshStandardMaterial({
-  color: 0x48585b, roughness: 0.24, metalness: 0.12,
+  color: 0x424e4c, roughness: 0.16, metalness: 0.02,
   transparent: true, opacity: 0.69, depthWrite: false,
   polygonOffset: true, polygonOffsetFactor: -2,
   side: THREE.DoubleSide
