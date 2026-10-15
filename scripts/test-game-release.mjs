@@ -8,7 +8,7 @@ class MockNode{
  append(...nodes){this.children.push(...nodes)}
  appendChild(n){this.children.push(n)}
  addEventListener(k,fn){this.events.set(k,fn)}
- click(){this.events.get('click')?.()}
+ click(){if(this.disabled)return;this.events.get('click')?.()}
 }
 const previous=globalThis.document;
 globalThis.document={body:new MockNode('body'),createElement(tag){const n=new MockNode(tag);made.push(n);return n}};

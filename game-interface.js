@@ -1,5 +1,6 @@
 // Original mobile-friendly arcade front end: explicit loading, mission, pause, victory.
 const MODES=new Set(['loading','ready','playing','paused','victory','error']);
+const scoreText=n=>String(Math.floor(Math.max(0,n||0))).replace(/\B(?=(\d{3})+(?!\d))/g,'.');
 export function createGameInterface({onPlay=()=>{},onRestart=()=>{},onAudio=()=>{},onQuality=()=>{},initialMuted=false,initialQuality='auto'}={}){
  if(typeof document==='undefined')throw Error('DOM required');
  const root=document.createElement('section');
@@ -43,8 +44,8 @@ export function createGameInterface({onPlay=()=>{},onRestart=()=>{},onAudio=()=>
   if(!MODES.has(next))throw Error('Menu mode invalid: '+next);
   mode=next;
   if(next==='loading'||next==='ready'||next==='paused'){stats.textContent=data.stats||'';canReplay=true}
-  if(next==='victory'){canReplay=false;stats.textContent='PUNTI '+Math.max(0,data.score||0).toLocaleString('it-IT')+
-   ' · RECORD '+Math.max(0,data.record||0).toLocaleString('it-IT')+
+  if(next==='victory'){canReplay=false;stats.textContent='PUNTI '+scoreText(data.score)+
+   ' · RECORD '+scoreText(data.record)+
    ' · OSTAGGI '+Math.max(0,data.rescued||0)+
    ' · TEMPO '+Math.floor(Math.max(0,data.seconds||0)/60)+':'+String(Math.floor(Math.max(0,data.seconds||0)%60)).padStart(2,'0')}
   if(next==='error'){stats.textContent=String(data.error||'Risorsa assente').slice(0,250)}
