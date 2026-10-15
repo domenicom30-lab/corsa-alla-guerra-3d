@@ -36,7 +36,7 @@ renderer.shadowMap.autoUpdate = true;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x9dbbd1);
-scene.fog = new THREE.FogExp2(0x9dbbd1, 0.0055);
+scene.fog = new THREE.FogExp2(0x9eafa9, 0.007);
 
  // Atmospheric gradient dome: a horizon glow and deeper zenith instead of
  // a single flat background colour. BackSide keeps it behind all geometry.
@@ -436,8 +436,25 @@ function addCylinder(
 }
 
 // Terreno e strada
+// Low-frequency height field on the off-road soil: actual geometry receives
+// directional highlights, while the flat runner road keeps reliable gameplay.
+function createBattlefieldGround() {
+  const geometry = new THREE.PlaneGeometry(100, 190, 80, 120);
+  const position = geometry.attributes.position;
+  for (let i = 0; i < position.count; i++) {
+    const x = position.getX(i), y = position.getY(i);
+    const outsideRoad = THREE.MathUtils.smoothstep(Math.abs(x), 3.9, 7.5);
+    const broad = Math.sin(x * 0.31 + y * 0.14) * Math.cos(y * 0.23 - x * 0.12);
+    const detail = Math.sin(x * 1.17 - y * 0.91) * Math.sin(y * 0.73 + x * 0.83);
+    const ridges = Math.sin(x * 0.13 + y * 0.045) * 0.21;
+    position.setZ(i, outsideRoad * (broad * 0.23 + detail * 0.065 + ridges));
+  }
+  position.needsUpdate = true;
+  geometry.computeVertexNormals();
+  return geometry;
+}
 const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(100, 190),
+  createBattlefieldGround(),
   dirtMat
 );
 
