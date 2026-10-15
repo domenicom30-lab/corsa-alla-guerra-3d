@@ -85,19 +85,34 @@ def hero(im,pose,n):
     line(d,[(78,89+y),(64,105+y),(82,122+y)],"#74865c",18)
     poly(d,[(69,81+y),(89,78+y),(94,95+y),(75,101+y)],"#859970")
     rect(d,(61,112+y,79,121+y),"#bd946d","#2c362d")
-    # Right shooting arm follows torso and recoils.
+    # Right shoulder pivots independently when holding the aim-up input.
     recoil=(n%2)*6 if pose in ("fire","runFire") else 0
     arm_y=96+y+(-10 if pose=="jump" else 0)
-    line(d,[(124,91+y),(134,arm_y),(153-recoil,arm_y+5)],"#586b4d",18)
-    ell(d,(147-recoil,arm_y-1,164-recoil,arm_y+13),"#cc9e75")
-    # Original compact arcade rifle with brass highlights and detachable magazine.
-    poly(d,[(133-recoil,arm_y),(153-recoil,arm_y-6),(165-recoil,arm_y+9),(141-recoil,arm_y+12)],"#493d32")
-    poly(d,[(139-recoil,arm_y-7),(191-recoil,arm_y-7),(194-recoil,arm_y+6),(139-recoil,arm_y+7)],"#252c2c")
-    rect(d,(151-recoil,arm_y-5,184-recoil,arm_y-2),"#9aa7a0")
-    rect(d,(176-recoil,arm_y+1,200-recoil,arm_y+4),"#59675d")
-    rect(d,(197-recoil,arm_y-6,204-recoil,arm_y+7),"#212b2c")
-    poly(d,[(158-recoil,arm_y+7),(172-recoil,arm_y+7),(169-recoil,arm_y+28),(162-recoil,arm_y+26)],"#313b35")
-    rect(d,(162-recoil,arm_y+11,169-recoil,arm_y+13),"#a9a58c")
+    if pose=="aimUp":
+        line(d,[(124,91+y),(139,91+y),(132,66+y)],"#586b4d",18)
+        ell(d,(123,61+y,143,77+y),"#cc9e75")
+        poly(d,[(126,93+y),(125,37+y),(142,31+y),(148,91+y)],"#252f31")
+        rect(d,(128,44+y,136,81+y),"#5b6964")
+        rect(d,(130,48+y,135,77+y),"#a8b2aa")
+        rect(d,(128,25+y,142,39+y),"#242c2e")
+        rect(d,(134,16+y,140,32+y),"#79887c")
+        rect(d,(129,11+y,144,20+y),"#1b2528")
+        poly(d,[(128,76+y),(116,83+y),(118,102+y),(132,100+y)],"#3d4a40")
+        rect(d,(126,90+y,145,97+y),"#2d3733")
+        if n%2==0:
+            poly(d,[(128,13+y),(119,0+y),(138,8+y),(145,0+y),(151,17+y)],"#ffcc69",None)
+            ell(d,(130,8+y,141,19+y),"#fff5b8",None)
+    else:
+        line(d,[(124,91+y),(134,arm_y),(153-recoil,arm_y+5)],"#586b4d",18)
+        ell(d,(147-recoil,arm_y-1,164-recoil,arm_y+13),"#cc9e75")
+        # Original compact arcade rifle with brass highlights and detachable magazine.
+        poly(d,[(133-recoil,arm_y),(153-recoil,arm_y-6),(165-recoil,arm_y+9),(141-recoil,arm_y+12)],"#493d32")
+        poly(d,[(139-recoil,arm_y-7),(191-recoil,arm_y-7),(194-recoil,arm_y+6),(139-recoil,arm_y+7)],"#252c2c")
+        rect(d,(151-recoil,arm_y-5,184-recoil,arm_y-2),"#9aa7a0")
+        rect(d,(176-recoil,arm_y+1,200-recoil,arm_y+4),"#59675d")
+        rect(d,(197-recoil,arm_y-6,204-recoil,arm_y+7),"#212b2c")
+        poly(d,[(158-recoil,arm_y+7),(172-recoil,arm_y+7),(169-recoil,arm_y+28),(162-recoil,arm_y+26)],"#313b35")
+        rect(d,(162-recoil,arm_y+11,169-recoil,arm_y+13),"#a9a58c")
     # Uniform stitching and miniature patches convey scale without runtime drawing.
     rect(d,(111,101+y,118,107+y),"#bb8d4a")
     rect(d,(112,103+y,118,105+y),"#f0d8a4")
@@ -156,12 +171,18 @@ def hero_finishing(im,pose,n):
             d.line([(bx+5,yy),(bx+16,yy+3)],fill=(177,181,129,156),width=2)
     recoil=(n%2)*6 if pose in ("fire","runFire") else 0
     aim_y=96+y+(-10 if pose=="jump" else 0)
-    d.line([(156-recoil,aim_y-7),(187-recoil,aim_y-7)],fill=(16,23,24,255),width=2)
-    d.line([(171-recoil,aim_y-5),(191-recoil,aim_y-5)],fill=(204,209,186,170),width=1)
-    for k in range(4):
-        xx=152-recoil+k*8
-        d.line([(xx,aim_y+3),(xx+3,aim_y+5)],fill=(25,32,30,220),width=1)
-    d.ellipse((157-recoil,aim_y-5,162-recoil,aim_y),fill=(177,177,155,255))
+    if pose=="aimUp":
+        d.line([(128,25+y),(141,23+y)],fill=(191,200,184,255),width=2)
+        for k in range(4):
+            yy=40+y+k*12
+            d.line([(128,yy),(138,yy)],fill=(32,41,39,225),width=2)
+    else:
+        d.line([(156-recoil,aim_y-7),(187-recoil,aim_y-7)],fill=(16,23,24,255),width=2)
+        d.line([(171-recoil,aim_y-5),(191-recoil,aim_y-5)],fill=(204,209,186,170),width=1)
+        for k in range(4):
+            xx=152-recoil+k*8
+            d.line([(xx,aim_y+3),(xx+3,aim_y+5)],fill=(25,32,30,220),width=1)
+        d.ellipse((157-recoil,aim_y-5,162-recoil,aim_y),fill=(177,177,155,255))
     if pose in ("fire","runFire") and n%2==0:
         for j in range(6):
             xx=203-recoil+j*4

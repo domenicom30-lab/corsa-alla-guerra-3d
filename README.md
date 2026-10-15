@@ -110,3 +110,7 @@ La versione mostra `v2.2` e usa l'identificativo `com.corsaguerra.arcadeprova22`
 - Independent Android test ID `com.corsaguerra.arcadeprova23` and versionName `2.3.0` avoid APK signature mismatches with older debug builds.
 
 This pixel-art is original; it is not extracted from or identical to any copyrighted Metal Slug artwork.
+
+
+## v2.4 — Upward aiming sprites
+The commando has a dedicated 4-frame `aimUp` PNG animation: shoulders pivot, rifle and muzzle point vertically. The game chooses this pose from the Samsung `↑ MIRA` control and keyboard `W` while retaining jump, crouch, weapon physics, and existing collisions. The generated PNG is required by the manifest, and `scripts/test_aimup_art.py` confirms that all four frames contain a raised rifle without the horizontal rifle being left behind. Isolated Android package `com.corsaguerra.arcadeprova24` displays v2.4.
