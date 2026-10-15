@@ -696,6 +696,35 @@ function createShrubMaterial() {
   return new THREE.MeshStandardMaterial({map:texture, transparent:true, alphaTest:0.35,
     side:THREE.DoubleSide, roughness:1, depthWrite:true});
 }
+// Optional real scanned fern asset (Poly Haven CC0). The procedural shrubs remain
+// visible until a valid local GLB is loaded, so offline APKs never show gaps.
+const fernScanLoader = new GLTFLoader();
+let scannedFernPrototype = null;
+const pendingScannedShrubs = [];
+fernScanLoader.load('./models/fern_02.glb', (gltf) => {
+  const model = gltf.scene;
+  model.updateMatrixWorld(true);
+  const bounds = new THREE.Box3().setFromObject(model);
+  const size = bounds.getSize(new THREE.Vector3());
+  if (!Number.isFinite(size.x) || size.x < 0.001 || size.y < 0.001) return;
+  // Normalize a photogrammetry scan to a game-world bush footprint.
+  const factor = Math.min(1.9 / Math.max(size.x, size.z, 0.001), 1.2 / size.y);
+  model.scale.multiplyScalar(factor);
+  model.position.y -= bounds.min.y * factor;
+  model.traverse((obj) => {
+    if (obj.isMesh) {
+      obj.castShadow = false;
+      obj.receiveShadow = true;
+      if (obj.material) obj.material.side = THREE.DoubleSide;
+    }
+  });
+  scannedFernPrototype = model;
+  for (const group of pendingScannedShrubs) {
+    group.clear();
+    group.add(scannedFernPrototype.clone(true));
+  }
+  console.info('Photogrammetry vegetation loaded: fern_02');
+}, undefined, () => console.info('Scanned fern not packaged; keeping existing foliage'));
 const shrubMaterial = createShrubMaterial();
 const shrubGeometry = new THREE.PlaneGeometry(1.7, 1.35);
 function createBush(x, z, scale = 1) {
@@ -708,6 +737,12 @@ function createBush(x, z, scale = 1) {
     foliage.rotation.y = i * Math.PI / 3;
     foliage.castShadow = false;
     group.add(foliage);
+  }
+  if (scannedFernPrototype) {
+    group.clear();
+    group.add(scannedFernPrototype.clone(true));
+  } else {
+    pendingScannedShrubs.push(group);
   }
   scene.add(group);
   bushes.push(group);
