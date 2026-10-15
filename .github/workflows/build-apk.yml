@@ -40,15 +40,8 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Install PBR image decoder
-        run: python3 -m pip install 'Pillow>=11,<13'
-
-      - name: Import verified CC0 PBR terrain textures
-        run: python3 scripts/download_pbr.py Ground054 Ground037
-
-      - name: Import scanned CC0 forest vegetation
-        continue-on-error: true
-        run: python3 scripts/import_polyhaven_fern.py
+      - name: Validate 2.5D gameplay and asset contract
+        run: npm run check
 
       - name: Build web game
         run: npm run build
