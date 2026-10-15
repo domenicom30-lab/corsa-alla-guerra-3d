@@ -7,7 +7,7 @@ loadSoldierFrames();loadExternalSoldier();
 import {prepareEnemyFrames,drawEnemyFrame} from './enemy-frames.js';
 prepareEnemyFrames();
 import './style.css';
-import {drawBattleAtmosphere,drawArcadeForeground,drawBossDeathCinematic} from './arcade-cinematics.js';
+import {drawBattleAtmosphere,drawArcadeForeground,drawBossDeathCinematic,drawWarzoneParallax} from './arcade-cinematics.js';
 // Side-scrolling 2D platform runner: fixed-size sprites, horizontal world, no depth projection.
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d',{alpha:false});
 const message=document.getElementById('message'),stats=document.getElementById('stats');
@@ -48,6 +48,7 @@ const backdrop=document.createElement('canvas');backdrop.width=960;backdrop.heig
 function background(){
  bg.imageSmoothingEnabled=false;if(!paintArcadeBackground(bg,960,540,scroll*960/Math.max(W,1)))pixelBackdrop(bg,960,540,scroll*960/Math.max(W,1));
  ctx.imageSmoothingEnabled=false;ctx.drawImage(backdrop,0,0,W,H);
+ drawWarzoneParallax(ctx,W,H,scroll,ground());
  // Detailed modular scenery, on the same horizontal plane.
  for(let i=0;i<14;i++){const x=420+i*670-scroll;if(x<-240||x>W+240)continue;
  const type=i%3;if(type===0)ctx.drawImage(arcadeArt.tower||sprites.tower,x,ground()-H*.49,H*.27,H*.49);
