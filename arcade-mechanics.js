@@ -12,7 +12,7 @@ export function createArcadeSystems(){
  const step=(dt,scroll,playerX,ground,H,onDamage,onExplosion,cameraDelta=0)=>{
   comboTimer-=dt;if(comboTimer<=0)combo=0;screenShake=Math.max(0,screenShake-dt*28);
   if(!boss.defeated&&scroll+playerX>boss.x-H*1.6)boss.active=true;
-  if(boss.active&&!boss.defeated){boss.cooldown-=dt;if(boss.cooldown<=0){boss.cooldown=1.1;for(let i=-1;i<=1;i++)enemyShots.push({x:boss.x-scroll-H*.14,y:ground-H*.23,vx:-H*(.65+i*.1),vy:i*H*.23,life:3})}}
+  if(boss.active&&!boss.defeated){boss.cooldown-=dt;if(boss.cooldown<=0){boss.cooldown=1.1;const bossScreenX=boss.x-scroll;if(Math.abs(bossScreenX-playerX)<H*2.5&&enemyShots.length<=21){for(let i=-1;i<=1;i++)enemyShots.push({x:bossScreenX-H*.14,y:ground-H*.23,vx:-H*(.65+i*.1),vy:i*H*.23,life:3})}}}
   for(let i=enemyShots.length-1;i>=0;i--){const b=enemyShots[i];b.x+=b.vx*dt-cameraDelta;b.y+=b.vy*dt;b.life-=dt;if(Math.abs(b.x-playerX)<H*.065&&Math.abs(b.y-(ground-H*.18))<H*.16){onDamage();enemyShots.splice(i,1)}else if(b.life<=0)enemyShots.splice(i,1)}
   for(let i=grenades.length-1;i>=0;i--){const g=grenades[i];g.x+=g.vx*dt-cameraDelta;g.y+=g.vy*dt;g.vy+=H*2.4*dt;g.fuse-=dt;if(g.y>ground-H*.02){g.y=ground-H*.02;g.vy*=-.35;g.vx*=.8}if(g.fuse<=0){onExplosion(g.x,g.y,H*.35);screenShake=14;grenades.splice(i,1)}}
  };
