@@ -1,5 +1,6 @@
 import {sprites,pixelBackdrop} from './pixel-art.js';
 import {loadSpritePacks,spritePacksReady,drawRaster,drawRasterBackground,spritePackError} from './sprite-loader.js';
+import {createGameInterface} from './game-interface.js';
 import {prepareHeroFrames,drawHeroFrame} from './hero-animation.js';
 import {createArcadeSpectacle} from './arcade-spectacle.js';
 import {createBattleCasualties} from './battle-aftermath.js';
@@ -20,9 +21,16 @@ import {drawBattleAtmosphere,drawArcadeForeground,drawBossDeathCinematic,drawWar
 // Side-scrolling 2D platform runner: fixed-size sprites, horizontal world, no depth projection.
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d',{alpha:false});
 const message=document.getElementById('message'),stats=document.getElementById('stats');
-let rasterLoaded=false,rasterError=null;
-loadSpritePacks().then(()=>{rasterLoaded=true;if(!running){message.textContent='MISSIONE 01 — TOCCA PER GIOCARE';message.style.display='block'}})
- .catch(error=>{rasterError=error;running=false;message.textContent='ERRORE SPRITE: '+error.message;message.style.display='block'});
+let rasterLoaded=false,rasterError=null,missionSeconds=0,audioMuted=false,graphicsQuality='auto';
+try{const setting=JSON.parse(localStorage.getItem('cag_2d_settings')||'{}');audioMuted=!!setting.muted;if(['auto','high','battery'].includes(setting.quality))graphicsQuality=setting.quality}catch(_){}
+const gameMenu=createGameInterface({initialMuted:audioMuted,initialQuality:graphicsQuality,
+ onPlay:()=>{if(gameMenu.mode==='error'){location.reload();return}if(paused)pause();else start()},
+ onRestart:()=>{victoryRestartAt=0;continueUntil=0;start()},
+ onAudio:muted=>{audioMuted=muted;if(audioEngine&&muted)audioEngine.suspend().catch(()=>{});if(audioEngine&&!muted)audioEngine.resume().catch(()=>{});saveSettings()},
+ onQuality:value=>{graphicsQuality=value;resize();saveSettings()}});
+function saveSettings(){try{localStorage.setItem('cag_2d_settings',JSON.stringify({muted:audioMuted,quality:graphicsQuality}))}catch(_){} }
+loadSpritePacks().then(()=>{rasterLoaded=true;gameMenu.start();if(!running){message.textContent='MISSIONE 01 — TOCCA PER GIOCARE';message.style.display='none'}})
+ .catch(error=>{rasterError=error;running=false;gameMenu.error(error.message);message.textContent='ERRORE SPRITE: '+error.message;message.style.display='none'});
 let W=0,H=0,dpr=1,last=0,running=false,paused=false,score=0,health=3,distance=0;
 let scroll=0,vy=0,jumpY=0,duckTime=0,phase=0,invulnerable=0,shotCooldown=0,muzzleFlash=0,fireHeld=false;
 const movement={left:false,right:false};
@@ -36,7 +44,7 @@ function showContinue(){
 function continueArcade(){
  if(!continueUntil||performance.now()>continueUntil||arcadeCredits<=0)return false;
  arcadeCredits--;continueUntil=0;health=3;invulnerable=2;running=true;paused=false;
- message.style.display='none';last=0;hud();soundEffect('enter');return true;
+ message.style.display='none';gameMenu.playMode();last=0;hud();soundEffect('enter');return true;
 }
 
 let arcadeHighScore=0;
@@ -72,7 +80,7 @@ function scheduleChipNote(frequency,wave,duration,volume,time){
  osc.start(time);osc.stop(time+duration+.01);
 }
 function updateArcadeMusic(){
- if(!audioEngine||audioEngine.state!=='running'||!running||paused||!visible){musicNext=0;return}
+ if(audioMuted||!audioEngine||audioEngine.state!=='running'||!running||paused||!visible){musicNext=0;return}
  const now=audioEngine.currentTime;
  if(!musicNext||musicNext<now-.4)musicNext=now+.04;
  let count=0;
@@ -84,6 +92,7 @@ function updateArcadeMusic(){
 }
 
 function soundEffect(type){
+ if(audioMuted)return;
  try{
   const C=window.AudioContext||window.webkitAudioContext;
   if(!C)return;
@@ -176,8 +185,8 @@ const FALL_MULTIPLIER=2.5,LOW_JUMP_MULTIPLIER=2;
 const MAX_PARTICLES=180;
 let frameClock=0;
 let visible=true;
-document.addEventListener('visibilitychange',()=>{visible=!document.hidden;last=0;if(!visible){fireHeld=false;clearTouchMovement();movement.left=false;movement.right=false;duckHeld=false;if(running&&!paused){paused=true;message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display='block'}}});
-function resize(){W=innerWidth;H=innerHeight;const pixelBudget=2400000;dpr=Math.min(devicePixelRatio||1,2,Math.sqrt(pixelBudget/Math.max(1,W*H)));canvas.width=Math.max(1,Math.round(W*dpr));canvas.height=Math.max(1,Math.round(H*dpr));canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0)}
+document.addEventListener('visibilitychange',()=>{visible=!document.hidden;last=0;if(!visible){fireHeld=false;clearTouchMovement();movement.left=false;movement.right=false;duckHeld=false;if(running&&!paused){gameMenu.pause();paused=true;message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display='block'}}});
+function resize(){W=innerWidth;H=innerHeight;const pixelBudget=graphicsQuality==='battery'?900000:graphicsQuality==='high'?3800000:2400000;dpr=Math.min(devicePixelRatio||1,graphicsQuality==='battery'?1.25:graphicsQuality==='high'?2.5:2,Math.sqrt(pixelBudget/Math.max(1,W*H)));canvas.width=Math.max(1,Math.round(W*dpr));canvas.height=Math.max(1,Math.round(H*dpr));canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0)}
 addEventListener('resize',resize);resize();
 function ground(){return H*.78}
 function playerX(){return W*.22}
@@ -253,6 +262,7 @@ function explosion(x,y,radius,hostile=false){hitFlash=Math.max(hitFlash,.09);sou
 function hud(){rideButton.textContent=ride.occupied?'ESCI · '+ride.hp+'%':'CARRO · '+ride.hp+'%';saveArcadeHighScore();document.getElementById('points').textContent='PUNTI: '+score+' · RECORD: '+arcadeHighScore+' · CREDITI: '+arcadeCredits;document.getElementById('hearts').innerHTML=Array.from({length:3},(_,i)=>'<span class="heart '+(i>=health?'heart-lost':'')+'">♥</span>').join('');stats.textContent='ZONA '+(stageAt(scroll)+1)+' · TRAGUARDO: '+Math.max(0,200-Math.floor(distance))+' m · '+arcade.weapon.toUpperCase()+(Number.isFinite(arcade.ammo)?' '+arcade.ammo:'')+' · BOMBE '+arcade.grenadeCount+(arcade.combo>1?' · COMBO x'+arcade.combo:'')+(arcade.boss.active&&!arcade.boss.defeated?' · BOSS '+Math.max(0,Math.ceil(arcade.boss.hp/arcade.boss.maxHp*100))+'%':'')}
 function update(dt){
  if(!running||paused)return;
+ missionSeconds+=dt;
  hitFlash=Math.max(0,hitFlash-dt);
  for(let i=casings.length-1;i>=0;i--){const c=casings[i];c.vy+=H*.8*dt;c.x+=c.vx*dt;c.y=Math.min(ground()-H*.007,c.y+c.vy*dt);c.vx*=Math.max(0,1-dt*2);c.life-=dt;if(c.life<=0)casings.splice(i,1)}
  const direction=Number(movement.right)-Number(movement.left);
@@ -348,15 +358,15 @@ function update(dt){
  if(duckTime>0)duckTime=Math.max(0,duckTime-dt);
  if(invulnerable>0)invulnerable=Math.max(0,invulnerable-dt);
  if(jumpY>0||vy>0){jumpY+=vy*dt;const gravityScale=vy<0?FALL_MULTIPLIER:!jumpHeld?LOW_JUMP_MULTIPLIER:1;vy-=GRAVITY*gravityScale*dt;if(jumpY<=0){jumpY=0;vy=0}}
- if(distance>=200&&arcade.boss.defeated){victoryRestartAt=performance.now()+VICTORY_RESTART_DELAY_MS;running=false;fireHeld=false;clearTouchMovement();movement.left=false;movement.right=false;shotCooldown=0;last=0;message.textContent='HAI SCONFITTO LE ZECCHE ROSSE!\nTOCCA PER RIPROVARE';message.classList.add('victory-message');message.style.display='block';document.getElementById('victory-credit').style.display='block'}hud();
+ if(distance>=200&&arcade.boss.defeated){victoryRestartAt=performance.now()+VICTORY_RESTART_DELAY_MS;saveArcadeHighScore();gameMenu.victory({score,record:arcadeHighScore,rescued:arcade.prisoners.filter(p=>p.rescued).length,seconds:missionSeconds});running=false;fireHeld=false;clearTouchMovement();movement.left=false;movement.right=false;shotCooldown=0;last=0;message.textContent='MISSIONE COMPIUTA!\nCOMANDANTE SCONFITTO';message.classList.add('victory-message');message.style.display='block';document.getElementById('victory-credit').style.display='block'}hud();
 }
 function drawBossHealthBar(){if(!arcade.boss.active||arcade.boss.defeated)return;const width=Math.min(W*.52,360),height=Math.max(10,H*.023),x=(W-width)/2,y=Math.max(14,H*.075),ratio=Math.max(0,Math.min(1,arcade.boss.hp/arcade.boss.maxHp));ctx.save();ctx.fillStyle='#171b1b';ctx.fillRect(x-5,y-5,width+10,height+10);ctx.fillStyle='#483a32';ctx.fillRect(x,y,width,height);ctx.fillStyle=ratio>.35?'#d94d35':'#f0a33e';ctx.fillRect(x,y,width*ratio,height);ctx.fillStyle='#f7e8b9';ctx.fillRect(x,y,width*ratio,Math.max(2,height*.22));ctx.strokeStyle='#f4d7a0';ctx.lineWidth=2;ctx.strokeRect(x,y,width,height);if(bossBerserk){ctx.fillStyle='#ff5b43';ctx.font='bold '+Math.max(13,H*.027)+'px monospace';ctx.textAlign='center';ctx.fillText('IRON COMMANDER · BERSERK',W/2,y+height+24)}ctx.restore()}
 function drawMissionBanner(){if(missionBanner<=0)return;ctx.save();if(spritePacksReady()){const tw=Math.min(W*.9,H*1.35);drawRaster(ctx,'ui','title',0,(W-tw)*.5,H*.21,tw,H*.22)}const a=Math.min(1,missionBanner,Math.max(0,(3-missionBanner)*2));ctx.globalAlpha=a;ctx.textAlign='center';const size=Math.max(21,H*.073);ctx.font='900 '+size+'px Impact,system-ui,sans-serif';ctx.lineWidth=Math.max(4,size*.16);ctx.strokeStyle='#161c1b';const text=arcade.boss.active&&!arcade.boss.defeated?'BOSS IN ARRIVO!':stageIndex===0?'MISSIONE 01 · AVANTI!':STAGES[stageIndex].name;ctx.strokeText(text,W*.5,H*.35);ctx.fillStyle='#ffe39a';ctx.fillText(text,W*.5,H*.35);ctx.restore()}
-function frame(t){if(continueUntil){if(t>=continueUntil){continueUntil=0;message.textContent='GAME OVER — TOCCA PER RIPROVARE'}else message.textContent='CONTINUE? · '+arcadeCredits+' CREDITI · '+Math.ceil((continueUntil-t)/1000)+' · TOCCA PER CONTINUARE'}updateArcadeMusic();if(!visible){last=t;requestAnimationFrame(frame);return}if(last&&t-last<1000/65){requestAnimationFrame(frame);return}const dt=Math.min(last?(t-last)/1000:0,.05);last=t;if(arcadeHitstop>0)arcadeHitstop--;else update(dt);ctx.save();if(arcade.screenShake>0){const shake=arcade.screenShake;ctx.translate(Math.sin(phase*3.1)*shake*.5,Math.cos(phase*4.3)*shake*.35)}background();drawBattleAtmosphere(ctx,W,H,scroll,phase,ground());drawArcadeStorm(ctx,W,H,phase*.015,scroll>2900);drawTicks();aftermath.draw(ctx,W,H,ground(),drawFallenTroop);drawSentries();arcade.draw(ctx,scroll,ground(),H,phase);drawStageMarker(ctx,W,H,scroll,ground());drawDust();drawRide();if(!ride.occupied)drawPlayer();drawBullets();drawCasings();drawBlastEffects();drawEnemyDebris();drawParticles();drawArcadeForeground(ctx,W,H,scroll,ground(),phase);spectacle.drawFront(ctx,W,H,scroll,ground());if(bossDeathTime>=0)drawBossDeathCinematic(ctx,W,H,ground(),bossDeathTime,bossDeathX);ctx.restore();drawArcadeFlash();drawBossHealthBar();spectacle.drawOverlay(ctx,W,H,arcade.combo);drawMissionBanner();requestAnimationFrame(frame)}
-function start(){if(!rasterLoaded){message.textContent=rasterError?'ERRORE SPRITE: '+rasterError.message:'CARICAMENTO SPRITE...';message.style.display='block';return}if(continueArcade())return;if(victoryRestartAt&&performance.now()<victoryRestartAt)return;victoryRestartAt=0;document.getElementById('victory-credit').style.display='none';musicStep=0;musicNext=0;message.classList.remove('victory-message');running=true;paused=false;arcadeCredits=3;continueUntil=0;bossBerserk=false;bossAlertShown=false;stageIndex=0;missionBanner=2.5;aimUp=false;score=0;health=3;distance=0;scroll=0;facing=1;bossVictoryAwarded=false;bossDeathTime=-1;bossDeathX=0;arcade.reset();Object.assign(ride,{x:750,hp:100,occupied:false,cooldown:0,flash:0});vy=0;jumpY=0;horizontalSpeed=0;jumpHeld=false;duckTime=0;phase=0;runCycle=0;invulnerable=0;shotCooldown=0;muzzleFlash=0;recoil=0;fireHeld=false;bullets.length=0;casings.length=0;hitFlash=0;particles.length=0;blastEffects.length=0;dustPuffs.length=0;enemyDebris.length=0;spectacle.reset();aftermath.reset();duckHeld=false;ticks.forEach(t=>t.alive=true);resetTroopWaves(sentries);clearTouchMovement();movement.left=false;movement.right=false;last=0;message.style.display='none';hud();soundEffect('enter')}
+function frame(t){if(gameMenu.mode==='victory'&&t>=victoryRestartAt)gameMenu.allowReplay();if(continueUntil){if(t>=continueUntil){continueUntil=0;message.textContent='GAME OVER — TOCCA PER RIPROVARE'}else message.textContent='CONTINUE? · '+arcadeCredits+' CREDITI · '+Math.ceil((continueUntil-t)/1000)+' · TOCCA PER CONTINUARE'}updateArcadeMusic();if(!visible){last=t;requestAnimationFrame(frame);return}if(last&&t-last<1000/65){requestAnimationFrame(frame);return}const dt=Math.min(last?(t-last)/1000:0,.05);last=t;if(arcadeHitstop>0)arcadeHitstop--;else update(dt);ctx.save();if(arcade.screenShake>0){const shake=arcade.screenShake;ctx.translate(Math.sin(phase*3.1)*shake*.5,Math.cos(phase*4.3)*shake*.35)}background();drawBattleAtmosphere(ctx,W,H,scroll,phase,ground());drawArcadeStorm(ctx,W,H,phase*.015,scroll>2900);drawTicks();aftermath.draw(ctx,W,H,ground(),drawFallenTroop);drawSentries();arcade.draw(ctx,scroll,ground(),H,phase);drawStageMarker(ctx,W,H,scroll,ground());drawDust();drawRide();if(!ride.occupied)drawPlayer();drawBullets();drawCasings();drawBlastEffects();drawEnemyDebris();drawParticles();drawArcadeForeground(ctx,W,H,scroll,ground(),phase);spectacle.drawFront(ctx,W,H,scroll,ground());if(bossDeathTime>=0)drawBossDeathCinematic(ctx,W,H,ground(),bossDeathTime,bossDeathX);ctx.restore();drawArcadeFlash();drawBossHealthBar();spectacle.drawOverlay(ctx,W,H,arcade.combo);drawMissionBanner();requestAnimationFrame(frame)}
+function start(){if(!rasterLoaded){message.textContent=rasterError?'ERRORE SPRITE: '+rasterError.message:'CARICAMENTO SPRITE...';message.style.display='block';return}if(continueArcade())return;if(victoryRestartAt&&performance.now()<victoryRestartAt)return;victoryRestartAt=0;missionSeconds=0;gameMenu.playMode();document.getElementById('victory-credit').style.display='none';musicStep=0;musicNext=0;message.classList.remove('victory-message');running=true;paused=false;arcadeCredits=3;continueUntil=0;bossBerserk=false;bossAlertShown=false;stageIndex=0;missionBanner=2.5;aimUp=false;score=0;health=3;distance=0;scroll=0;facing=1;bossVictoryAwarded=false;bossDeathTime=-1;bossDeathX=0;arcade.reset();Object.assign(ride,{x:750,hp:100,occupied:false,cooldown:0,flash:0});vy=0;jumpY=0;horizontalSpeed=0;jumpHeld=false;duckTime=0;phase=0;runCycle=0;invulnerable=0;shotCooldown=0;muzzleFlash=0;recoil=0;fireHeld=false;bullets.length=0;casings.length=0;hitFlash=0;particles.length=0;blastEffects.length=0;dustPuffs.length=0;enemyDebris.length=0;spectacle.reset();aftermath.reset();duckHeld=false;ticks.forEach(t=>t.alive=true);resetTroopWaves(sentries);clearTouchMovement();movement.left=false;movement.right=false;last=0;message.style.display='none';hud();soundEffect('enter')}
 function jump(){if(!running){start()}if(!paused&&!ride.occupied&&jumpY===0){vy=Math.sqrt(2*GRAVITY*H*.23);jumpHeld=true;duckTime=0;duckHeld=false}}
 function duck(){if(!running){start()}if(!paused)duckTime=.7}
-function pause(){if(!running)return;paused=!paused;last=0;if(paused){fireHeld=false;clearTouchMovement();movement.left=false;movement.right=false}if(paused){jumpHeld=false;aimUp=false;duckHeld=false}message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display=paused?'block':'none'}
+function pause(){if(!running)return;paused=!paused;last=0;if(paused)gameMenu.pause();else gameMenu.playMode();if(paused){fireHeld=false;clearTouchMovement();movement.left=false;movement.right=false}if(paused){jumpHeld=false;aimUp=false;duckHeld=false}message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display=paused?'block':'none'}
 for(const [id,fn] of [['jump',jump],['duck',duck],['grenade',grenade],['pause',pause]])document.getElementById(id).addEventListener('pointerdown',e=>{e.preventDefault();fn()});
 const duckButton=document.getElementById('duck');
 duckButton.addEventListener('pointerdown',e=>{e.preventDefault();duckButton.setPointerCapture(e.pointerId);duckHeld=true});
@@ -367,7 +377,7 @@ const activeMovementPointers={left:new Set(),right:new Set()};
 function clearTouchMovement(){activeMovementPointers.left.clear();activeMovementPointers.right.clear();movement.left=false;movement.right=false}
 for(const id of ['left','right']){const el=document.getElementById(id);const pointers=activeMovementPointers[id];el.addEventListener('pointerdown',e=>{e.preventDefault();if(!running)start();el.setPointerCapture(e.pointerId);pointers.add(e.pointerId);movement[id]=true});for(const type of ['pointerup','pointercancel','lostpointercapture'])el.addEventListener(type,e=>{pointers.delete(e.pointerId);movement[id]=pointers.size>0})}
 const aimButton=document.createElement('button');aimButton.type='button';aimButton.id='aim-up';aimButton.textContent='↑ MIRA';aimButton.setAttribute('aria-label','Mira verso alto');Object.assign(aimButton.style,{position:'fixed',right:'12px',top:'57%',zIndex:'20',padding:'12px',background:'#253b43',color:'#fff',border:'2px solid #ffe49a',borderRadius:'12px',touchAction:'none',fontWeight:'bold'});document.body.appendChild(aimButton);aimButton.addEventListener('pointerdown',e=>{e.preventDefault();aimButton.setPointerCapture(e.pointerId);aimUp=true;aimButton.style.background='#526e5c'});for(const type of ['pointerup','pointercancel','lostpointercapture'])aimButton.addEventListener(type,()=>{aimUp=false;aimButton.style.background='#253b43'});const fireButton=document.getElementById('shoot');fireButton.addEventListener('pointerdown',e=>{e.preventDefault();if(!running)start();fireHeld=true;fireButton.setPointerCapture(e.pointerId);shoot()});for(const event of ['pointerup','pointercancel','lostpointercapture'])fireButton.addEventListener(event,()=>fireHeld=false);
-addEventListener('blur',()=>{clearTouchMovement();movement.left=false;movement.right=false;fireHeld=false;jumpHeld=false;aimUp=false;duckHeld=false;if(running&&!paused){paused=true;message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display='block'}});
+addEventListener('blur',()=>{clearTouchMovement();movement.left=false;movement.right=false;fireHeld=false;jumpHeld=false;aimUp=false;duckHeld=false;if(running&&!paused){paused=true;gameMenu.pause();message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display='block'}});
 message.addEventListener('pointerdown',()=>{if(paused)pause();else start()});canvas.addEventListener('pointerdown',()=>{if(!running)start()});
 addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.repeat){if(!running)start();else if(paused)pause()}if(e.key==='ArrowLeft'||e.key==='a'){if(!running)start();movement.left=true;}if(e.key==='ArrowRight'||e.key==='d'){if(!running)start();movement.right=true;}if(e.key==='w'||e.key==='W')aimUp=true;if(e.key==='ArrowUp'||e.key===' '){e.preventDefault();jumpHeld=true;if(!e.repeat)jump();}if(e.key==='ArrowDown'){duckHeld=true;duck()}if((e.key==='e'||e.key==='E')&&!e.repeat)toggleRide();if(e.key==='Escape')pause();if((e.key==='f'||e.key==='j'||e.key==='J'||e.key==='Control')&&!e.repeat)shoot();if((e.key==='g'||e.key==='k'||e.key==='K')&&!e.repeat)grenade()});
 addEventListener('keyup',e=>{if(e.key==='w'||e.key==='W')aimUp=false;if(e.key==='ArrowDown'){duckHeld=false;duckTime=0}if(e.key==='ArrowUp'||e.key===' ')jumpHeld=false;if(e.key==='ArrowLeft'||e.key==='a'){movement.left=false}if(e.key==='ArrowRight'||e.key==='d'){movement.right=false}});

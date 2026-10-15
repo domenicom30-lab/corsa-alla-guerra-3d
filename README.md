@@ -59,3 +59,21 @@ Il runtime 2D ora carica i PNG dallo **sprite manifest**, non disegna più perso
 Per lavorare localmente: `python3 -m pip install Pillow`, `npm run assets`, poi `npm run dev` o `npm run build`.
 
 Il contenuto grafico generato è la prima versione di sprite raster originali, **non una riproduzione della qualità artistica commerciale di Metal Slug**: per aumentare ulteriormente fedeltà e dettaglio si possono sostituire i PNG con atlanti dipinti da illustratori, conservando stesso manifest e il motore di animazione.
+
+## Release 2.0 — Versione completa da provare su Android
+
+La campagna 2D presenta quattro zone a scorrimento, ondate originali di nemici, prigionieri da liberare, armi speciali, granate, un carro utilizzabile, attacchi aerei, un comandante corazzato con più fasi e il traguardo a 200 metri. Il gioco assegna punteggi, combo, record salvati e crediti continue.
+
+La versione finale **da provare** comprende una schermata missione originale, un menu pausa con Riprendi/Ricomincia, modalità grafica Auto/Alta/Risparmio e interruttore audio, un riepilogo finale con record, tempo e ostaggi liberati, un'icona Android personalizzata e la versione **v2.0** visibile nell'interfaccia. Le impostazioni vengono salvate localmente.
+
+### Controlli Samsung in orizzontale
+- Pulsanti a sinistra: movimento.
+- Pulsanti a destra: salto, sparo mantenuto premuto, granata, abbassamento mantenuto.
+- Pulsante **↑ MIRA**: spara verso l'alto mantenendo premuto.
+- **CARRO**: entra/esci quando sei abbastanza vicino a un carro.
+- Pausa: cambia volume/qualità o riprendi la partita.
+
+### Cosa verifica la compilazione
+I test Node convalidano menu e impostazioni, progressione simulata di tutta la campagna, riavvio, armi, prigionieri e boss, oltre a tutti gli atlas obbligatori. Prima di distribuire l'APK, lo script Python controlla anche le 27 risorse PNG e le sei immagini importate dall'utente **dentro l'APK effettivo**.
+
+**Limite dichiarato:** questa è una build completa per prova funzionale, ma la qualità artistica è basata su sprite PNG originali generati offline e non è equivalente alla pittura manuale di un gioco arcade commerciale. FPS, proporzioni sul Samsung e leggibilità dei comandi richiedono una prova sul dispositivo.
