@@ -1,4 +1,6 @@
 import {sprites,pixelBackdrop} from './pixel-art.js';
+import {loadArcadeArt,arcadeArt,paintArcadeBackground} from './arcade-art.js';
+loadArcadeArt();
 import './style.css';
 // Side-scrolling 2D platform runner: fixed-size sprites, horizontal world, no depth projection.
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d',{alpha:false});
@@ -17,13 +19,13 @@ const obstacles=Array.from({length:32},(_,i)=>({x:750+i*420+(i%3)*100,type:i%3,h
 function rect(x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(x,y,w,h)}
 const backdrop=document.createElement('canvas');backdrop.width=480;backdrop.height=270;const bg=backdrop.getContext('2d');
 function background(){
- bg.imageSmoothingEnabled=false;pixelBackdrop(bg,480,270,scroll*480/Math.max(W,1));
+ bg.imageSmoothingEnabled=false;if(!paintArcadeBackground(bg,480,270,scroll*480/Math.max(W,1)))pixelBackdrop(bg,480,270,scroll*480/Math.max(W,1));
  ctx.imageSmoothingEnabled=false;ctx.drawImage(backdrop,0,0,W,H);
  // Detailed modular scenery, on the same horizontal plane.
  for(let i=0;i<14;i++){const x=420+i*670-scroll;if(x<-240||x>W+240)continue;
- const type=i%3;if(type===0)ctx.drawImage(sprites.tower,x,ground()-H*.49,H*.27,H*.49);
- else if(type===1){ctx.drawImage(sprites.sandbags,x,ground()-H*.12,H*.22,H*.12);ctx.drawImage(sprites.crate,x+H*.17,ground()-H*.16,H*.16,H*.16)}
- else {ctx.drawImage(sprites.crate,x,ground()-H*.15,H*.15,H*.15);ctx.drawImage(sprites.crate,x+H*.12,ground()-H*.15,H*.15,H*.15)}
+ const type=i%3;if(type===0)ctx.drawImage(arcadeArt.tower||sprites.tower,x,ground()-H*.49,H*.27,H*.49);
+ else if(type===1){ctx.drawImage(arcadeArt.sandbags||sprites.sandbags,x,ground()-H*.12,H*.22,H*.12);ctx.drawImage(arcadeArt.crate||sprites.crate,x+H*.17,ground()-H*.16,H*.16,H*.16)}
+ else {ctx.drawImage(arcadeArt.crate||sprites.crate,x,ground()-H*.15,H*.15,H*.15);ctx.drawImage(arcadeArt.crate||sprites.crate,x+H*.12,ground()-H*.15,H*.15,H*.15)}
  }
 }
 function drawPlayer(){
@@ -31,18 +33,18 @@ function drawPlayer(){
  const x=playerX()-w*.5,y=ground()-jumpY-h;
  ctx.save();ctx.imageSmoothingEnabled=false;
  if(invulnerable>0&&Math.floor(invulnerable*12)%2===0)ctx.globalAlpha=.35;
- ctx.drawImage(sprites.soldier[runFrame],x,y,w,h);
+ const sheet=arcadeArt.soldier; if(sheet){const frameW=sheet.width/6;ctx.drawImage(sheet,runFrame*frameW,0,frameW,sheet.height,x,y,w,h)}else ctx.drawImage(sprites.soldier[runFrame],x,y,w,h);
  if(muzzleFlash>0){ctx.fillStyle='#ffe27a';const mx=x+w*.95,my=y+h*.48;ctx.beginPath();ctx.moveTo(mx,my);ctx.lineTo(mx+H*.042,my-H*.019);ctx.lineTo(mx+H*.025,my);ctx.lineTo(mx+H*.042,my+H*.02);ctx.fill()}
  ctx.restore();
 }
 function drawObstacles(){
  for(const o of obstacles){const x=o.x-scroll,w=H*.13,h=H*.14;if(x<-w||x>W+w)continue;
- const sprite=o.type===0?sprites.sandbags:sprites.crate;ctx.drawImage(sprite,x,ground()-h,w,h);
+ const sprite=o.type===0?(arcadeArt.sandbags||sprites.sandbags):(arcadeArt.crate||sprites.crate);ctx.drawImage(sprite,x,ground()-h,w,h);
  }
 }
 function drawTicks(){
  for(const t of ticks){if(!t.alive)continue;const x=t.x-scroll,y=ground()-H*.065+Math.sin(phase*1.7+t.phase)*H*.006,w=H*.095,h=H*.078;
- if(x<-w||x>W+w)continue;ctx.imageSmoothingEnabled=false;ctx.drawImage(sprites.tick[Math.floor(phase*.9+t.phase)%4],x-w*.5,y-h*.5,w,h);
+ if(x<-w||x>W+w)continue;ctx.imageSmoothingEnabled=false;const sheet=arcadeArt.tick;const frame=Math.floor(phase*.9+t.phase)%4;if(sheet){const fw=sheet.width/4;ctx.drawImage(sheet,frame*fw,0,fw,sheet.height,x-w*.5,y-h*.5,w,h)}else ctx.drawImage(sprites.tick[frame],x-w*.5,y-h*.5,w,h);
  }
 }
 function drawBullets(){ctx.fillStyle='#ffdf75';for(const b of bullets){ctx.fillRect(b.x,b.y,Math.max(10,H*.022),Math.max(3,H*.006))}}
