@@ -904,6 +904,38 @@ const player = new THREE.Group();
 scene.add(player);
 player.position.set(0, 0, 3);
 
+// Soft contact shadow anchors the realistic soldier to the muddy road.
+// Canvas texture is shared and remains inexpensive on mobile GPUs.
+function createContactShadowTexture() {
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const gradient = ctx.createRadialGradient(64, 64, 4, 64, 64, 62);
+  gradient.addColorStop(0, 'rgba(15,13,11,0.60)');
+  gradient.addColorStop(0.34, 'rgba(18,15,12,0.38)');
+  gradient.addColorStop(0.72, 'rgba(18,15,12,0.10)');
+  gradient.addColorStop(1, 'rgba(18,15,12,0)');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, size, size);
+  return new THREE.CanvasTexture(canvas);
+}
+const soldierContactShadow = new THREE.Mesh(
+  new THREE.PlaneGeometry(2.15, 1.6),
+  new THREE.MeshBasicMaterial({
+    map: createContactShadowTexture(),
+    transparent: true,
+    opacity: 0.75,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -3
+  })
+);
+soldierContactShadow.rotation.x = -Math.PI / 2;
+soldierContactShadow.position.set(0, -0.036, 3);
+soldierContactShadow.renderOrder = 2;
+scene.add(soldierContactShadow);
+
 const soldierClock = new THREE.Clock();
 let soldierMixer = null;
 let soldierRun = null;
@@ -1421,6 +1453,11 @@ if (soldierMixer) {
     -5
   );
 
+  // Shadow remains on the road during jumps; fades with altitude.
+  soldierContactShadow.position.x = player.position.x;
+  soldierContactShadow.position.z = player.position.z;
+  soldierContactShadow.material.opacity = 0.75 / (1 + Math.max(0, player.position.y) * 1.3);
+  soldierContactShadow.scale.setScalar(1 + Math.max(0, player.position.y) * 0.18);
   skyDome.position.copy(camera.position);
   renderer.render(scene, camera);
 }
