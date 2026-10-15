@@ -7,6 +7,7 @@ loadSoldierFrames();
 import {prepareEnemyFrames,drawEnemyFrame} from './enemy-frames.js';
 prepareEnemyFrames();
 import './style.css';
+import {drawBattleAtmosphere,drawArcadeForeground,drawBossDeathCinematic} from './arcade-cinematics.js';
 // Side-scrolling 2D platform runner: fixed-size sprites, horizontal world, no depth projection.
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d',{alpha:false});
 const message=document.getElementById('message'),stats=document.getElementById('stats');
@@ -15,6 +16,8 @@ let scroll=0,vy=0,jumpY=0,duckTime=0,phase=0,invulnerable=0,shotCooldown=0,muzzl
 const movement={left:false,right:false};
 let facing=1;
 let bossVictoryAwarded=false;
+let bossDeathTime=-1;
+let bossDeathX=0;
 const VICTORY_RESTART_DELAY_MS=6000;
 let victoryRestartAt=0;
 let runCycle=0;
@@ -81,7 +84,7 @@ function drawParticles(){for(const p of particles){const size=Math.max(2,H*.007*
 function shoot(){if(!running){start()}if(paused||shotCooldown>0)return;shotCooldown=arcade.weapon==='heavy'?.09:.17;muzzleFlash=.07;recoil=1;bullets.push(...arcade.fire(playerX()+facing*H*.12,ground()-jumpY-H*(duckTime>0?.12:.21),facing,Math.max(550,W*.8)));if(bullets.length>120)bullets.splice(0,bullets.length-120)}
 function grenade(){if(!running){start()}if(!paused)arcade.throwGrenade(playerX()+facing*H*.08,ground()-jumpY-H*.2,facing,H)}
 function damage(){if(invulnerable>0||!running)return;health--;invulnerable=1.25;if(health<=0){running=false;fireHeld=false;movement.left=false;movement.right=false;message.textContent='PARTITA TERMINATA — TOCCA PER RIPROVARE';message.style.display='block'}}
-function defeatBoss(){if(bossVictoryAwarded)return;bossVictoryAwarded=true;arcade.boss.defeated=true;arcade.boss.active=false;score+=3000;const bossScreenX=arcade.boss.x-scroll;for(let i=0;i<5;i++){burst(bossScreenX+Math.cos(i*Math.PI*2/5)*H*.16,ground()-H*(.24+Math.sin(i*Math.PI*2/5)*.12))}for(let i=0;i<4;i++){shatterEnemy(bossScreenX+(i-1.5)*H*.11,ground()-H*(.18+(i%2)*.12))}arcade.screenShake=Math.max(arcade.screenShake,18);message.textContent='BOSS SCONFITTO — RAGGIUNGI IL TRAGUARDO';message.style.display='block';setTimeout(()=>{if(running&&!paused)message.style.display='none'},1800)}
+function defeatBoss(){if(bossVictoryAwarded)return;bossVictoryAwarded=true;bossDeathTime=0;bossDeathX=arcade.boss.x-scroll;arcade.boss.defeated=true;arcade.boss.active=false;score+=3000;const bossScreenX=arcade.boss.x-scroll;for(let i=0;i<5;i++){burst(bossScreenX+Math.cos(i*Math.PI*2/5)*H*.16,ground()-H*(.24+Math.sin(i*Math.PI*2/5)*.12))}for(let i=0;i<4;i++){shatterEnemy(bossScreenX+(i-1.5)*H*.11,ground()-H*(.18+(i%2)*.12))}arcade.screenShake=Math.max(arcade.screenShake,18);message.textContent='BOSS SCONFITTO — RAGGIUNGI IL TRAGUARDO';message.style.display='block';setTimeout(()=>{if(running&&!paused)message.style.display='none'},1800)}
 function explosion(x,y,radius){burst(x,y);for(const t of ticks){if(t.alive&&Math.abs(t.x-scroll-x)<radius){t.alive=false;score+=arcade.kill();shatterEnemy(t.x-scroll,ground()-H*.07)}}if(arcade.boss.active&&!arcade.boss.defeated&&Math.abs(arcade.boss.x-scroll-x)<radius+H*.2){arcade.boss.hp-=5;if(arcade.boss.hp<=0)defeatBoss()}}
 function hud(){document.getElementById('points').textContent='PUNTI: '+score;document.getElementById('hearts').innerHTML=Array.from({length:3},(_,i)=>'<span class="heart '+(i>=health?'heart-lost':'')+'">♥</span>').join('');stats.textContent='TRAGUARDO: '+Math.max(0,200-Math.floor(distance))+' m · '+arcade.weapon.toUpperCase()+' · BOMBE '+arcade.grenadeCount+(arcade.combo>1?' · COMBO x'+arcade.combo:'')+(arcade.boss.active&&!arcade.boss.defeated?' · BOSS '+Math.max(0,Math.ceil(arcade.boss.hp/arcade.boss.maxHp*100))+'%':'')}
 function update(dt){
@@ -91,7 +94,7 @@ function update(dt){
  const previousScroll=scroll;
  scroll=Math.max(0,Math.min(10000,scroll+advance));
  if(direction!==0){const oldStep=Math.floor(runCycle);runCycle+=Math.abs(scroll-previousScroll)/Math.max(1,H)*7;if(jumpY===0&&Math.floor(runCycle)!==oldStep&&Math.floor(runCycle)%2===0){dustPuffs.push({x:playerX()-facing*H*.045,y:ground()-H*.008,life:.34,size:H*.018,color:'#b8a47b'});if(dustPuffs.length>35)dustPuffs.shift()}}
- const cameraDelta=scroll-previousScroll;distance=scroll/50;phase+=dt*15;if(direction!==0)facing=direction;
+ const cameraDelta=scroll-previousScroll;distance=scroll/50;phase+=dt*15;if(bossDeathTime>=0){bossDeathTime+=dt;bossDeathX-=cameraDelta;if(bossDeathTime>2.6)bossDeathTime=-1;}if(direction!==0)facing=direction;
  const collected=arcade.collect(scroll+playerX(),jumpY,ground(),H);if(collected==='health')health=Math.min(3,health+1);
  arcade.step(dt,scroll,playerX(),ground(),H,damage,explosion,cameraDelta);
  if(!running){hud();return}
@@ -108,8 +111,8 @@ function update(dt){
  if(distance>=200&&arcade.boss.defeated){victoryRestartAt=performance.now()+VICTORY_RESTART_DELAY_MS;running=false;fireHeld=false;clearTouchMovement();movement.left=false;movement.right=false;shotCooldown=0;last=0;message.textContent='HAI SCONFITTO LE ZECCHE ROSSE!\nTOCCA PER RIPROVARE';message.classList.add('victory-message');message.style.display='block';document.getElementById('victory-credit').style.display='block'}hud();
 }
 function drawBossHealthBar(){if(!arcade.boss.active||arcade.boss.defeated)return;const width=Math.min(W*.52,360),height=Math.max(10,H*.023),x=(W-width)/2,y=Math.max(14,H*.075),ratio=Math.max(0,Math.min(1,arcade.boss.hp/arcade.boss.maxHp));ctx.save();ctx.fillStyle='#171b1b';ctx.fillRect(x-5,y-5,width+10,height+10);ctx.fillStyle='#483a32';ctx.fillRect(x,y,width,height);ctx.fillStyle=ratio>.35?'#d94d35':'#f0a33e';ctx.fillRect(x,y,width*ratio,height);ctx.fillStyle='#f7e8b9';ctx.fillRect(x,y,width*ratio,Math.max(2,height*.22));ctx.strokeStyle='#f4d7a0';ctx.lineWidth=2;ctx.strokeRect(x,y,width,height);ctx.restore()}
-function frame(t){if(!visible){last=t;requestAnimationFrame(frame);return}if(last&&t-last<1000/65){requestAnimationFrame(frame);return}const dt=Math.min(last?(t-last)/1000:0,.05);last=t;update(dt);ctx.save();if(arcade.screenShake>0){const shake=arcade.screenShake;ctx.translate(Math.sin(phase*3.1)*shake*.5,Math.cos(phase*4.3)*shake*.35)}background();drawTicks();arcade.draw(ctx,scroll,ground(),H,phase);drawDust();drawPlayer();drawBullets();drawBlastEffects();drawEnemyDebris();drawParticles();ctx.restore();drawBossHealthBar();requestAnimationFrame(frame)}
-function start(){if(victoryRestartAt&&performance.now()<victoryRestartAt)return;victoryRestartAt=0;document.getElementById('victory-credit').style.display='none';message.classList.remove('victory-message');running=true;paused=false;score=0;health=3;distance=0;scroll=0;facing=1;bossVictoryAwarded=false;arcade.reset();vy=0;jumpY=0;duckTime=0;phase=0;runCycle=0;invulnerable=0;shotCooldown=0;muzzleFlash=0;recoil=0;fireHeld=false;bullets.length=0;particles.length=0;blastEffects.length=0;dustPuffs.length=0;enemyDebris.length=0;ticks.forEach(t=>t.alive=true);clearTouchMovement();movement.left=false;movement.right=false;last=0;message.style.display='none';hud()}
+function frame(t){if(!visible){last=t;requestAnimationFrame(frame);return}if(last&&t-last<1000/65){requestAnimationFrame(frame);return}const dt=Math.min(last?(t-last)/1000:0,.05);last=t;update(dt);ctx.save();if(arcade.screenShake>0){const shake=arcade.screenShake;ctx.translate(Math.sin(phase*3.1)*shake*.5,Math.cos(phase*4.3)*shake*.35)}background();drawBattleAtmosphere(ctx,W,H,scroll,phase,ground());drawTicks();arcade.draw(ctx,scroll,ground(),H,phase);drawDust();drawPlayer();drawBullets();drawBlastEffects();drawEnemyDebris();drawParticles();drawArcadeForeground(ctx,W,H,scroll,ground(),phase);if(bossDeathTime>=0)drawBossDeathCinematic(ctx,W,H,ground(),bossDeathTime,bossDeathX);ctx.restore();drawBossHealthBar();requestAnimationFrame(frame)}
+function start(){if(victoryRestartAt&&performance.now()<victoryRestartAt)return;victoryRestartAt=0;document.getElementById('victory-credit').style.display='none';message.classList.remove('victory-message');running=true;paused=false;score=0;health=3;distance=0;scroll=0;facing=1;bossVictoryAwarded=false;bossDeathTime=-1;bossDeathX=0;arcade.reset();vy=0;jumpY=0;duckTime=0;phase=0;runCycle=0;invulnerable=0;shotCooldown=0;muzzleFlash=0;recoil=0;fireHeld=false;bullets.length=0;particles.length=0;blastEffects.length=0;dustPuffs.length=0;enemyDebris.length=0;ticks.forEach(t=>t.alive=true);clearTouchMovement();movement.left=false;movement.right=false;last=0;message.style.display='none';hud()}
 function jump(){if(!running){start()}if(!paused&&jumpY===0){vy=Math.sqrt(2*GRAVITY*H*.23);duckTime=0}}
 function duck(){if(!running){start()}if(!paused)duckTime=.7}
 function pause(){if(!running)return;paused=!paused;last=0;if(paused){fireHeld=false;clearTouchMovement();movement.left=false;movement.right=false}message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display=paused?'block':'none'}
