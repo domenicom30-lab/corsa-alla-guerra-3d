@@ -52,6 +52,7 @@ const checks = [
  ['Messaggio finale zecche rosse',()=>assert.ok(main.includes("message.textContent='HAI SCONFITTO LE ZECCHE ROSSE!\\nTOCCA PER RIPROVARE'"))],
  ['Credito finale discreto',()=>{for(const token of ['victory-credit','Grazie per aver giocato — firmato il pittore austriaco'])assert.ok(html.includes(token),token);assert.ok(main.includes("document.getElementById('victory-credit').style.display='block'"));assert.ok(main.includes("function start(){document.getElementById('victory-credit').style.display='none'"))}],
  ['Schermata vittoria leggibile',()=>{for(const token of ["message.classList.add('victory-message')","message.classList.remove('victory-message')"])assert.ok(main.includes(token),token)}],
+ ['Dettagli sprite soldato',()=>{const soldier=readFileSync('soldier-frames.js','utf8');for(const token of ['Hand-pixelled material detail','High-contrast pixel clusters','torsoY-14','frontKnee-3'])assert.ok(soldier.includes(token),token)}],
  ['Prestazioni mobile',()=>{assert.ok(main.includes('devicePixelRatio'));assert.ok(main.includes('requestAnimationFrame(frame)'))}],
  ['Build configurata',()=>assert.ok(pkg.scripts.build)]
 ];
