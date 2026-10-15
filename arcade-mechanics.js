@@ -15,6 +15,10 @@ export function createArcadeSystems(){
   if(boss.active&&!boss.defeated){
    // Heavy tracked vehicle: slow approach, braking distance and damped recoil.
    const targetWorldX=scroll+playerX,dx=targetWorldX-boss.x;
+   // Do not simulate pursuit or cannon fire when the player has left the boss encounter.
+   const encounterVisible=Math.abs(dx)<H*2.5;
+   if(!encounterVisible){boss.velocity=0;boss.cooldown=Math.max(boss.cooldown,0.5);}
+   if(encounterVisible){
    const stopDistance=H*.85,maxSpeed=H*.28;
    const desiredVelocity=Math.abs(dx)>stopDistance?Math.sign(dx)*maxSpeed:0;
    const acceleration=H*.55,braking=H*.9;
@@ -33,6 +37,7 @@ export function createArcadeSystems(){
     const dirX=Math.cos(boss.turretAngle),dirY=Math.sin(boss.turretAngle);
     enemyShots.push({x:boss.x-scroll+dirX*H*.43,y:turretY+dirY*H*.43,vx:dirX*H*.85,vy:dirY*H*.85,life:3});
     boss.velocity-=dirX*H*.045;
+   }
    }
   }
   for(let i=enemyShots.length-1;i>=0;i--){const b=enemyShots[i];b.x+=b.vx*dt-cameraDelta;b.y+=b.vy*dt;b.life-=dt;if(Math.abs(b.x-playerX)<H*.065&&Math.abs(b.y-(ground-H*.18))<H*.16){onDamage();enemyShots.splice(i,1)}else if(b.life<=0)enemyShots.splice(i,1)}
