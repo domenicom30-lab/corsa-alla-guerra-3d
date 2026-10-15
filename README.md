@@ -84,3 +84,14 @@ I test Node convalidano menu e impostazioni, progressione simulata di tutta la c
 Per evitare il conflitto tra firme debug generate in workflow GitHub diversi, l'app di prova usa un nuovo identificativo Android `com.corsaguerra.arcadeprova` e nome visibile **Corsa alla Guerra 2D Prova**. Può essere installata accanto a vecchie APK del progetto, senza disinstallarle e senza cancellarne i dati. Questa modifica evita solo conflitti di pacchetto/aggiornamento; non bypassa le protezioni Android/Samsung (Installazione app sconosciute e Blocco automatico). I nuovi aggiornamenti vanno pubblicati con una chiave di firma stabile prima di distribuzione continuativa.
 
 La build controlla l'identificativo all'interno del manifest Android e la firma APK mediante gli strumenti ufficiali Android `aapt` e `apksigner`, oltre ai test grafici e di campagna.
+
+## 2.1 — Grafica di prova revisionata dallo screenshot Samsung
+
+- **Cielo ripulito:** il primo scenario elimina i 2400 quadratini casuali e usa sfumature più soffuse, colline e foschia.
+- **Bosco rifatto:** alberi irregolari con rami, chiome sovrapposte e profondità di parallasse; il terreno ora continua dietro l'interfaccia.
+- **Torre illustrata:** nuova immagine trasparente 600×960 con assi, bulloni, scala, tetto e rinforzi, compresa e verificata nell'APK.
+- **Protagonista:** nuove pieghe del tessuto, cuciture, riflessi sul casco e finiture della mitragliatrice, su tutti gli atlas PNG esistenti.
+- **HUD mobile:** barre e controlli ridotti, titolo superfluo nascosto, punteggi abbreviati.
+- La 2.1 è distribuita con ID Android `com.corsaguerra.arcadeprova21` per evitare conflitti con i certificati debug delle precedenti versioni di prova; l'APK mostra versionName 2.1.0.
+
+Questo non equivale a risorse illustrate a mano dello stesso livello qualitativo di un titolo commerciale. Va confrontato con screenshot reali su Samsung, intervenendo poi su animazioni ed effetti ancora troppo stilizzati.

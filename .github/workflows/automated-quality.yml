@@ -33,6 +33,8 @@ jobs:
         run: python3 scripts/import_2d_assets.py
       - name: Build all mandatory raster atlases
         run: python3 scripts/build_raster_art.py
+      - name: Visual fidelity regression tests
+        run: python3 scripts/test_visual_v21.py
       - name: JavaScript syntax check
         run: node --check main.js
       - name: Gameplay and asset smoke tests

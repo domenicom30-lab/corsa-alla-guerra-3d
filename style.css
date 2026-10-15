@@ -82,3 +82,33 @@
  .arcade-menu button{min-height:37px;padding:5px 10px}}
 
 @media(orientation:portrait){#rotate{z-index:95;pointer-events:auto}}
+
+/* 2.1 readable-landscape HUD; keep center and upper sky clear. */
+.topbar{top:max(4px,env(safe-area-inset-top));height:clamp(36px,6.8vh,57px);gap:clamp(4px,.6vw,9px)}
+.hud-pill{height:92%;min-width:0;border-width:1px;font:900 clamp(10px,1.45vw,18px) system-ui,sans-serif;letter-spacing:0;
+ border-radius:7px;text-shadow:0 1px 2px #000d}
+.identity{flex:.50;min-width:90px;padding-left:clamp(23px,3.7vw,48px)}
+.portrait{height:102%;border-width:1px}
+.lives{flex:.40;gap:2px}.heart{font-size:clamp(14px,2.3vw,27px)}
+.points{flex:1.35;padding-left:clamp(7px,1vw,15px);font-size:clamp(10px,1.45vw,19px)}
+.finish{flex:1.4;padding-left:clamp(30px,3.5vw,48px)}
+#stats{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;font:900 clamp(10px,1.3vw,17px) system-ui,sans-serif}
+.pause-button{width:clamp(37px,4.3vw,60px);border-radius:9px}
+.game-title{display:none}
+#controls{bottom:max(1.8%,env(safe-area-inset-bottom));left:1.1%;right:1.1%}
+.control-group{gap:clamp(5px,1vw,15px)}
+.control-group button{width:clamp(46px,6.5vw,87px);height:clamp(46px,6.5vw,87px);
+ background:linear-gradient(#25352a80,#131d1e80);border:1.5px solid #c2bd9ea6;
+ box-shadow:0 2px 5px #0008,inset 0 2px 0 #fff2}
+.control-group .shoot-button{background:linear-gradient(#99503499,#432622ad)}
+.control-group .grenade-button{background:linear-gradient(#62755499,#30412aab)}
+.control-group button svg{width:54%;height:54%;opacity:.9}
+.control-group button small{font-size:clamp(8px,.83vw,11px);padding:2px 1px;bottom:-15%;background:#10191abd;border-width:1px;letter-spacing:.01em}
+#vehicle-toggle{opacity:.85;transform:scale(.85);transform-origin:right center}
+#aim-up{opacity:.85;transform:scale(.85);transform-origin:right center}
+@media(max-height:430px){
+ .topbar{height:clamp(32px,7vh,42px)}
+ #controls{bottom:2%}
+ .control-group button{width:clamp(44px,7vw,66px);height:clamp(44px,7vw,66px)}
+ .control-group button small{font-size:8px}
+}

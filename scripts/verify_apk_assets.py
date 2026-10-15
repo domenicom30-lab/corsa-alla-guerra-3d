@@ -25,6 +25,11 @@ with zipfile.ZipFile(apk) as z:
         if header[:8]!=b'\x89PNG\r\n\x1a\n':raise SystemExit(f'Sprite APK non PNG: {name}')
         actual=struct.unpack('>II',header[16:24])
         if actual!=(w,h):raise SystemExit(f'Sprite APK dimensioni errate: {name}: {actual}')
+    tower=[m for m in members if m.endswith('/assets/scenery/watchtower.png')]
+    if len(tower)!=1:raise SystemExit('APK manca la nuova torre di guardia illustrata')
+    with z.open(tower[0]) as f:head=f.read(24)
+    if head[:8]!=b'\x89PNG\r\n\x1a\n' or struct.unpack('>II',head[16:24])!=(600,960):
+        raise SystemExit('Asset torre di guardia APK non valido')
     for name in ('forest-background.webp','soldier-back.png','sandbags.png','barrier.png','crate.png','reference-scene.webp'):
         suffix='/assets/2d/'+name
         if not any(entry.endswith(suffix) for entry in members):

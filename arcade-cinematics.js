@@ -16,14 +16,14 @@ export function drawBattleAtmosphere(ctx,W,H,scroll,phase,ground){
   }
  }
  ctx.globalAlpha=1;
- // Fine atmospheric grit. World-anchored, so it never flickers between frames.
- for(let i=0;i<100;i++){
+ // Restrained distant haze: avoid bright square noise that obscures soldiers.
+ for(let i=0;i<13;i++){
   const px=((rand(i+311)*W*2-scroll*.15)%(W*2)+W*2)%(W*2)-W*.5;
   const py=H*(.19+rand(i+718)*.54);
   if(px<0||px>W)continue;
-  ctx.globalAlpha=.10+rand(i+20)*.14;
+  ctx.globalAlpha=.025+rand(i+20)*.025;
   ctx.fillStyle=i%3?'#f3e4bd':'#233b38';
-  const size=Math.max(1,Math.round(H*.0015));
+  const size=Math.max(.7,H*.0011);
   ctx.fillRect(Math.round(px),Math.round(py),size,size);
  }
  ctx.restore();

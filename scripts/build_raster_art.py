@@ -111,6 +111,62 @@ def hero(im,pose,n):
     # Non-identical authored frames with lighting variation / dirt speckles.
     speckle(im,1000+sum(ord(k) for k in pose)*11+n,60)
 
+
+def hero_finishing(im,pose,n):
+    """Second-pass cloth shading, engraved helmet, joint folds and rifle details."""
+    d=ImageDraw.Draw(im,"RGBA")
+    t=n*math.pi/4
+    stride=round(math.sin(t)*22) if pose in ("run","runFire") else 0
+    bounce=round(abs(math.sin(t))*5) if pose in ("run","runFire") else 0
+    y=bounce+(25 if pose=="duck" else 0)+(-17 if pose=="jump" else 0)+(6 if pose=="hurt" else 0)
+    rng=random.Random(4049+n*17+len(pose)*13)
+    d.arc((80,35+y,131,69+y),186,327,fill=(176,190,136,255),width=3)
+    d.line([(83,58+y),(110,55+y),(134,58+y)],fill=(28,38,32,255),width=3)
+    d.line([(85,61+y),(104,63+y)],fill=(211,188,120,205),width=2)
+    for k in range(7):
+        xx=rng.randint(92,127);yy=y+rng.randint(39,56)
+        d.line([(xx,yy),(xx+rng.randint(-3,4),yy+1)],fill=(202,191,140,155),width=2)
+    d.polygon([(120,67+y),(126,70+y),(130,78+y),(121,80+y)],fill=(120,78,54,210))
+    d.line([(123,79+y),(111,87+y)],fill=(111,69,51,205),width=2)
+    d.line([(101,78+y),(109,80+y)],fill=(236,186,137,140),width=2)
+    d.arc((66,75+y,102,114+y),179,292,fill=(193,204,140,190),width=3)
+    d.line([(73,103+y),(67,110+y),(77,120+y)],fill=(36,50,42,255),width=3)
+    d.line([(121,94+y),(133,97+y),(140,108+y)],fill=(151,171,115,255),width=3)
+    for k in range(5):
+        yy=98+y+k*7
+        d.line([(82,yy),(91+(k%3)*4,yy+3)],fill=(41,60,45,165),width=2)
+    d.line([(82,76+y),(116,134+y)],fill=(54,60,43,220),width=3)
+    d.line([(84,76+y),(118,134+y)],fill=(219,195,137,155),width=1)
+    for k in range(8):
+        xx=85+k*4;yy=81+y+k*7
+        d.rectangle((xx,yy,xx+2,yy+3),fill=(235,222,171,180))
+    for k in range(3):
+        xx=79+k*16
+        d.rectangle((xx,139+y,xx+12,142+y),fill=(130,149,112,255))
+        d.line([(xx+2,146+y),(xx+9,146+y)],fill=(204,175,119,255),width=2)
+    for k in range(70):
+        xx=rng.randint(72,133);yy=rng.randint(88,135)+y
+        if 0<=yy<im.height and im.getpixel((xx,yy))[-1]>200:
+            d.point((xx,yy),fill=(208,201,142,130) if k%4==0 else (17,33,31,112))
+    for bx in (59-stride,130+stride):
+        d.line([(bx+7,177+y),(bx+22,181+y)],fill=(16,31,28,255),width=3)
+        d.line([(bx+8,188+y),(bx+27,188+y)],fill=(199,173,118,210),width=2)
+        for k in range(3):
+            yy=152+y+k*8
+            d.line([(bx+5,yy),(bx+16,yy+3)],fill=(177,181,129,156),width=2)
+    recoil=(n%2)*6 if pose in ("fire","runFire") else 0
+    aim_y=96+y+(-10 if pose=="jump" else 0)
+    d.line([(156-recoil,aim_y-7),(187-recoil,aim_y-7)],fill=(16,23,24,255),width=2)
+    d.line([(171-recoil,aim_y-5),(191-recoil,aim_y-5)],fill=(204,209,186,170),width=1)
+    for k in range(4):
+        xx=152-recoil+k*8
+        d.line([(xx,aim_y+3),(xx+3,aim_y+5)],fill=(25,32,30,220),width=1)
+    d.ellipse((157-recoil,aim_y-5,162-recoil,aim_y),fill=(177,177,155,255))
+    if pose in ("fire","runFire") and n%2==0:
+        for j in range(6):
+            xx=203-recoil+j*4
+            d.line([(xx,aim_y-4-j%2*3),(xx+4,aim_y-6-j%3)],fill=(255,219,126,205),width=2)
+
 def enemy(im,kind,n):
     d=ImageDraw.Draw(im);stride=int(math.sin(n*math.pi/4)*19);bob=abs(int(math.sin(n*math.pi/4)*3))
     coat,shine,hat={
@@ -246,9 +302,170 @@ def fx(im,kind,n,count):
             rad=12+rng.randrange(3,15)
             ell(d,(px-rad,py-rad,px+rad,py+rad),(79+i*2,81+i,75+i,160-int(120*progress)),None)
 
+
+def paint_forest_v21(im, layer):
+    """Hand-layered woodland: muted valley ridges, branching trunks, soft organic crowns.
+    No stochastic rectangular speckles in the sky.
+    """
+    d=ImageDraw.Draw(im,"RGBA")
+    W,H=im.size
+    rng=random.Random(2149 if layer=="far" else 9713)
+    if layer=="far":
+        palette_top=(26,44,56);palette_horizon=(133,130,102)
+        for y in range(H):
+            f=min(1,y/(H*.95))
+            f=f*f*(3-2*f)
+            color=tuple(int(palette_top[k]*(1-f)+palette_horizon[k]*f) for k in range(3))
+            d.line((0,y,W,y),fill=color+(255,))
+        # Smoky light at dawn with smooth translucent concentric rings.
+        for ring in range(36,0,-1):
+            alpha=1+int((36-ring)*.20)
+            r=80+ring*4
+            d.ellipse((1040-r,155-r,1040+r,155+r),fill=(225,171,104,alpha))
+        d.ellipse((992,108,1100,216),fill=(204,170,116,78))
+        # Natural overlapping foothills, irregular outlines instead of triangles.
+        for depth in range(3):
+            color=[(71,96,89,240),(54,83,77,248),(40,70,67,255)][depth]
+            base=355+depth*53
+            coords=[(-30,H),(W+30,H)]
+            ridge=[]
+            for x in range(-50,W+80,20):
+                y=base+math.sin(x*.0054+depth*2.2)*34+math.sin(x*.0137+depth)*13
+                ridge.append((x,y))
+            d.polygon([(-20,H)]+ridge+[(W+20,H)],fill=color)
+        # Far timberline: grouped, irregular crowns with thick branches.
+        for i in range(35):
+            x=int(i*47-30+rng.uniform(-19,16))
+            crown_top=rng.randint(223,354)
+            h=H-crown_top
+            d.line([(x,H),(x,crown_top+55)],fill=(42,69,64,255),width=rng.randint(9,17))
+            for j in range(5):
+                cy=crown_top+j*int(h*.10)
+                spread=(22+j*8)*rng.uniform(.8,1.2)
+                col=(46+j*2,78+j*2,69+j,230)
+                d.ellipse((x-spread,cy-16,x+spread,cy+30),fill=col)
+        # Haze across the distant tree line, subtle horizontal blending.
+        for j in range(90):
+            y=295+j*2
+            d.line((0,y,W,y),fill=(167,152,121,max(0,int(4-(j%15)*.15))),width=1)
+    else:
+        # Woods are grounded behind player, with open sightlines around the soldier.
+        for i in range(19):
+            x=int(i*82-56+rng.randint(-25,25))
+            height=rng.randrange(155,345)
+            trunk_bottom=H+12
+            crown_y=H-height
+            trunk_width=rng.randrange(13,26)
+            palette=rng.choice([
+                ((30,56,46,255),(46,84,61,255),(71,107,72,255)),
+                ((31,62,52,255),(48,78,61,255),(78,111,75,255)),
+                ((34,60,51,255),(44,76,61,255),(91,114,72,255))
+            ])
+            shadow,mid,light=palette
+            # Branched trunk (no matching triangle outlines).
+            d.polygon([(x-trunk_width//2,H),(x+trunk_width//2,H),
+                       (x+trunk_width//3,crown_y+34),(x-trunk_width//4,crown_y+25)],fill=(51,54,41,255))
+            d.line([(x-4,H),(x-5,crown_y+45)],fill=(96,92,67,160),width=3)
+            for b in range(6):
+                y=crown_y+38+b*int(height*.105)
+                side=-1 if b%2==0 else 1
+                tipx=x+side*rng.randrange(40,85)
+                d.line([(x,y+25),(tipx,y-rng.randrange(12,37))],fill=(53,59,42,255),width=rng.randrange(5,10))
+            # Natural lumpy leaf clusters in layers, no evenly spaced triangular shapes.
+            for k in range(34):
+                t=k/33
+                cy=crown_y+int(height*.12)+rng.randint(-12,12)+t*height*.63
+                spread=22+math.sin(math.pi*t)*45+(t*12)
+                cx=x+rng.gauss(0,spread*.45)
+                radius=rng.randrange(17,35)*(0.7+0.55*t)
+                d.ellipse((cx-radius,cy-radius*.70,cx+radius,cy+radius*.70),
+                          fill=mid if (k+i)%4 else shadow)
+                if k%3==0:
+                    d.arc((cx-radius,cy-radius*.70,cx+radius,cy+radius*.70),200,320,fill=(122,145,102,95),width=2)
+            # Specular leaf clusters stay near crown highlights.
+            for k in range(12):
+                cx=x+rng.uniform(-36,41);cy=crown_y+rng.randint(21,max(22,int(height*.5)))
+                rad=rng.randint(3,7)
+                d.ellipse((cx-rad,cy-rad*.5,cx+rad,cy+rad*.5),fill=(121,153,103,100))
+        # Roots and fallen branches add near ground texture, not sky noise.
+        for k in range(95):
+            x=rng.randrange(W);y=rng.randrange(450,540)
+            col=rng.choice([(72,72,51,125),(113,105,68,88),(26,45,37,140)])
+            d.line([(x,y),(x+rng.randint(-8,17),y+rng.randint(-2,3))],fill=col,width=rng.randint(1,3))
+
+
+def draw_original_watchtower(im):
+    """Detailed illustrated timber guard tower on a transparent layer."""
+    d=ImageDraw.Draw(im,"RGBA");W,H=im.size
+    rng=random.Random(95004)
+    # Slight ground cast shadow and diagonal steel supports.
+    d.ellipse((105,850,520,948),fill=(13,20,17,70))
+    for x in (167,433):
+        d.polygon([(x-24,282),(x+26,282),(x+30,902),(x-26,904)],fill=(49,43,33,255))
+        d.line([(x-18,295),(x-20,877)],fill=(132,98,62,255),width=10)
+        d.line([(x+12,300),(x+15,884)],fill=(28,26,23,255),width=9)
+        for y in range(320,900,41):
+            d.line([(x-20,y),(x+17,y+6)],fill=(161,132,88,110),width=2)
+    # Reinforcing X-braces at believable heights.
+    for y in [360,515,670,805]:
+        for a,b in [((172,y),(431,y+141)),((425,y),(165,y+141))]:
+            d.line([a,b],fill=(32,29,23,255),width=22)
+            d.line([(a[0]+4,a[1]-3),(b[0]+4,b[1]-3)],fill=(113,83,48,255),width=14)
+            d.line([(a[0]+3,a[1]-6),(b[0]+3,b[1]-6)],fill=(181,137,87,105),width=3)
+    # Raised floor, planks, joists and metal bolt patterns.
+    d.polygon([(103,292),(492,292),(504,335),(98,337)],fill=(50,46,35,255))
+    d.polygon([(105,297),(497,297),(490,319),(105,320)],fill=(114,90,58,255))
+    for x in range(125,487,36):
+        d.line([(x,301),(x+3,319)],fill=(42,41,31,255),width=3)
+    # Ranger guard room with irregular aged clapboard walls.
+    d.polygon([(133,128),(462,126),(465,295),(128,298)],fill=(75,70,56,255))
+    d.polygon([(140,132),(184,127),(179,296),(141,297)],fill=(131,107,72,255))
+    for y in range(152,291,20):
+        d.line([(137,y),(455,y+3)],fill=(38,39,34,255),width=4)
+        d.line([(139,y-3),(453,y)],fill=(156,127,80,145),width=2)
+    for x in (212,305,398):
+        d.polygon([(x,156),(x+48,156),(x+48,249),(x,251)],fill=(18,28,28,255))
+        d.line([(x+7,167),(x+7,246)],fill=(166,129,81,175),width=3)
+        d.rectangle((x+6,227,x+44,233),fill=(44,55,43,255))
+    # Guardrail and vertical support brackets.
+    for x in (111,188,283,377,480):
+        d.rectangle((x,246,x+14,321),fill=(42,39,32,255))
+        d.rectangle((x+3,254,x+7,306),fill=(161,120,74,255))
+    d.polygon([(110,249),(483,249),(493,264),(105,265)],fill=(117,88,57,255))
+    d.line([(111,252),(482,252)],fill=(198,158,101,255),width=7)
+    # Roof is asymmetrical and built from angled shingles.
+    d.polygon([(82,129),(160,61),(438,57),(510,135)],fill=(34,40,35,255))
+    d.polygon([(105,126),(171,71),(430,69),(485,125)],fill=(81,80,61,255))
+    for y in (81,99,116):
+        d.line([(145-(y-80)*.4,y),(451+(y-80)*.4,y)],fill=(161,139,101,135),width=3)
+    d.line([(90,135),(502,135)],fill=(191,150,97,255),width=13)
+    d.line([(97,140),(497,140)],fill=(54,50,41,255),width=7)
+    # Warning pennant and cable.
+    d.line([(460,63),(461,6)],fill=(39,46,39,255),width=7)
+    d.polygon([(461,7),(553,21),(468,54)],fill=(151,57,42,255))
+    d.line([(461,9),(544,23)],fill=(219,159,89,255),width=4)
+    # Ladder along one corner, rung wear.
+    d.line([(110,335),(106,918)],fill=(50,48,40,255),width=13)
+    d.line([(148,335),(147,916)],fill=(50,48,40,255),width=13)
+    for y in range(365,899,38):
+        d.line([(110,y),(146,y+2)],fill=(184,141,83,255),width=7)
+        d.line([(112,y-1),(143,y)],fill=(229,186,113,155),width=2)
+    # Distinct timber knots, highlights, bolts and chipped paint.
+    for i in range(130):
+        x=rng.randint(135,467);y=rng.randint(151,869)
+        color=(214,166,98,95) if i%2==0 else (22,28,25,160)
+        d.line([(x,y),(x+rng.randint(-4,5),y+rng.randint(3,15))],fill=color,width=rng.randint(1,3))
+    for x in (165,433):
+        for y in (385,543,705,838):
+            d.ellipse((x-5,y-4,x+5,y+6),fill=(24,25,24,255))
+            d.ellipse((x-2,y-3,x+2,y+1),fill=(201,185,137,255))
+
 def bg(im,kind,layer):
     d=ImageDraw.Draw(im,"RGBA"); W,H=im.size
     rng=random.Random(101+len(kind)*111+(31 if layer=='near' else 0))
+    if kind=='forest':
+        paint_forest_v21(im,layer)
+        return
     themes={
       "forest":((34,55,70),(195,151,96)),
       "village":((48,61,76),(171,126,98)),
@@ -359,6 +576,8 @@ def write_atlas(rel,frames,fw,fh,fn,texture=True):
     for n in range(frames):
         im=Image.new("RGBA",(fw,fh),(0,0,0,0))
         fn(im,n)
+        if rel.startswith('hero/'):
+            hero_finishing(im,rel.split('/')[-1].replace('.png',''),n)
         if texture and n%2==0:
             speckle(im,775+n*8,20)
         sheet.paste(im,(fw*n,0),im if False else None)
@@ -391,6 +610,13 @@ def build():
             bg(im,scene,layer)
             path=PUBLIC/rel;path.parent.mkdir(parents=True,exist_ok=True)
             im.save(path,"PNG",optimize=True,compress_level=6)
+    # Original standalone forest guard tower, used directly in runtime background.
+    scenery=ROOT/"public/assets/scenery/watchtower.png"
+    scenery.parent.mkdir(parents=True,exist_ok=True)
+    tower=Image.new("RGBA",(600,960),(0,0,0,0))
+    draw_original_watchtower(tower)
+    tower.save(scenery,"PNG",optimize=True,compress_level=6)
+    print(f"Built authored watchtower scenery: {scenery.stat().st_size} bytes.")
     (PUBLIC/"manifest.json").write_text(json.dumps(MANIFEST,indent=2)+"\n",encoding="utf-8")
     validate(expected)
     print(f"Built {len(expected)} original mandatory raster sprite atlases and layers.")

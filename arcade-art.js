@@ -3,7 +3,7 @@ export const arcadeArt={};
 const files={
  soldier:'soldier-run.svg',soldier_idle:'soldier-idle.svg',soldier_run:'soldier-run.svg',
  soldier_jump:'soldier-jump.svg',soldier_fire:'soldier-fire.svg',soldier_duck:'soldier-duck.svg',
- tick:'red-tick.svg',crate:'../2d/crate.png',sandbags:'../2d/sandbags.png',tower:'watchtower.png',
+ tick:'red-tick.svg',crate:'../2d/crate.png',sandbags:'../2d/sandbags.png',tower:'../scenery/watchtower.png',
  sky:'sky.svg',mountains:'mountains.svg',forest:'forest.svg',foreground:'foreground.svg',
  forestPhoto:'../2d/forest-background.webp'
 };

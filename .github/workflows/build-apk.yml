@@ -50,6 +50,9 @@ jobs:
       - name: Render mandatory PNG sprite sheets and backgrounds
         run: python3 scripts/build_raster_art.py
 
+      - name: Visual fidelity regression tests
+        run: python3 scripts/test_visual_v21.py
+
       - name: Validate pure 2D gameplay
         run: npm run check
 
@@ -70,6 +73,11 @@ jobs:
 
       - name: Install final branded Android icon
         run: python3 scripts/brand_android.py
+
+      - name: Set Android 2.1 preview version
+        run: |
+          sed -i 's/versionCode 1/versionCode 21/; s/versionName "1.0"/versionName "2.1.0"/' android/app/build.gradle
+          grep -E 'versionCode|versionName' android/app/build.gradle
 
       - name: Setup Gradle cache
         uses: gradle/actions/setup-gradle@v4
@@ -109,13 +117,14 @@ jobs:
           TOOLS=$(find "$SDK/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
           "$TOOLS/apksigner" verify --verbose "$APK"
           "$TOOLS/aapt" dump badging "$APK" | tee /tmp/cag-apk-badging.txt
-          grep -q "name='com.corsaguerra.arcadeprova'" /tmp/cag-apk-badging.txt
-          echo "PASS: brand-new Android application ID, signed installable APK."
+          grep -q "name='com.corsaguerra.arcadeprova21'" /tmp/cag-apk-badging.txt
+          grep -q "versionName='2.1.0'" /tmp/cag-apk-badging.txt
+          echo "PASS: signed 2.1.0 installation package."
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Corsa-alla-Guerra-2D-Installazione-APK
+          name: Corsa-alla-Guerra-2D-v2.1-Grafica-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30

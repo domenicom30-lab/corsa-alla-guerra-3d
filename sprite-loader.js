@@ -57,6 +57,21 @@ export function drawRasterBackground(ctx,stage,W,H,scroll,ground){
   for(let x=x0-imgWidth;x<W+imgWidth;x+=imgWidth)ctx.drawImage(img,x,0,imgWidth,ground+H*.08)};
  ctx.save();ctx.imageSmoothingEnabled=false;
  tile(far,.10);tile(near,.32);
+ ctx.restore();
+ // Grounded pixel-art forest floor; drawn after parallax to avoid a black empty band.
+ ctx.save();ctx.imageSmoothingEnabled=false;
+ ctx.fillStyle=name==='forest'?'#393b2e':name==='village'?'#51473a':name==='industrial'?'#404340':'#444841';
+ ctx.fillRect(0,ground,W,Math.max(0,H-ground));
+ ctx.fillStyle=name==='forest'?'#718269':'#979383';ctx.fillRect(0,ground,W,H*.010);
+ ctx.fillStyle='#262e29';ctx.fillRect(0,ground+H*.012,W,H*.024);
+ const stride=H*.073,start=Math.floor(scroll/stride);
+ for(let i=-1;i<Math.ceil(W/stride)+2;i++){
+   const world=i+start,px=i*stride-scroll%stride,n=Math.abs(Math.sin(world*13.391)*9983)%1;
+   const depth=H*(.032+n*.19);
+   ctx.fillStyle=world%3===0?'#897b5f':'#252c28';
+   ctx.fillRect(px,ground+depth,H*(.008+n*.01),H*(.003+n*.005));
+   if(world%4===0){ctx.fillStyle='#647b52';ctx.fillRect(px+H*.016,ground-H*.012,H*.006,H*.017)}
+ }
  ctx.restore();return true;
 }
 export function disposeSpritePacks(){images.clear();state='idle';failure=null;loadPromise=null}
