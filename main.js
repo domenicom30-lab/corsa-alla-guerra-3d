@@ -3,7 +3,9 @@ import './style.css';
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d',{alpha:false});
 const message=document.getElementById('message'),stats=document.getElementById('stats');
 let W=0,H=0,dpr=1,last=0,running=false,paused=false,score=0,health=3,distance=0;
-let scroll=0,vy=0,jumpY=0,duckTime=0,phase=0,invulnerable=0;
+let scroll=0,vy=0,jumpY=0,duckTime=0,phase=0,invulnerable=0,shotCooldown=0,muzzleFlash=0,fireHeld=false;
+const bullets=[];
+const ticks=Array.from({length:25},(_,i)=>({x:1050+i*520,y:0,alive:true,phase:i*.7}));
 const SPEED=250,GRAVITY=1900;
 const paths={forest:'./assets/2d/forest-background.webp',sandbags:'./assets/2d/sandbags.png'};
 const images={};
@@ -36,6 +38,11 @@ function drawPlayer(){
  ctx.fillStyle='#a18d73';ctx.fillRect(width*.03,-height*.95,width*.25,height*.18);
  ctx.fillStyle='#28362d';ctx.beginPath();ctx.ellipse(width*.09,-height*.97,width*.32,height*.12,0,Math.PI,Math.PI*2);ctx.fill();
  ctx.fillStyle='#202a24';ctx.fillRect(-width*.33,-height*.58,width*.18,height*.22);
+ // Side-view rifle held in front of the soldier.
+ ctx.fillStyle='#292b27';ctx.fillRect(width*.22,-height*.64,width*.78,height*.075);
+ ctx.fillStyle='#a08355';ctx.fillRect(width*.18,-height*.60,width*.28,height*.11);
+ ctx.fillStyle='#181e1c';ctx.fillRect(width*.94,-height*.655,width*.18,height*.045);
+ if(muzzleFlash>0){ctx.fillStyle='#ffd56d';ctx.beginPath();ctx.moveTo(width*1.15,-height*.62);ctx.lineTo(width*1.46,-height*.75);ctx.lineTo(width*1.39,-height*.62);ctx.lineTo(width*1.5,-height*.53);ctx.closePath();ctx.fill()}
  ctx.restore();
 }
 function drawObstacles(){
@@ -47,23 +54,38 @@ function drawObstacles(){
  }
  }
 }
+function drawTicks(){
+ for(const t of ticks){if(!t.alive)continue;const x=t.x-scroll,y=ground()-H*.055+Math.sin(phase*1.7+t.phase)*H*.006,r=H*.045;if(x<-r||x>W+r)continue;
+ ctx.save();ctx.translate(x,y);ctx.strokeStyle='#3d1114';ctx.lineWidth=Math.max(2,r*.13);ctx.lineCap='round';
+ for(let i=0;i<4;i++){const yy=(i-1.5)*r*.32;ctx.beginPath();ctx.moveTo(-r*.4,yy);ctx.lineTo(-r*.85,yy-r*.3);ctx.moveTo(r*.4,yy);ctx.lineTo(r*.85,yy-r*.3);ctx.stroke()}
+ ctx.fillStyle='#9f151c';ctx.beginPath();ctx.ellipse(0,0,r*.52,r*.7,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#dc3633';ctx.beginPath();ctx.ellipse(-r*.14,-r*.19,r*.23,r*.33,-.4,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#f7c9a7';ctx.beginPath();ctx.arc(-r*.18,-r*.43,r*.09,0,Math.PI*2);ctx.arc(r*.18,-r*.43,r*.09,0,Math.PI*2);ctx.fill();ctx.restore();
+ }
+}
+function drawBullets(){ctx.fillStyle='#ffdf75';for(const b of bullets){ctx.fillRect(b.x,b.y,Math.max(10,H*.022),Math.max(3,H*.006))}}
+function shoot(){if(!running){start();return}if(paused||shotCooldown>0)return;shotCooldown=.17;muzzleFlash=.07;bullets.push({x:playerX()+H*.12,y:ground()-jumpY-H*(duckTime>0?.12:.21),speed:Math.max(550,W*.8)})}
 function hud(){document.getElementById('points').textContent='PUNTI: '+score;document.getElementById('hearts').innerHTML=Array.from({length:3},(_,i)=>'<span class="heart '+(i>=health?'heart-lost':'')+'">♥</span>').join('');stats.textContent='TRAGUARDO: '+Math.max(0,200-Math.floor(distance))+' m'}
 function update(dt){
  if(!running||paused)return;
  scroll+=SPEED*dt;distance+=dt*5;phase+=dt*15;
+ shotCooldown=Math.max(0,shotCooldown-dt);muzzleFlash=Math.max(0,muzzleFlash-dt);if(fireHeld&&shotCooldown===0)shoot();
+ for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];b.x+=b.speed*dt;let hit=false;for(const t of ticks){const x=t.x-scroll;if(t.alive&&Math.abs(b.x-x)<H*.055&&Math.abs(b.y-(ground()-H*.055))<H*.095){t.alive=false;score+=100;hit=true;break}}if(hit||b.x>W+40)bullets.splice(i,1)}
+ for(const t of ticks){const x=t.x-scroll;if(t.alive&&invulnerable===0&&Math.abs(x-playerX())<H*.075&&jumpY<H*.09){t.alive=false;health--;invulnerable=1.2;if(health<=0){running=false;message.textContent='PARTITA TERMINATA — TOCCA PER RIPROVARE';message.style.display='block'}}}
  if(duckTime>0)duckTime=Math.max(0,duckTime-dt);
  if(invulnerable>0)invulnerable=Math.max(0,invulnerable-dt);
  if(jumpY>0||vy>0){jumpY+=vy*dt;vy-=GRAVITY*dt;if(jumpY<=0){jumpY=0;vy=0}}
  for(const o of obstacles){const x=o.x-scroll,w=H*.13;if(!o.hit&&x<playerX()+H*.05&&x+w>playerX()-H*.05){o.hit=true;if(jumpY<H*.12&&invulnerable===0){health--;invulnerable=1.1;if(health<=0){running=false;message.textContent='PARTITA TERMINATA — TOCCA PER RIPROVARE';message.style.display='block'}}else score+=20}}
  if(distance>=200){running=false;message.textContent='MISSIONE COMPLETATA — TOCCA PER RIPROVARE';message.style.display='block'}hud();
 }
-function frame(t){const dt=Math.min((t-last)/1000||0,.05);last=t;update(dt);background();drawObstacles();drawPlayer();requestAnimationFrame(frame)}
-function start(){running=true;paused=false;score=0;health=3;distance=0;scroll=0;vy=0;jumpY=0;duckTime=0;phase=0;invulnerable=0;obstacles.forEach(o=>o.hit=false);message.style.display='none';hud()}
+function frame(t){const dt=Math.min((t-last)/1000||0,.05);last=t;update(dt);background();drawObstacles();drawTicks();drawPlayer();drawBullets();requestAnimationFrame(frame)}
+function start(){running=true;paused=false;score=0;health=3;distance=0;scroll=0;vy=0;jumpY=0;duckTime=0;phase=0;invulnerable=0;shotCooldown=0;muzzleFlash=0;fireHeld=false;bullets.length=0;ticks.forEach(t=>t.alive=true);obstacles.forEach(o=>o.hit=false);message.style.display='none';hud()}
 function jump(){if(!running){start();return}if(!paused&&jumpY===0){vy=H*1.13;duckTime=0}}
 function duck(){if(!running){start();return}if(!paused)duckTime=.7}
 function move(direction){if(!running){start();return}if(!paused){scroll=Math.max(0,scroll+direction*H*.17);distance=Math.max(0,distance+direction*.4)}}
 function pause(){if(!running)return;paused=!paused;message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display=paused?'block':'none'}
 for(const [id,fn] of [['left',()=>move(-1)],['right',()=>move(1)],['jump',jump],['duck',duck],['pause',pause]])document.getElementById(id).addEventListener('pointerdown',e=>{e.preventDefault();fn()});
+const fireButton=document.getElementById('shoot');fireButton.addEventListener('pointerdown',e=>{e.preventDefault();fireHeld=true;shoot()});for(const event of ['pointerup','pointercancel','pointerleave'])fireButton.addEventListener(event,()=>fireHeld=false);
 message.addEventListener('pointerdown',()=>{if(paused)pause();else start()});canvas.addEventListener('pointerdown',()=>{if(!running)start()});
-addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='a')move(-1);if(e.key==='ArrowRight'||e.key==='d')move(1);if(e.key==='ArrowUp'||e.key===' ')jump();if(e.key==='ArrowDown')duck();if(e.key==='Escape')pause()});
+addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='a')move(-1);if(e.key==='ArrowRight'||e.key==='d')move(1);if(e.key==='ArrowUp'||e.key===' ')jump();if(e.key==='ArrowDown')duck();if(e.key==='Escape')pause();if(e.key==='f'||e.key==='Control')shoot()});
 requestAnimationFrame(frame);
