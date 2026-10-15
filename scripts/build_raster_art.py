@@ -345,6 +345,14 @@ def ui(im,kind,n):
         d.rounded_rectangle((12,24,w-14,h-24),radius=22,fill=(22,34,36,220),outline="#eed29a",width=6)
         for x in range(33,w-30,26):
             rect(d,(x,29,x+11,35),"#cfae71")
+    # Engraved metal grain: real raster detail rather than a flat-color stub.
+    rng=random.Random(8401 if kind=="hud" else 8402)
+    for j in range(470):
+        x=rng.randrange(20,w-20)
+        y=rng.randrange(27,h-28) if h>80 else rng.randrange(22,h-21)
+        d.point((x,y),fill=(194,170,128,rng.randrange(45,120)) if j%3 else (5,12,13,140))
+    for x in range(24,w-20,18):
+        ell(d,(x,h-22,x+3,h-19),"#c6ad7a",None)
 
 def write_atlas(rel,frames,fw,fh,fn,texture=True):
     sheet=Image.new("RGBA",(fw*frames,fh),(0,0,0,0))
