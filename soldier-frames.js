@@ -54,6 +54,63 @@ function makeFrame(pose,index){
  box(20+packSwing,torsoY+10,5,2,'#b9a879');
  box(27,torsoY+1,6,13,COLORS.shadow);
  box(28,torsoY+4,3,7,COLORS.light);
+ // Layered high-resolution pixel rendering: add depth without smoothing or external assets.
+ const armor=(x,y,w,h,base,light,shade)=>{
+  box(x-2,y-1,w+4,h+3,COLORS.outline);
+  box(x,y,w,h,base);
+  box(x+2,y+1,Math.max(2,w-6),2,light);
+  box(x+w-5,y+3,3,Math.max(2,h-6),shade);
+ };
+ // Shoulder plate and articulated forearm, following the firing pose.
+ armor(36,torsoY+1,10,8,'#586d4e','#a4af7d','#334438');
+ box(41,torsoY+2,3,2,'#d1bb8b');
+ box(44,torsoY+8+armShift,7,3,'#d4a27c');
+ box(46,torsoY+11+armShift,5,2,'#8e5d48');
+ // Layered helmet rim and irregular scratches.
+ box(27,torsoY-17,18,2,'#252b25');
+ box(29,torsoY-18,12,2,'#849476');
+ box(31,torsoY-19,7,1,'#bec49b');
+ box(26,torsoY-11,21,2,'#222a24');
+ box(28,torsoY-10,17,1,'#879a71');
+ box(33,torsoY-15,2,1,'#c7c8a3');
+ box(39,torsoY-13,3,1,'#3b4b3a');
+ // Cheek, nose, eyebrow and chin: small clusters define expression.
+ box(38,torsoY-6,4,2,'#dba882');
+ box(41,torsoY-4,3,2,'#9d664e');
+ box(39,torsoY-7,3,1,'#332d25');
+ box(37,torsoY-2,5,1,'#724838');
+ box(34,torsoY-1,6,2,'#bd8263');
+ // Combat vest, belts, buckles and pouches.
+ armor(26,torsoY+1,14,16,'#5b704e','#8b9c6b','#354637');
+ box(28,torsoY+4,4,6,'#3b4d3a');
+ box(29,torsoY+5,2,3,'#b3aa79');
+ box(34,torsoY+4,5,7,'#46573e');
+ box(35,torsoY+5,3,2,'#b7b68a');
+ box(25,torsoY+15,19,3,'#2d342c');
+ box(32,torsoY+15,5,2,'#d2b97b');
+ box(33,torsoY+16,3,1,'#61533b');
+ // Reinforced knee guards and worn boots animate with stride.
+ box(21-stride*.6,frontKnee-3,7,6,'#344236');
+ box(22-stride*.6,frontKnee-2,5,2,'#99a482');
+ box(39+stride*.5,rearKnee-3,7,6,'#344236');
+ box(40+stride*.5,rearKnee-2,5,2,'#8d997a');
+ box(13-stride,72-(pose==='jump'?10:0),15,2,'#222923');
+ box(40+stride,72-(pose==='jump'?12:0),14,2,'#222923');
+ box(16-stride,75-(pose==='jump'?10:0),11,1,'#a18b6a');
+ box(41+stride,75-(pose==='jump'?12:0),12,1,'#a18b6a');
+ // Rifle receiver, magazine, muzzle and contrasting metal edges.
+ box(43,torsoY+4+armShift,20,7,'#1b2425');
+ box(46,torsoY+5+armShift,14,2,'#81918c');
+ box(49,torsoY+8+armShift,8,2,'#46524e');
+ box(51,torsoY+11+armShift,5,6,'#242c2b');
+ box(53,torsoY+12+armShift,2,3,'#8b9084');
+ box(61,torsoY+5+armShift,3,2,'#a5ada0');
+ box(47,torsoY+3+armShift,3,2,'#c2b89c');
+ // Cloth stitching and directional highlights follow the animated body.
+ box(29,torsoY+19,2,5,'#929d72');
+ box(37,torsoY+20,2,4,'#2c3b31');
+ box(22-stride*.6,frontKnee+4,2,7,'#9ca782');
+ box(43+stride*.5,rearKnee+4,2,7,'#394939');
  // Hand-pixelled material detail: helmet wear, facial features, cloth folds and weapon hardware.
  box(31,torsoY-14,5,1,'#b4b68a');
  box(35,torsoY-12,3,1,'#3d4b3c');
