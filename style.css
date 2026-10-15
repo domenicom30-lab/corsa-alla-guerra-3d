@@ -5,3 +5,8 @@
 .portrait-player{background-image:url('/assets/2d/soldier-back.png');background-size:190% auto;background-position:50% 0;background-repeat:no-repeat;background-color:#333a31}
 .portrait-target{background-image:url('/assets/2d/reference-scene.webp');background-size:950% auto;background-position:50% 22%;background-repeat:no-repeat;background-color:#333a31}
 .portrait svg{display:none}
+
+/* Dedicated mobile firing control */
+.control-group .shoot-button{border-color:#f1b15c;background:radial-gradient(circle at 50% 20%,#8b4927cc,#271b19e8)}
+.control-group .shoot-button:active{background:#c87938}
+@media(max-width:760px){.control-group{gap:8px}.control-group button{width:clamp(50px,10vw,100px);height:clamp(50px,10vw,100px)}}
