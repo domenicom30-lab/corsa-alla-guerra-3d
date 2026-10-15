@@ -38,6 +38,45 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x9dbbd1);
 scene.fog = new THREE.FogExp2(0x9dbbd1, 0.0055);
 
+ // Atmospheric gradient dome: a horizon glow and deeper zenith instead of
+ // a single flat background colour. BackSide keeps it behind all geometry.
+const skyUniforms = {
+  zenith: {value: new THREE.Color(0x6389ac)},
+  horizon: {value: new THREE.Color(0xc5d3cb)},
+  groundHaze: {value: new THREE.Color(0x9caa9d)}
+};
+const skyDome = new THREE.Mesh(
+  new THREE.SphereGeometry(165, 32, 16),
+  new THREE.ShaderMaterial({
+    uniforms: skyUniforms,
+    vertexShader: `varying vec3 vDirection;
+      void main() {
+        vDirection = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }`,
+    fragmentShader: `varying vec3 vDirection;
+      uniform vec3 zenith;
+      uniform vec3 horizon;
+      uniform vec3 groundHaze;
+      void main() {
+        float h = normalize(vDirection).y;
+        float upper = smoothstep(-0.03, 0.8, h);
+        vec3 color = mix(horizon, zenith, upper);
+        color = mix(groundHaze, color, smoothstep(-0.25, 0.03, h));
+        gl_FragColor = vec4(color, 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+    side: THREE.BackSide,
+    depthWrite: false,
+    fog: false
+  })
+);
+skyDome.frustumCulled = false;
+skyDome.renderOrder = -1000;
+scene.add(skyDome);
+
+
 const camera = new THREE.PerspectiveCamera(
   62, innerWidth / innerHeight, 0.1, 180
 );
@@ -1382,6 +1421,7 @@ if (soldierMixer) {
     -5
   );
 
+  skyDome.position.copy(camera.position);
   renderer.render(scene, camera);
 }
 
