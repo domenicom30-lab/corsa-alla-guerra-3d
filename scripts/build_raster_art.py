@@ -248,7 +248,7 @@ def fx(im,kind,n,count):
 
 def bg(im,kind,layer):
     d=ImageDraw.Draw(im,"RGBA"); W,H=im.size
-    rng=random.Random(101+len(kind)*111+layer*31)
+    rng=random.Random(101+len(kind)*111+(31 if layer=='near' else 0))
     themes={
       "forest":((34,55,70),(195,151,96)),
       "village":((48,61,76),(171,126,98)),
