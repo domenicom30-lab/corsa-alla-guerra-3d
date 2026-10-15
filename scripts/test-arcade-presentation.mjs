@@ -28,10 +28,10 @@ try{
  for(const [pose,count] of Object.entries(heroFrameCounts)){
   for(let f=0;f<count;f++)assert.equal(drawHeroFrame(screen,pose,f,0,0,128,152),true);
  }
- assert.equal(drawOps.length,22);
- assert.equal(new Set(drawOps.map(a=>a[0].id)).size,22,'Each authored hero pose must have a unique cache image');
+ assert.equal(drawOps.length,33);
+ assert.equal(new Set(drawOps.map(a=>a[0].id)).size,33,'Each authored hero pose must have a unique cache image');
  prepareHeroFrames();
- assert.equal(created,22,'Sprites cached once');
+ assert.equal(created,33,'Sprites cached once');
 }finally{if(original===undefined)delete globalThis.document;else globalThis.document=original}
 const s=createArcadeSpectacle();
 s.shot(140,100,1,false);
@@ -53,4 +53,4 @@ assert.equal(s.stats().smoke,0);
 assert.equal(s.stats().labels,0);
 s.explosion(100,150);s.reset();
 assert.deepEqual(s.stats(),{sparks:0,smoke:0,labels:0,shockwaves:0});
-console.log('PASS: 22 cached animated protagonist frames, bounded 2D effects and camera scroll');
+console.log('PASS: 33 cached animated protagonist frames, bounded 2D effects and camera scroll');

@@ -11,7 +11,7 @@ assert.ok(!existsSync('public/models/Soldier.glb'),'3D models removed');
 assert.ok(!pkg.dependencies.three,'Three.js dependency removed');
 assert.ok(main.includes('drawArcadeSoldierFrame(ctx,pose,frame'),'Real sprite animations connected');
 assert.ok(main.includes('drawSentries();'),'Riflemen rendered');
-assert.ok(main.includes('arcade.enemyShots.push('),'Riflemen attack');
+assert.ok(readFileSync('enemy-director.js','utf8').includes('enemyShots.push('),'Troops attack');
 assert.ok(main.includes('paintArcadeBackground(ctx,W,H,scroll)'),'Backdrop draws');
 assert.ok(art.includes("crate:'../2d/crate.png'")&&art.includes("sandbags:'../2d/sandbags.png'"),'User-supplied assets used');
 assert.ok(existsSync('corsa-alla-guerra-2d-assets-1.zip'),'Original 2D pack retained');

@@ -1,19 +1,20 @@
-// Original hand-drawn side-scroller protagonist. 22 cached poses, no external artwork.
-// Canvas shapes are painted once at native 128x152 resolution; gameplay blits a single image.
+// Original hand-drawn side-scroller protagonist. 33 cached poses, no external artwork.
+// Canvas shapes are painted once at native 160x152 resolution; gameplay blits a single image.
 const frames={};
-export const heroFrameCounts=Object.freeze({idle:4,run:8,jump:3,fire:4,duck:3});
+export const heroFrameCounts=Object.freeze({idle:4,run:8,runFire:8,jump:3,fire:4,duck:3,hurt:3});
 const ink='#18211c',olive='#65724e',highlight='#9da981',shadow='#374732',skin='#d7aa7f';
 function paintFrame(pose,index){
  const c=document.createElement('canvas');c.width=160;c.height=152;
  const g=c.getContext('2d');g.imageSmoothingEnabled=false;
  g.lineJoin='round';g.lineCap='round';
  const cyclic=index*Math.PI*2/(heroFrameCounts[pose]||4);
- const running=pose==='run',jumping=pose==='jump',ducking=pose==='duck',firing=pose==='fire';
+ const running=pose==='run'||pose==='runFire',jumping=pose==='jump',ducking=pose==='duck',firing=pose==='fire'||pose==='runFire',hurt=pose==='hurt';
  const stride=running?Math.sin(cyclic)*15:jumping?11:0;
  const bob=running?Math.abs(Math.sin(cyclic))*3:pose==='idle'?Math.sin(cyclic)*1.6:0;
  const crouch=ducking?20:0;
  const recoil=firing?(index%2)*6:0;
- const bodyY=69+bob+crouch;
+ const bodyY=69+bob+crouch+(hurt?(index%2)*2:0);
+ if(hurt){g.translate(8,-5);g.rotate(index%2===0?.065:-.065)}
  const line=(points,color,width=5)=>{
   g.beginPath();g.moveTo(points[0][0],points[0][1]);
   for(let i=1;i<points.length;i++)g.lineTo(points[i][0],points[i][1]);
@@ -124,6 +125,7 @@ function paintFrame(pose,index){
  const accents=[[60,bodyY+13],[67,bodyY+16],[76,bodyY+21],[54,bodyY+31],[81,bodyY+34],[61,bodyY+39]];
  for(let k=0;k<accents.length;k++)rect(accents[k][0],accents[k][1],k%2?5:3,2,k%2?'#a3ae85':'#d1bf90');
  if(firing&&index%2===0){rect(gunX+51,gunY-8,10,2,'#ffeab4');rect(gunX+56,gunY-5,14,5,'#ffc75e')}
+ if(hurt){g.fillStyle='rgba(255,222,180,.18)';g.fillRect(25,10,100,130)}
  return c;
 }
 export function prepareHeroFrames(){
