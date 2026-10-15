@@ -18,4 +18,5 @@ jobs:
       - run: npm run check
       - run: node --check main.js
       - run: node --check arcade-mechanics.js
+      - run: node scripts/test-arcade.mjs
       - run: npm run build
