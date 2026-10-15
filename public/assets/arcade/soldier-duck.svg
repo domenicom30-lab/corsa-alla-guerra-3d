@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="112" viewBox="0 0 96 112" shape-rendering="crispEdges"><g transform="translate(0 22) scale(1 .78)">
+<path d="M25 102l-3 -8 12 -5 13 3 -1 8 -5 5 -16 0Z" fill="#161d18" stroke="#0e1614" stroke-width="3"/>
+<path d="M48 97l3 -6 10 -3 9 7 2 9 -24 1Z" fill="#272b1c" stroke="#101713" stroke-width="3"/>
+<path d="M27 71l5 -5 27 1 5 17 -5 12 -12 -1 -5 -12 -7 12 -11 -4Z" fill="#62633c" stroke="#242b1d" stroke-width="3"/>
+<path d="M29 79l12 1 -4 15 -11 -2ZM48 78l12 -3 4 16 -12 3Z" fill="#434d2d"/>
+<path d="M19 43l-8 7 -2 25 9 9 10 -6 3 -29Z" fill="#6d6b39" stroke="#242b1d" stroke-width="3"/>
+<path d="M13 53l8 -5 2 24 -10 4Z" fill="#a38b4c"/><path d="M13 63l10 -3" stroke="#3a3b26" stroke-width="3"/>
+<path d="M26 37l15 -8 21 9 5 29 -8 13 -28 -2 -8 -16Z" fill="#6f713e" stroke="#242d1e" stroke-width="4"/>
+<path d="M31 42l9 -5 16 5 1 29 -22 1Z" fill="#818050"/><path d="M42 40v34M29 61l34 -3" stroke="#43492c" stroke-width="3"/>
+<path d="M30 72h33v7H30Z" fill="#2a2c1f"/><rect x="43" y="71" width="8" height="9" fill="#c5a35c"/>
+<path d="M47 40l9 -3 8 12 13 4 -1 10 -20 -4 -13 -12Z" fill="#b98a58" stroke="#392b20" stroke-width="3"/>
+<path d="M28 42l8 -2 10 12 16 1 0 8 -21 1 -15 -13Z" fill="#b88754" stroke="#382b21" stroke-width="3"/>
+<path d="M26 18l7 -12 20 -1 10 9 -1 19 -11 13 -15 -2 -11 -13Z" fill="#b78650" stroke="#38281b" stroke-width="3"/>
+<path d="M45 22h16l6 5 -13 3 -7 -3Z" fill="#d8a46b"/><path d="M50 29l11 1 -7 5 -7 -2Z" fill="#68452c"/>
+<path d="M29 19l5 -4 10 1 0 5 -13 3Z" fill="#f0c088"/><path d="M40 24h6v4h-6Z" fill="#201d19"/>
+<path d="M23 16l5 -11 23 -3 13 7 5 10 -7 5 -39 -1Z" fill="#5c5d35" stroke="#272d20" stroke-width="3"/>
+<path d="M30 11l19 -3 10 6 -28 2Z" fill="#92905a"/><path d="M18 20l52 -1 -2 7 -46 2Z" fill="#41472a" stroke="#20271c" stroke-width="2"/>
+<path d="M61 51h17v5H61Z" fill="#252927"/><path d="M70 47h20v10H70Z" fill="#272b2b" stroke="#111719" stroke-width="2"/><path d="M89 50h7v4h-7Z" fill="#0d1418"/><path d="M72 55l-4 12 7 1 7 -13" fill="#322d22"/>
+<path d="M57 45l7 8 9 0 -1 6 -15 -2 -6 -8Z" fill="#d7a16a" stroke="#674629" stroke-width="2"/>
+<rect x="28" y="51" width="5" height="8" fill="#a7a06b"/><rect x="31" y="67" width="4" height="5" fill="#343e2c"/>
+</g></svg>
