@@ -170,7 +170,8 @@ function drawObstacles() {
   for(const o of visible) {
     const p=projection(Math.max(0,o.z)), size=H*(0.02+p.t*.14);
     const x=roadX(o.lane,o.z);
-    if(!drawImageContain(images.crate,x,p.y,size,size)) fallbackCrate(x,p.y,size);
+    const sprite=o.lane===0&&o.seed%3===0?images.barrier:images.crate;
+    if(!drawImageContain(sprite,x,p.y,size*(sprite===images.barrier?1.5:1),size)) fallbackCrate(x,p.y,size);
   }
 }
 function soldier() {
@@ -223,7 +224,9 @@ function frame(now) {
     document.getElementById('hud').classList.add('reference-preview');
   } else {
     document.getElementById('hud').classList.remove('reference-preview');
-    backdrop();road();scenery();drawObstacles();soldier();
+    backdrop();
+    if(!images.background) road();
+    scenery();drawObstacles();soldier();
   }
   requestAnimationFrame(frame);
 }
