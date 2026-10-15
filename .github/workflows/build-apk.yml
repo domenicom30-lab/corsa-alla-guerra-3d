@@ -41,8 +41,14 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Install raster art renderer
+        run: python3 -m pip install --quiet Pillow
+
       - name: Import 2D artwork from ZIP packages
         run: python3 scripts/import_2d_assets.py
+
+      - name: Render mandatory PNG sprite sheets and backgrounds
+        run: python3 scripts/build_raster_art.py
 
       - name: Validate pure 2D gameplay
         run: npm run check

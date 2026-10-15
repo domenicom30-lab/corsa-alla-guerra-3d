@@ -1,12 +1,15 @@
 {
   "name": "corsa-alla-guerra-2d",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
-    "check": "node scripts/check-project.mjs && node scripts/test-arcade.mjs && node scripts/test-arcade-mechanics.mjs && node scripts/test-2d-upgrade.mjs && node scripts/test-arcade-presentation.mjs && node scripts/test-battlefields.mjs && node scripts/test-rocket-arsenal.mjs && node scripts/test-battle-aftermath.mjs"
+    "check": "node scripts/check-project.mjs && node scripts/test-arcade.mjs && node scripts/test-arcade-mechanics.mjs && node scripts/test-2d-upgrade.mjs && node scripts/test-arcade-presentation.mjs && node scripts/test-battlefields.mjs && node scripts/test-rocket-arsenal.mjs && node scripts/test-battle-aftermath.mjs && node scripts/test-raster-art.mjs",
+    "assets": "python3 scripts/import_2d_assets.py && python3 scripts/build_raster_art.py",
+    "predev": "npm run assets",
+    "prebuild": "python3 scripts/build_raster_art.py --verify"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.3",

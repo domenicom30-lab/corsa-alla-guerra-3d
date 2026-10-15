@@ -9,7 +9,7 @@ assert.ok(html.includes('src="./main.js"'),'2D game must start directly');
 assert.ok(!existsSync('bootstrap.js')&&!existsSync('three-game.js'),'3D runtime removed');
 assert.ok(!existsSync('public/models/Soldier.glb'),'3D models removed');
 assert.ok(!pkg.dependencies.three,'Three.js dependency removed');
-assert.ok(main.includes('drawArcadeSoldierFrame(ctx,pose,frame'),'Real sprite animations connected');
+assert.ok(main.includes("drawRaster(ctx,'hero',pose,frame"),'Mandatory raster character frames connected');
 assert.ok(main.includes('drawSentries();'),'Riflemen rendered');
 assert.ok(readFileSync('enemy-director.js','utf8').includes('enemyShots.push('),'Troops attack');
 assert.ok(main.includes('paintArcadeBackground(ctx,W,H,scroll)'),'Backdrop draws');

@@ -49,3 +49,13 @@ Il progetto è interamente 2D. Le verifiche automatiche non sostituiscono la pro
 - I test specifici controllano animazioni, movimento della telecamera, reset, numero massimo di effetti, rispetto del livello di trasparenza e sicurezza degli input.
 
 **Nota:** la riuscita della build dimostra che l'APK compila; non certifica la stessa qualità artistica di Metal Slug né sostituisce una prova visiva sul telefono.
+
+## Versione 1.5 — La nuova pipeline grafica raster
+
+Il runtime 2D ora carica i PNG dallo **sprite manifest**, non disegna più personaggi, nemici e carro boss come primitive canvas. Lo script `scripts/build_raster_art.py` costruisce offline il primo pacchetto originale riproducibile, con atlas di animazione del soldato, quattro tipi di nemici, tank boss, esplosioni, HUD, e 4 ambientazioni composte da due livelli PNG. `sprite-loader.js` ritaglia i singoli fotogrammi e precarica i file prima di autorizzare la partita.
+
+**Controlli di qualità:** tutte le 27 risorse sono obbligatorie, con dimensioni previste dal manifest; immagini mancanti, corrotte o non corrispondenti bloccano la build GitHub Actions e l'avvio del gioco. Il test Node controlla firme PNG, dimensioni e assenza dei vecchi fallback nel rendering dei personaggi.
+
+Per lavorare localmente: `python3 -m pip install Pillow`, `npm run assets`, poi `npm run dev` o `npm run build`.
+
+Il contenuto grafico generato è la prima versione di sprite raster originali, **non una riproduzione della qualità artistica commerciale di Metal Slug**: per aumentare ulteriormente fedeltà e dettaglio si possono sostituire i PNG con atlanti dipinti da illustratori, conservando stesso manifest e il motore di animazione.

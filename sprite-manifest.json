@@ -1,0 +1,70 @@
+{
+  "version": "1.5.0",
+  "frameSizes": {
+    "hero": [
+      240,
+      210
+    ],
+    "enemies": [
+      240,
+      210
+    ],
+    "boss": [
+      340,
+      240
+    ],
+    "fx": [
+      128,
+      128
+    ],
+    "ui": {
+      "hud": [
+        512,
+        76
+      ],
+      "title": [
+        768,
+        162
+      ]
+    },
+    "backgrounds": [
+      1400,
+      540
+    ]
+  },
+  "hero": {
+    "idle": 4,
+    "run": 8,
+    "runFire": 8,
+    "jump": 3,
+    "fire": 4,
+    "duck": 3,
+    "hurt": 3
+  },
+  "enemies": {
+    "rifleman": 8,
+    "assault": 8,
+    "grenadier": 8,
+    "heavy": 8
+  },
+  "boss": {
+    "commander": 6
+  },
+  "fx": {
+    "explosion": 10,
+    "blast": 8,
+    "muzzle": 6,
+    "hit": 8,
+    "smoke": 8
+  },
+  "ui": {
+    "hud": 1,
+    "title": 1
+  },
+  "backgrounds": [
+    "forest",
+    "village",
+    "industrial",
+    "fortress"
+  ]
+}

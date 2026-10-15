@@ -27,6 +27,12 @@ jobs:
           node-version: '22'
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Install raster art renderer
+        run: python3 -m pip install --quiet Pillow
+      - name: Import original 2D image packs
+        run: python3 scripts/import_2d_assets.py
+      - name: Build all mandatory raster atlases
+        run: python3 scripts/build_raster_art.py
       - name: JavaScript syntax check
         run: node --check main.js
       - name: Gameplay and asset smoke tests

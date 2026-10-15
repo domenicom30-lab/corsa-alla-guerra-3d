@@ -1,3 +1,4 @@
+import {drawRaster,spritePacksReady} from './sprite-loader.js';
 // Original retro run-and-gun FX. Bounded pools and camera-relative coordinates.
 const hash=i=>{const x=Math.sin(i*143.7+29.12)*35891.23;return x-Math.floor(x)};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -102,6 +103,15 @@ export function createArcadeSpectacle(){
    }else if(variant===2){
     ctx.fillStyle='#33362c';ctx.beginPath();ctx.ellipse(x,ground+h*.004,h*.045,h*.009,0,0,Math.PI*2);ctx.fill();
    }
+  }
+  if(spritePacksReady()){
+    for(const p of smoke){ctx.save();ctx.globalAlpha=clamp(p.life/p.ttl,0,1)*.62;const sz=p.size*2;
+      drawRaster(ctx,'fx','smoke',Math.floor((1-p.life/p.ttl)*8),p.x-sz*.5,p.y-sz*.5,sz,sz);ctx.restore()}
+    for(const p of sparks){ctx.save();ctx.globalAlpha=clamp(p.life/p.ttl,0,1);
+      drawRaster(ctx,'fx','hit',Math.floor((1-p.life/p.ttl)*8),p.x-p.size*3,p.y-p.size*3,p.size*6,p.size*6);ctx.restore()}
+    for(const ring of shockwaves){ctx.save();ctx.globalAlpha=clamp(ring.life/ring.ttl,0,1)*.78;
+      drawRaster(ctx,'fx','blast',Math.floor((1-ring.life/ring.ttl)*8),ring.x-ring.r,ring.y-ring.r,ring.r*2,ring.r*2);ctx.restore()}
+    ctx.restore();return;
   }
   for(const p of smoke){
    const alpha=clamp(p.life/p.ttl,0,1)*.32;

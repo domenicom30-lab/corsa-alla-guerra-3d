@@ -42,3 +42,8 @@
 .control-group button{backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
 .control-group button:active{border-color:#fff2ad;box-shadow:0 0 15px #fbd67a7a,inset 0 1px 12px #fff8}
 @media(max-height:410px){.topbar{height:clamp(37px,8vh,53px)}.game-title{top:15.5%}}
+
+/* Authored raster-metal HUD panel, generated at build time and shipped in the APK. */
+.hud-pill{background-image:linear-gradient(90deg,#091018b8,#14211ec2),url('/assets/sprites/ui/hud.png');background-size:100% 100%;background-position:center;border-color:#c6b78a;border-radius:9px;box-shadow:inset 0 1px 0 #fff6c2a9,0 3px 11px #000b}
+.control-group button{box-shadow:inset 0 2px 0 #e8d6a35c,inset 0 -7px 0 #050a0a88,0 4px 13px #000b}
+.control-group button:active{filter:brightness(1.3)}
