@@ -2,6 +2,8 @@ import {sprites,pixelBackdrop} from './pixel-art.js';
 import {loadArcadeArt,arcadeArt,paintArcadeBackground} from './arcade-art.js';
 loadArcadeArt();
 import {createArcadeSystems} from './arcade-mechanics.js';
+import {loadSoldierFrames,drawSoldierFrame} from './soldier-frames.js';
+loadSoldierFrames();
 import './style.css';
 // Side-scrolling 2D platform runner: fixed-size sprites, horizontal world, no depth projection.
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d',{alpha:false});
@@ -38,7 +40,7 @@ function background(){
  }
 }
 function drawPlayer(){
- const h=H*(duckTime>0?.145:.255),w=h*72/88,runFrame=jumpY>0?1:Math.floor(runCycle)%6;
+ const h=H*(duckTime>0?.145:.255),w=h*72/88,runFrame=jumpY>0?1:Math.floor(runCycle)%8;
  const x=playerX()-w*.5,y=ground()-jumpY-h;
  ctx.save();ctx.globalAlpha=.24*Math.max(.3,1-jumpY/H);ctx.fillStyle='#17150e';ctx.beginPath();ctx.ellipse(playerX(),ground()+H*.006,w*.4,H*.012,0,0,Math.PI*2);ctx.fill();ctx.restore();
  const moving=Math.abs(Number(movement.right)-Number(movement.left))>0;
@@ -50,9 +52,8 @@ function drawPlayer(){
  if(invulnerable>0&&Math.floor(invulnerable*12)%2===0){ctx.shadowColor='#f8e2a1';ctx.shadowBlur=H*.014;}
  const sheet=arcadeArt.soldier;
  const pose=jumpY>0?'jump':duckTime>0?'duck':muzzleFlash>0||fireHeld?'fire':Math.abs(Number(movement.right)-Number(movement.left))>0?'run':'idle';
- const poseSheet=arcadeArt['soldier_'+pose];
- if(poseSheet){const count=pose==='run'?6:pose==='fire'?3:1;const frame=pose==='run'?runFrame:pose==='fire'?Math.floor(phase*.65)%3:0;ctx.drawImage(poseSheet,frame*poseSheet.width/count,0,poseSheet.width/count,poseSheet.height,x,y-footstepBob,w,h)}
- else if(sheet){const frameW=sheet.width/6;ctx.drawImage(sheet,runFrame*frameW,0,frameW,sheet.height,x,y-footstepBob,w,h)}else ctx.drawImage(sprites.soldier[runFrame],x,y-footstepBob,w,h);
+ const frame=pose==='run'?runFrame:pose==='fire'?Math.floor(phase*.9)%4:pose==='idle'?Math.floor(phase*.2)%4:pose==='jump'?Math.min(2,Math.floor(Math.abs(vy)/Math.max(1,H))):Math.floor(phase*.3)%3;
+ drawSoldierFrame(ctx,pose,frame,x,y-footstepBob,w,h);
  if(muzzleFlash>0){ctx.fillStyle='#ffe27a';const mx=x+w*.95,my=y+h*.48;ctx.beginPath();ctx.moveTo(mx,my);ctx.lineTo(mx+H*.042,my-H*.019);ctx.lineTo(mx+H*.025,my);ctx.lineTo(mx+H*.042,my+H*.02);ctx.fill()}
  ctx.restore();
 }
