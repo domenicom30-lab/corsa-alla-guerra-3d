@@ -4,6 +4,8 @@ loadArcadeArt();
 import {createArcadeSystems} from './arcade-mechanics.js';
 import {loadSoldierFrames,drawSoldierFrame} from './soldier-frames.js';
 loadSoldierFrames();
+import {prepareEnemyFrames,drawEnemyFrame} from './enemy-frames.js';
+prepareEnemyFrames();
 import './style.css';
 // Side-scrolling 2D platform runner: fixed-size sprites, horizontal world, no depth projection.
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d',{alpha:false});
@@ -65,7 +67,7 @@ function drawObstacles(){
 }
 function drawTicks(){
  for(const t of ticks){if(!t.alive)continue;const x=t.x-scroll,y=ground()-H*.065+Math.sin(phase*1.7+t.phase)*H*.006,w=H*.095,h=H*.078;
- if(x<-w||x>W+w)continue;ctx.imageSmoothingEnabled=false;const sheet=arcadeArt.tick;const frame=Math.floor(phase*.9+t.phase)%4;if(sheet){const fw=sheet.width/4;ctx.drawImage(sheet,frame*fw,0,fw,sheet.height,x-w*.5,y-h*.5,w,h)}else ctx.drawImage(sprites.tick[frame],x-w*.5,y-h*.5,w,h);
+ if(x<-w||x>W+w)continue;ctx.imageSmoothingEnabled=false;const sheet=arcadeArt.tick;const frame=Math.floor(phase*.9+t.phase)%4;drawEnemyFrame(ctx,Math.floor(phase*1.4+t.phase)%8,x-w*.5,y-h*.5,w,h);
  }
 }
 function drawBullets(){for(const b of bullets){const dir=Math.sign(b.vx)||1;const len=Math.max(12,H*.032);ctx.fillStyle=b.kind==='heavy'?'#a9e9ff':'#ffeeb0';ctx.fillRect(b.x-(dir<0?len:0),b.y,len,Math.max(3,H*.006));ctx.fillStyle='#e87d28';ctx.fillRect(b.x-dir*5-(dir<0?len*.45:0),b.y+1,Math.max(5,H*.012),Math.max(2,H*.004))}}
