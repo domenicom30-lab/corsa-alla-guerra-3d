@@ -36,6 +36,7 @@ const checks = [
  ['Pulizia tocchi su pausa e riavvio',()=>{for(const token of ['function clearTouchMovement()','activeMovementPointers.left.clear()','activeMovementPointers.right.clear()','if(!visible){fireHeld=false;clearTouchMovement()','clearTouchMovement();message.style.display','addEventListener(\'blur\',()=>{clearTouchMovement()'])assert.ok(main.includes(token),token)}],
  ['Limite refresh rendering Android',()=>assert.ok(main.includes('if(last&&t-last<1000/65){requestAnimationFrame(frame);return}'))],
  ['Fiammata pixel art stratificata',()=>{for(const token of ["ctx.fillStyle='#fff6c8'","ctx.fillStyle='#ffc34e'","ctx.fillStyle='#f08b27'",'for(let i=0;i<3;i++){const sparkX=mx+flash'])assert.ok(main.includes(token),token)}],
+ ['Scie luminose proiettili',()=>{for(const token of ["b.kind==='heavy'?'#245e7b':'#8c4b2c'","b.kind==='heavy'?'#e7ffff':'#fff8d1'",'tail=b.x-dir*len*.9'])assert.ok(main.includes(token),token)}],
  ['Prestazioni mobile',()=>{assert.ok(main.includes('devicePixelRatio'));assert.ok(main.includes('requestAnimationFrame(frame)'))}],
  ['Build configurata',()=>assert.ok(pkg.scripts.build)]
 ];
