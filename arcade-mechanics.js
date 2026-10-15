@@ -22,19 +22,22 @@ export function createArcadeSystems(){
   for(const b of enemyShots){ctx.fillStyle='#ff5d3d';ctx.fillRect(b.x-5,b.y-3,10,6)}
   if(boss.active&&!boss.defeated){
    const x=boss.x-scroll,unit=H*.01;
+   const viewportWidth=ctx.canvas?.clientWidth||ctx.canvas?.width||Infinity;
+   if(x<-H*.55||x>viewportWidth+H*.55)return;
+   const treadFrame=Math.floor(phase*.55)%4;
    ctx.save();ctx.translate(x,ground);
    // Original armored crawler: layered pixel-like hull, track links and turret.
    ctx.fillStyle='#161c1b';ctx.fillRect(-29*unit,-17*unit,58*unit,15*unit);
    ctx.fillStyle='#394039';ctx.fillRect(-27*unit,-19*unit,54*unit,12*unit);
    for(let i=-24;i<=24;i+=6){
-    ctx.fillStyle=i%12===0?'#737765':'#272e2a';
+    ctx.fillStyle=(Math.floor((i+24)/6)+treadFrame)%2===0?'#737765':'#272e2a';
     ctx.fillRect(i*unit,-9*unit,5*unit,6*unit);
     ctx.fillStyle='#131a19';ctx.fillRect((i+1)*unit,-8*unit,3*unit,4*unit);
    }
    for(const dx of [-19,-9,1,11,21]){
     ctx.fillStyle='#151b19';ctx.beginPath();ctx.arc(dx*unit,-8*unit,6*unit,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#8b8a71';ctx.beginPath();ctx.arc(dx*unit,-8*unit,3.3*unit,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#313d35';ctx.fillRect((dx-1)*unit,-9*unit,2*unit,2*unit);
+    ctx.fillStyle='#313d35';ctx.fillRect((dx-1+treadFrame%2)*unit,-9*unit,2*unit,2*unit);
    }
    ctx.fillStyle='#242f2b';ctx.fillRect(-24*unit,-31*unit,49*unit,17*unit);
    ctx.fillStyle='#65725b';ctx.fillRect(-23*unit,-34*unit,46*unit,9*unit);
@@ -48,7 +51,7 @@ export function createArcadeSystems(){
    ctx.fillStyle='#8a8f7a';ctx.fillRect(-38*unit,-36*unit,29*unit,2*unit);
    ctx.fillStyle='#111a18';ctx.fillRect(-41*unit,-39*unit,5*unit,10*unit);
    ctx.fillStyle='#e2bd6a';ctx.fillRect(17*unit,-28*unit,4*unit,4*unit);
-   ctx.fillStyle='#ad4838';ctx.fillRect(13*unit,-40*unit,4*unit,3*unit);
+   ctx.fillStyle=Math.floor(phase*.7)%2===0?'#f6bd65':'#ad4838';ctx.fillRect(13*unit,-40*unit,4*unit,3*unit);
    ctx.fillStyle='#151b1b';ctx.fillRect(-25*unit,-52*unit,50*unit,3*unit);
    ctx.fillStyle='#d95236';ctx.fillRect(-24*unit,-51*unit,48*unit*Math.max(0,boss.hp/boss.maxHp),2*unit);
    ctx.restore();
