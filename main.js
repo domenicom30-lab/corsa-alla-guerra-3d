@@ -8,7 +8,7 @@ const message = document.getElementById('message');
 const stats = document.getElementById('stats');
 const lanes = [-1, 0, 1];
 let lane = 1, distance = 0, score = 0, health = 3, running = false;
-let jumping = false, jumpTime = 0, last = 0, worldShift = 0;
+let jumping = false, jumpTime = 0, ducking = false, paused = false, last = 0, worldShift = 0;
 let W = 0, H = 0, dpr = 1;
 const ASSETS = {
   background: './assets/2d/forest-background.webp',
@@ -47,7 +47,7 @@ const obstacles = Array.from({ length: 18 }, (_, i) => ({
   lane: Math.floor(rand(i + 37) * 3),
   hit: false
 }));
-function horizon() { return H * 0.38; }
+function horizon() { return H * 0.34; }
 function projection(depth) {
   const t = 1 / (1 + Math.max(0, depth) * 0.017);
   return { t, y: horizon() + (H * 0.57) * t, roadHalf: W * (0.045 + 0.57 * t) };
@@ -170,9 +170,9 @@ function drawObstacles() {
   }
 }
 function soldier() {
-  const x=roadX(lane,0), ground=H*.90;
+  const x=roadX(lane,0), ground=H*.93;
   const lift=jumping ? Math.sin(jumpTime*Math.PI)*H*.14 : 0;
-  const height=Math.min(H*.26,W*.49), width=height*.58;
+  const height=Math.min(H*.52,W*.32)*(ducking?0.68:1), width=height*.58;
   ctx.fillStyle='rgba(20,19,15,.32)';
   ctx.beginPath();ctx.ellipse(x,ground,width*.37*(1-lift/H),height*.065,0,0,Math.PI*2);ctx.fill();
   if(drawImageContain(images.soldier,x,ground-lift,width,height))return;
@@ -203,7 +203,7 @@ function update(dt) {
       else score+=20;
     }
   }
-  stats.textContent='❤️ '+ '♥'.repeat(health)+' | PUNTI: '+score+' | TRAGUARDO: '+Math.max(0,1000-Math.floor(distance))+' m';
+  stats.textContent='TRAGUARDO: '+Math.max(0,200-Math.floor(distance/5))+' m';\n  document.getElementById('points').textContent='PUNTI: '+score;\n  document.getElementById('hearts').textContent='❤️'.repeat(health)+'🖤'.repeat(3-health);
   if(distance>=1000){running=false;message.textContent='MISSIONE COMPLETATA — TOCCA PER RIPROVARE';message.style.display='block';}
 }
 function frame(now) {
@@ -213,20 +213,20 @@ function frame(now) {
 }
 function start(){
   if(running)return;
-  lane=1;distance=0;worldShift=0;score=0;health=3;jumping=false;jumpTime=0;
+  lane=1;distance=0;worldShift=0;score=0;health=3;jumping=false;jumpTime=0;ducking=false;paused=false;
   obstacles.forEach(o=>o.hit=false);
   running=true;message.style.display='none';
 }
 function move(delta){if(!running){start();return;}lane=Math.max(0,Math.min(2,lane+delta));}
-function jump(){if(!running){start();return;}if(!jumping){jumping=true;jumpTime=0;}}
+function jump(){if(!running){start();return;}if(!jumping){jumping=true;jumpTime=0;}}\nfunction duck(){if(!running){start();return;}ducking=true;setTimeout(()=>{ducking=false},650);}\nfunction togglePause(){if(!running)return;paused=!paused;message.textContent=paused?'IN PAUSA — TOCCA PER RIPRENDERE':'';message.style.display=paused?'block':'none';}
 document.getElementById('left').addEventListener('pointerdown',e=>{e.preventDefault();move(-1);});
 document.getElementById('right').addEventListener('pointerdown',e=>{e.preventDefault();move(1);});
-document.getElementById('jump').addEventListener('pointerdown',e=>{e.preventDefault();jump();});
-message.addEventListener('pointerdown',start);
+document.getElementById('jump').addEventListener('pointerdown',e=>{e.preventDefault();jump();});\ndocument.getElementById('duck').addEventListener('pointerdown',e=>{e.preventDefault();duck();});\ndocument.getElementById('pause').addEventListener('pointerdown',e=>{e.preventDefault();togglePause();});
+message.addEventListener('pointerdown',()=>{if(paused)togglePause();else start();});
 canvas.addEventListener('pointerdown',()=>{if(!running)start();});
 window.addEventListener('keydown',e=>{
   if(e.key==='ArrowLeft'||e.key.toLowerCase()==='a')move(-1);
   if(e.key==='ArrowRight'||e.key.toLowerCase()==='d')move(1);
-  if(e.key===' '||e.key==='ArrowUp')jump();
+  if(e.key===' '||e.key==='ArrowUp')jump();\n  if(e.key==='ArrowDown')duck();\n  if(e.key==='Escape')togglePause();
 });
 requestAnimationFrame(frame);
