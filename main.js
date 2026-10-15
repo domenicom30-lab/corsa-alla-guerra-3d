@@ -17,12 +17,24 @@ function playerX(){return W*.22}
 const obstacles=Array.from({length:32},(_,i)=>({x:750+i*420+(i%3)*100,type:i%3,hit:false}));
 function rect(x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(x,y,w,h)}
 function background(){
- const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#8e9d9d');sky.addColorStop(.55,'#b5b6a6');sky.addColorStop(1,'#515d4b');rect(0,0,W,H,sky);
- const img=images.forest;
- if(img){ctx.save();ctx.globalAlpha=.55;const sh=H*.74,sw=img.width/img.height*sh,offset=(scroll*.1)%sw;for(let x=-offset-sw;x<W+sw;x+=sw)ctx.drawImage(img,x,0,sw,sh);ctx.restore();}
- for(let layer=0;layer<2;layer++){const shift=scroll*(layer?.34:.17),base=ground()-H*(layer?.16:.29),step=layer?135:180;for(let i=Math.floor(shift/step)-2;i<Math.ceil((shift+W)/step)+2;i++){const x=i*step-shift;ctx.fillStyle=layer?'#36493d':'#607267';ctx.beginPath();ctx.moveTo(x,base-H*(layer?.19:.28));ctx.lineTo(x-46,base);ctx.lineTo(x+46,base);ctx.fill();ctx.fillRect(x-5,base,10,ground()-base);}}
- rect(0,ground(),W,H-ground(),'#49463b');rect(0,ground(),W,9,'#7d8062');
- for(let i=Math.floor(scroll/90)-1;i<Math.ceil((scroll+W)/90)+1;i++){const x=i*90-scroll;rect(x,ground()+H*.12,47,3,'#77705c');}
+ const sky=ctx.createLinearGradient(0,0,0,ground());sky.addColorStop(0,'#788e99');sky.addColorStop(.6,'#b8b5a0');sky.addColorStop(1,'#858d7a');rect(0,0,W,H,sky);
+ for(let layer=0;layer<3;layer++){
+ const rate=[.08,.21,.42][layer],step=[310,210,125][layer],shift=scroll*rate;
+ const base=ground()-H*[.38,.23,.08][layer];
+ for(let i=Math.floor(shift/step)-2;i<Math.ceil((shift+W)/step)+2;i++){
+ const x=i*step-shift,seed=Math.abs(Math.sin(i*17.31+layer*9));
+ const trunkW=H*(layer===2?.034:.018),trunkH=H*(.12+seed*.16);
+ ctx.fillStyle=['#748477','#4b6254','#34483c'][layer];
+ rect(x-trunkW/2,base-trunkH,trunkW,trunkH+ground()-base);
+ for(let j=0;j<3;j++){ctx.beginPath();ctx.ellipse(x+(j-1)*trunkW*2,base-trunkH*(.83+j*.1),H*(.055+layer*.015),H*(.085+layer*.019),0,0,Math.PI*2);ctx.fill()}
+ }
+ }
+ rect(0,ground(),W,H-ground(),'#544b3b');rect(0,ground(),W,H*.018,'#81906b');
+ for(let i=Math.floor(scroll/64)-1;i<Math.ceil((scroll+W)/64)+1;i++){
+ const x=i*64-scroll,seed=Math.abs(Math.sin(i*13.17));
+ rect(x,ground()+H*(.06+seed*.12),20+seed*31,3,'#726651');
+ rect(x+12,ground()+H*.013,16,3,'#9aa27d');
+ }
 }
 function drawPlayer(){
  const x=playerX(),floor=ground()-jumpY,bob=running&&!paused&&jumpY===0?Math.abs(Math.sin(phase))*3:0;
