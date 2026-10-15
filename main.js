@@ -12,11 +12,12 @@ let jumping = false, jumpTime = 0, ducking = false, paused = false, last = 0, wo
 let W = 0, H = 0, dpr = 1;
 const ASSETS = {
   background: './assets/2d/forest-background.webp',
-  soldier: './assets/2d/soldier-back.webp',
+  soldier: './assets/2d/soldier-back.png',
   tree: './assets/2d/spruce.webp',
-  sandbags: './assets/2d/sandbags.webp',
-  crate: './assets/2d/crate.webp',
-  road: './assets/2d/muddy-road.webp'
+  sandbags: './assets/2d/sandbags.png',
+  crate: './assets/2d/crate.png',
+  road: './assets/2d/muddy-road.webp',
+  barrier: './assets/2d/barrier.png'
 };
 const images = {};
 for (const [key, url] of Object.entries(ASSETS)) {
@@ -142,6 +143,8 @@ function fallbackCrate(x, y, size) {
   ctx.beginPath(); ctx.moveTo(x - size / 2, y - size); ctx.lineTo(x + size / 2, y); ctx.stroke();
 }
 function scenery() {
+  // The photographed backdrop already contains trees, towers and fortifications.
+  if (images.background) return;
   const visible = objects.map(o => ({...o, z: (o.depth - worldShift % 1760 + 1760) % 1760})).filter(o => o.z < 430);
   visible.sort((a,b) => b.z - a.z);
   for (const o of visible) {
@@ -175,7 +178,8 @@ function soldier() {
   const height=Math.min(H*.52,W*.32)*(ducking?0.68:1), width=height*.58;
   ctx.fillStyle='rgba(20,19,15,.32)';
   ctx.beginPath();ctx.ellipse(x,ground,width*.37*(1-lift/H),height*.065,0,0,Math.PI*2);ctx.fill();
-  if(drawImageContain(images.soldier,x,ground-lift,width,height))return;
+  const runningBob=running&&!paused?Math.abs(Math.sin(worldShift*.18))*H*.008:0;
+  if(drawImageContain(images.soldier,x,ground-lift-runningBob,width,height))return;
   // Readable rear-view fallback, not a T-pose.
   ctx.save();ctx.translate(x,ground-lift);
   const sway=running?Math.sin(worldShift*.13)*height*.018:0;
