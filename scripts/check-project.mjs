@@ -1,6 +1,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import {createArcadeSystems} from '../arcade-mechanics.js';
+import {prepareEnemyFrames,drawEnemyFrame} from '../enemy-frames.js';
 const main = readFileSync('main.js', 'utf8');
 const html = readFileSync('index.html', 'utf8');
 const art = readFileSync('pixel-art.js','utf8');
@@ -23,6 +24,19 @@ const checks = [
  ['Sprite animati fotogramma per fotogramma',()=>{for(const token of ["from './soldier-frames.js'",'loadSoldierFrames();','drawSoldierFrame(ctx,pose,frame','Math.floor(runCycle)%8'])assert.ok(main.includes(token),token)}],
  ['Polvere dei passi sincronizzata',()=>{for(const token of ['const dustPuffs=[]','function drawDust()','dustPuffs.push({','dustPuffs.length=0'])assert.ok(main.includes(token),token)}],
  ['Nemici animati in otto fotogrammi',()=>{const enemy=readFileSync('enemy-frames.js','utf8');for(const token of ['prepareEnemyFrames','drawEnemyFrame','i<8'])assert.ok(enemy.includes(token),token);for(const token of ["from './enemy-frames.js'",'prepareEnemyFrames();','drawEnemyFrame(ctx,'])assert.ok(main.includes(token),token)}],
+ ['Otto frame nemici differenti e disegnabili',()=>{
+   const originalDocument=globalThis.document,created=[];
+   globalThis.document={createElement(tag){assert.equal(tag,'canvas');const operations=[];const g={fillStyle:'',fillRect(...args){operations.push([this.fillStyle,...args])}};const canvas={getContext(){return g}};created.push({canvas,operations});return canvas}};
+   try{
+    prepareEnemyFrames();
+    assert.equal(created.length,8,'devono essere generati otto sprite');
+    assert.ok(new Set(created.map(x=>JSON.stringify(x.operations))).size>=6,'le pose devono variare');
+    const drawn=[];const ctx={imageSmoothingEnabled:true,drawImage(sprite){drawn.push(sprite)}};
+    for(let i=0;i<8;i++)assert.equal(drawEnemyFrame(ctx,i,0,0,64,48),true);
+    assert.equal(new Set(drawn).size,8,'ogni indice deve disegnare un frame diverso');
+   }finally{if(originalDocument===undefined)delete globalThis.document;else globalThis.document=originalDocument}
+ }],
+ ['Dettagli nemici in movimento',()=>{const enemy=readFileSync('enemy-frames.js','utf8');for(const token of ['Eight distinct gait poses','Independently animated foreleg tips','const gait=[0,2,4,2,0,-2,-4,-2][i]'])assert.ok(enemy.includes(token),token)}],
  ['Esplosione pixel a otto stadi',()=>{for(const token of ['Math.min(7,Math.floor(progress*8))','if(frame<6)','ctx.fillRect(Math.round(e.x-core*.5)'])assert.ok(main.includes(token),token)}],
  ['Distruzione pixel dei nemici',()=>{for(const token of ['const enemyDebris=[]','function shatterEnemy(','function drawEnemyDebris()','drawEnemyDebris();','enemyDebris.length=0'])assert.ok(main.includes(token),token)}],
  ['Autofire touch e stop dopo danno fatale',()=>{for(const token of ['if(!running)start();fireHeld=true','if(!running){hud();return}'])assert.ok(main.includes(token),token)}],
