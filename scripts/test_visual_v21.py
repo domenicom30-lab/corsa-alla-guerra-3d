@@ -21,6 +21,17 @@ with Image.open(far) as img:
             if R>185 and G>170 and B>140:bright+=1
             count+=1
     if bright/count>.015:raise SystemExit(f"Too many glaring sky speckles: {bright/count:.1%}")
+    # Reject translucent scanline artifacts in the supposedly opaque horizon.
+    horizon=img.crop((0,292,1400,470)).convert("RGBA")
+    sampled=[horizon.getpixel((x,y))[3] for y in range(0,178,3) for x in range(0,1400,9)]
+    if sum(a<100 for a in sampled)>len(sampled)*.01:
+        raise SystemExit("Distant forest has broken alpha scanline bands")
+    # Sun cannot dominate a quarter of the forest scene.
+    disc=img.crop((875,35,1200,275)).convert("RGB")
+    warm=sum(1 for y in range(0,240,5) for x in range(0,325,5)
+             if (lambda c:c[0]>180 and c[1]>145 and c[2]<150)(disc.getpixel((x,y))))
+    if warm>350:raise SystemExit("Oversized opaque sun dominates forest skyline")
+
 with Image.open(near) as img:
     if img.size!=(1400,540):raise SystemExit("Invalid foreground forest dimensions")
     if not any(img.getpixel((x,300))[3]>200 for x in range(0,1400,40)):
