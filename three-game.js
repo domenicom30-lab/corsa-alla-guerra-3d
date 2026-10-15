@@ -10,6 +10,7 @@ const stats=document.getElementById('stats');
 const points=document.getElementById('points');
 const hearts=document.getElementById('hearts');
 const credit=document.getElementById('victory-credit');
+message.style.pointerEvents='auto';
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x9aaca9);
 scene.fog=new THREE.Fog(0x9aaca9,26,116);
