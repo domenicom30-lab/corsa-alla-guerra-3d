@@ -7,7 +7,7 @@ export function createGameInterface({onPlay=()=>{},onRestart=()=>{},onAudio=()=>
  root.id='arcade-menu';root.setAttribute('role','dialog');root.setAttribute('aria-label','Menu di Corsa alla Guerra');
  root.className='arcade-menu';
  const panel=document.createElement('div');panel.className='arcade-menu-panel';
- const eyebrow=document.createElement('p');eyebrow.className='arcade-eyebrow';eyebrow.textContent='OPERAZIONE FERRO · BUILD 2.1';
+ const eyebrow=document.createElement('p');eyebrow.className='arcade-eyebrow';eyebrow.textContent='OPERAZIONE FERRO · BUILD 2.2';
  const title=document.createElement('h1');title.textContent='CORSA ALLA GUERRA';
  const subtitle=document.createElement('p');subtitle.className='arcade-menu-subtitle';
  const stats=document.createElement('p');stats.className='arcade-menu-stats';

@@ -1,3 +1,4 @@
+import {troopDimensions} from './arcade-proportions.js';
 import {drawRaster,spritePacksReady} from './sprite-loader.js';
 // Independently painted original enemy sprites: 4 silhouettes, 8 gait frames each.
 // Generated once off-screen to keep Android draw cost stable.
@@ -120,7 +121,7 @@ export function drawTroop(ctx,e,scroll,H,ground,phase){
 // A cached standing sprite rotates into a side-on 2D fall rather than disappearing.
 export function drawFallenTroop(ctx,fall,H){
  if(spritePacksReady()){
-  const w=H*(fall.type==='heavy'?.24:.196),h=H*(fall.type==='heavy'?.285:.255);
+  const {w,h}=troopDimensions(H,fall.type,false);
   ctx.save();ctx.globalAlpha=fall.fade;ctx.translate(fall.x,fall.y);ctx.rotate(fall.angle);ctx.scale(fall.dir||1,1);
   const painted=drawRaster(ctx,'enemies',fall.type,0,-w*.5,-h*.54,w,h);
   ctx.restore();return painted;

@@ -95,3 +95,9 @@ La build controlla l'identificativo all'interno del manifest Android e la firma 
 - La 2.1 è distribuita con ID Android `com.corsaguerra.arcadeprova21` per evitare conflitti con i certificati debug delle precedenti versioni di prova; l'APK mostra versionName 2.1.0.
 
 Questo non equivale a risorse illustrate a mano dello stesso livello qualitativo di un titolo commerciale. Va confrontato con screenshot reali su Samsung, intervenendo poi su animazioni ed effetti ancora troppo stilizzati.
+
+
+## v2.2 — Proporzioni arcade e cast originale rifinito
+La scala di eroe, quattro classi nemiche, carro utilizzabile e boss è centralizzata in `arcade-proportions.js`. Il corpo del protagonista visibile occupa circa il 28% dell'altezza di gioco; il soldato pesante è poco più alto, il boss più voluminoso. L'aspetto fa riferimento a proporzioni arcade esagerate, ma non include grafiche copiate dai giochi SNK. Sono stati aggiunti dettagli distintivi delle divise (elmetti, cicatrici del metallo, sciarpa, granate, pettorine), il puntamento direzionale reale degli sprite nemici e segnali visivi di preparazione del colpo, fiammate e danni. Il veicolo del giocatore rispetta la medesima scala anziché sembrare un giocattolo. Le collisioni rimangono calibrate come nella versione precedente.
+
+La versione mostra `v2.2` e usa l'identificativo `com.corsaguerra.arcadeprova22` per installarsi accanto alle prove precedenti. Nuovi test impediscono regressioni nelle proporzioni, nel ribaltamento degli sprite e nei segnali di sparo.

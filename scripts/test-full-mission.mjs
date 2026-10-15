@@ -48,5 +48,5 @@ assert.ok(troops.every(e=>e.alive),'Replay restores all troop waves');
 const main=readFileSync('main.js','utf8'),html=readFileSync('index.html','utf8');
 assert.ok(main.includes("distance>=200&&arcade.boss.defeated"),'Ending depends on 200m + boss defeat');
 assert.ok(main.includes("missionSeconds+=dt"),'Mission time tracked');
-assert.ok(html.includes('2D · v2.1'),'Installed APK can be identified onscreen');
+assert.ok(html.includes('2D · v2.2'),'Installed APK can be identified onscreen');
 console.log('PASS: playable four-stage 200m mission, all troop encounters, weapon drops, prisoners, final boss, ending and replay');

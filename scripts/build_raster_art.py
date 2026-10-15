@@ -303,6 +303,85 @@ def fx(im,kind,n,count):
             ell(d,(px-rad,py-rad,px+rad,py+rad),(79+i*2,81+i,75+i,160-int(120*progress)),None)
 
 
+
+def finish_enemy_art(im,kind,n):
+    """Unique rifleman/assault/grenadier/heavy pixel details and human expressions."""
+    d=ImageDraw.Draw(im,"RGBA")
+    rng=random.Random(7750+len(kind)*100+n*11)
+    stride=int(math.sin(n*math.pi/4)*19)
+    y=abs(int(math.sin(n*math.pi/4)*3))
+    heavy=kind=="heavy"
+    # Heavier helmet lip, pronounced brows, profile chin.
+    d.arc((81-(9 if heavy else 0),36+y,137+(9 if heavy else 0),71+y),
+          191,332,fill=(211,194,139,220),width=3)
+    d.line([(85,62+y),(132,59+y)],fill=(24,36,32,255),width=3)
+    d.line([(119,67+y),(134,69+y)],fill=(28,38,35,255),width=4)
+    d.line([(121,70+y),(128,70+y)],fill=(239,220,167,255),width=1)
+    d.line([(113,85+y),(131,88+y)],fill=(92,56,45,255),width=3)
+    for j in range(12):
+        xx=rng.randint(86,135); yy=rng.randint(42,55)+y
+        d.line([(xx,yy),(xx+rng.randint(-3,4),yy+1)],
+               fill=(25,33,30,160) if j%3 else (211,194,146,160),width=2)
+    # Coat collar and equipment embossing.
+    d.line([(78,79+y),(74,133+y)],fill=(21,38,32,255),width=4)
+    d.line([(82,79+y),(86,132+y)],fill=(188,194,150,180),width=2)
+    d.line([(133,83+y),(141,128+y)],fill=(20,34,30,230),width=3)
+    for j in range(5):d.line([(98+j*6,114+y),(100+j*6,117+y)],fill=(220,201,154,180),width=2)
+    for j in range(3):
+        xx=76+j*18
+        d.line([(xx+2,135+y),(xx+12,135+y)],fill=(171,165,115,255),width=2)
+    # Boots with leg-dependent crease animation.
+    for bx in (49-stride,119+stride):
+        d.line([(bx+4,187+y),(bx+33,187+y)],fill=(15,27,26,255),width=4)
+        d.line([(bx+6,191+y),(bx+33,191+y)],fill=(150,147,115,200),width=2)
+    if kind=="rifleman":
+        d.polygon([(94,82+y),(117,83+y),(110,92+y),(96,94+y)],fill=(154,72,52,255))
+        d.line([(105,88+y),(102,99+y)],fill=(218,122,82,255),width=4)
+    elif kind=="assault":
+        d.line([(91,80+y),(121,128+y)],fill=(193,188,130,230),width=6)
+        d.line([(92,80+y),(122,128+y)],fill=(34,57,47,220),width=2)
+        d.rectangle((69,88+y,84,100+y),fill=(152,171,96,255),outline=(22,44,34,255),width=2)
+    elif kind=="grenadier":
+        for j in range(3):
+            gx=79+j*18;gy=136+y
+            d.ellipse((gx,gy-3,gx+13,gy+15),fill=(51,67,45,255),outline=(25,39,32,255),width=2)
+            d.rectangle((gx+5,gy-7,gx+8,gy-2),fill=(177,168,128,255))
+    else:
+        for j in range(5):
+            gx=86+j*8;d.rectangle((gx,90+y,gx+5,97+y),fill=(155,173,163,255))
+        for j in range(7):
+            xx=159+j*7;d.line([(xx,96+y),(xx,111+y)],fill=(24,37,38,255),width=2)
+        d.line([(172,96+y),(205,96+y)],fill=(221,224,187,210),width=2)
+    for j in range(45):
+        xx=rng.randint(76,140);yy=rng.randint(100,143)+y
+        if 0<=yy<im.height and im.getpixel((xx,yy))[-1]>245:
+            d.point((xx,yy),fill=(10,29,30,125) if j%3 else (207,210,158,150))
+
+
+def finish_boss_art(im,n):
+    """Tank dents, roadwheel highlights, bevels and scuffed steel."""
+    d=ImageDraw.Draw(im,"RGBA")
+    rng=random.Random(277+n)
+    for j in range(24):
+        xx=48+j*10;yy=146+(j%4)*5
+        d.line([(xx,yy),(xx+7,yy)],fill=(29,43,39,255),width=2)
+        if j%2==0:d.point((xx+4,yy+3),fill=(206,188,134,255))
+    for j in range(6):
+        xx=57+j*38
+        d.arc((xx-11,189,xx+30,220),210,332,fill=(188,177,135,220),width=2)
+        d.arc((xx-10,189,xx+29,219),10,156,fill=(33,43,40,230),width=3)
+    for j in range(11):
+        x=rng.randint(70,254);y=rng.randint(103,151)
+        d.line([(x,y),(x+9,y+2)],fill=(29,44,39,230),width=2)
+    d.line([(116,98),(219,98)],fill=(190,202,164,190),width=2)
+    d.line([(99,140),(233,140)],fill=(19,33,32,255),width=4)
+    d.rectangle((60,160,83,166),fill=(128,143,109,255),outline=(31,45,42,255))
+    if n>=3:
+        for j in range(n+1):
+            x=90+j*27;y=113+j*9
+            d.line([(x,y),(x+19,y+5)],fill=(37,32,27,255),width=5)
+            d.line([(x+3,y-1),(x+9,y+1)],fill=(184,113,70,255),width=2)
+
 def paint_forest_v21(im, layer):
     """Hand-layered woodland: muted valley ridges, branching trunks, soft organic crowns.
     No stochastic rectangular speckles in the sky.
@@ -572,6 +651,10 @@ def write_atlas(rel,frames,fw,fh,fn,texture=True):
         fn(im,n)
         if rel.startswith('hero/'):
             hero_finishing(im,rel.split('/')[-1].replace('.png',''),n)
+        elif rel.startswith('enemies/'):
+            finish_enemy_art(im,rel.split('/')[-1].replace('.png',''),n)
+        elif rel.startswith('boss/'):
+            finish_boss_art(im,n)
         if texture and n%2==0:
             speckle(im,775+n*8,20)
         sheet.paste(im,(fw*n,0),im if False else None)

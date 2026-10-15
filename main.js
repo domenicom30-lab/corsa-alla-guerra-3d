@@ -1,5 +1,6 @@
 import {sprites,pixelBackdrop} from './pixel-art.js';
 import {loadSpritePacks,spritePacksReady,drawRaster,drawRasterBackground,spritePackError} from './sprite-loader.js';
+import {heroDimensions,troopDimensions,vehicleDimensions} from './arcade-proportions.js';
 import {createGameInterface} from './game-interface.js';
 import {prepareHeroFrames,drawHeroFrame} from './hero-animation.js';
 import {createArcadeSpectacle} from './arcade-spectacle.js';
@@ -128,7 +129,7 @@ function toggleRide(){
 }
 function drawRide(){
  const x=ride.x-scroll;if(x< -H*.55||x>W+H*.55)return;
- const u=H*.01,t=ride.occupied?runCycle*3:0;
+ const u=vehicleDimensions(H).h/19,t=ride.occupied?runCycle*3:0;
  ctx.save();ctx.translate(x,ground());ctx.imageSmoothingEnabled=false;
  const box=(x,y,w,h,c)=>{ctx.fillStyle=c;ctx.fillRect(x*u,y*u,w*u,h*u)};
  const dead=ride.hp<=0,steel=dead?'#443d39':'#525d4b',light=dead?'#66544a':'#89917a';
@@ -162,8 +163,15 @@ function ejectCasing(){
  casings.push({x:playerX()-facing*H*.025,y:ground()-jumpY-H*.19,vx:-facing*H*(.12+Math.random()*.09),vy:-H*(.16+Math.random()*.08),life:1.15});
 }
 function drawCasings(){
- ctx.fillStyle='#e9b75a';
- for(const c of casings)ctx.fillRect(c.x,c.y,Math.max(2,H*.009),Math.max(2,H*.004));
+ for(const c of casings){
+  const w=Math.max(3,H*.010),h=Math.max(2,H*.004);
+  ctx.save();ctx.translate(c.x,c.y);ctx.rotate((c.x+c.y)*.021);
+  ctx.fillStyle='#271f1a';ctx.fillRect(-w*.5,-h*.5,w,h);
+  ctx.fillStyle='#dfb965';ctx.fillRect(-w*.4,-h*.45,w*.8,h*.65);
+  ctx.fillStyle='#fff2bd';ctx.fillRect(-w*.37,-h*.4,w*.25,h*.19);
+  ctx.fillStyle='#82643b';ctx.fillRect(w*.3,-h*.5,w*.13,h);
+  ctx.restore();
+ }
 }
 function drawArcadeFlash(){
  if(hitFlash>0){ctx.save();ctx.globalAlpha=Math.min(.27,hitFlash*.75);ctx.fillStyle='#fff3cf';ctx.fillRect(0,0,W,H);ctx.restore()}
@@ -210,7 +218,7 @@ function background(){
  }
 }
 function drawPlayer(){
- const h=H*(isCrouching()?.205:.30),w=h*240/210,runFrame=jumpY>0?1:Math.floor(runCycle)%8;
+ const {h,w}=heroDimensions(H,isCrouching()),runFrame=jumpY>0?1:Math.floor(runCycle)%8;
  const x=playerX()-w*.5,y=ground()-jumpY-h;
  ctx.save();ctx.globalAlpha=.24*Math.max(.3,1-jumpY/H);ctx.fillStyle='#17150e';ctx.beginPath();ctx.ellipse(playerX(),ground()+H*.006,w*.4,H*.012,0,0,Math.PI*2);ctx.fill();ctx.restore();
  const moving=Math.abs(horizontalSpeed)>SPEED*.09;
@@ -232,7 +240,37 @@ function drawTicks(){
  if(x<-w||x>W+w)continue;ctx.imageSmoothingEnabled=false;ctx.save();ctx.globalAlpha=.25;ctx.fillStyle='#201910';ctx.beginPath();ctx.ellipse(x,ground()+H*.006,w*.48,H*.009,0,0,Math.PI*2);ctx.fill();ctx.restore();drawEnemyFrame(ctx,Math.floor(phase*1.4+t.phase)%8,x-w*.5,y-h*.5,w,h);
  }
 }
-function drawSentries(){for(const e of sentries){if(!e.alive)continue;const x=e.x-scroll;if(x<-H*.32||x>W+H*.32)continue;const facingPlayer=e.x>scroll+playerX()?-1:1;const h=H*(e.stance==='crouch'?.18:e.type==='heavy'?.28:.25),w=h*240/210;drawRaster(ctx,'enemies',e.type,Math.floor(e.walk+(e.vx?0:phase*.25)+e.phase)%8,x-w*.5,ground()-h,w,h);}}
+function drawSentries(){
+ for(const e of sentries){
+  if(!e.alive)continue;
+  const x=e.x-scroll;if(x<-H*.48||x>W+H*.48)continue;
+  const facingPlayer=e.x>scroll+playerX()?-1:1;
+  const {h,w}=troopDimensions(H,e.type,e.stance==='crouch');
+  ctx.save();ctx.translate(x,0);
+  if(facingPlayer<0)ctx.scale(-1,1);
+  if(e.flinch>0){ctx.shadowColor='#fff4ca';ctx.shadowBlur=H*.015}
+  drawRaster(ctx,'enemies',e.type,Math.floor(e.walk+(e.vx?0:phase*.25)+e.phase)%8,-w*.5,ground()-h,w,h);
+  ctx.restore();
+  if(e.windup>0){
+   const p=Math.min(1,e.windup/(e.type==='grenadier'?.58:e.type==='heavy'?.46:.29));
+   ctx.save();ctx.globalAlpha=.65+Math.sin(phase*.65)*.3;
+   ctx.fillStyle='#211d1b';ctx.fillRect(x-H*.030,ground()-h-H*.034,H*.06,H*.014);
+   ctx.fillStyle=e.type==='heavy'?'#fa8443':'#ffe5a3';
+   ctx.fillRect(x-H*.028,ground()-h-H*.031,H*.056*(1-p),H*.009);
+   ctx.restore();
+  }
+  if(e.fireFlash>0){const flash=H*(.038+e.fireFlash*.09),mx=x+facingPlayer*w*.33,my=ground()-h*.49;
+   ctx.save();ctx.globalAlpha=Math.min(1,e.fireFlash*10);
+   ctx.translate(mx,my);if(facingPlayer<0)ctx.scale(-1,1);
+   drawRaster(ctx,'fx','muzzle',Math.floor(phase*.66)%6,0,-flash*.5,flash*1.7,flash);
+   ctx.restore()
+  }
+  if(e.maxHp>1&&e.hp>0&&e.hp<e.maxHp){
+   ctx.fillStyle='#232c2a';ctx.fillRect(x-H*.029,ground()-h-H*.047,H*.058,H*.006);
+   ctx.fillStyle='#d6b374';ctx.fillRect(x-H*.029,ground()-h-H*.047,H*.058*e.hp/e.maxHp,H*.006);
+  }
+ }
+}
 function drawBullets(){
  for(const b of bullets){
   if(b.kind==='rocket'){drawRocketProjectile(ctx,b,H,phase);continue}
