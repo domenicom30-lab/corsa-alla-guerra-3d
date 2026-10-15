@@ -57,7 +57,7 @@ function hud(){document.getElementById('points').textContent='PUNTI: '+score;doc
 function update(dt){
  if(!running||paused)return;
  const direction=Number(movement.right)-Number(movement.left);
- const advance=SPEED*dt*(direction===0?1:direction);
+ const advance=SPEED*dt*direction;
  scroll=Math.max(0,scroll+advance);distance=Math.max(0,distance+advance/50);phase+=dt*15;
  shotCooldown=Math.max(0,shotCooldown-dt);muzzleFlash=Math.max(0,muzzleFlash-dt);if(fireHeld&&shotCooldown===0)shoot();
  for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=400*dt;p.life-=dt;if(p.life<=0)particles.splice(i,1)}
@@ -73,11 +73,11 @@ function frame(t){const dt=Math.min((t-last)/1000||0,.05);last=t;update(dt);back
 function start(){running=true;paused=false;score=0;health=3;distance=0;scroll=0;vy=0;jumpY=0;duckTime=0;phase=0;invulnerable=0;shotCooldown=0;muzzleFlash=0;fireHeld=false;bullets.length=0;particles.length=0;ticks.forEach(t=>t.alive=true);obstacles.forEach(o=>o.hit=false);movement.left=false;movement.right=false;message.style.display='none';hud()}
 function jump(){if(!running){start();return}if(!paused&&jumpY===0){vy=H*1.13;duckTime=0}}
 function duck(){if(!running){start();return}if(!paused)duckTime=.7}
-function move(direction){if(!running)start();if(!paused){scroll=Math.max(0,scroll+direction*H*.035);distance=Math.max(0,distance+direction*.08)}}
 function pause(){if(!running)return;paused=!paused;message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display=paused?'block':'none'}
 for(const [id,fn] of [['jump',jump],['duck',duck],['pause',pause]])document.getElementById(id).addEventListener('pointerdown',e=>{e.preventDefault();fn()});
 for(const id of ['left','right']){const el=document.getElementById(id);el.addEventListener('pointerdown',e=>{e.preventDefault();el.setPointerCapture(e.pointerId);if(!running)start();movement[id]=true});for(const type of ['pointerup','pointercancel','lostpointercapture'])el.addEventListener(type,()=>movement[id]=false)}
-const fireButton=document.getElementById('shoot');fireButton.addEventListener('pointerdown',e=>{e.preventDefault();fireHeld=true;shoot()});for(const event of ['pointerup','pointercancel','pointerleave'])fireButton.addEventListener(event,()=>fireHeld=false);
+const fireButton=document.getElementById('shoot');fireButton.addEventListener('pointerdown',e=>{e.preventDefault();fireHeld=true;fireButton.setPointerCapture(e.pointerId);shoot()});for(const event of ['pointerup','pointercancel','pointerleave','lostpointercapture'])fireButton.addEventListener(event,()=>fireHeld=false);
+addEventListener('blur',()=>{movement.left=false;movement.right=false;fireHeld=false});
 message.addEventListener('pointerdown',()=>{if(paused)pause();else start()});canvas.addEventListener('pointerdown',()=>{if(!running)start()});
 addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='a')movement.left=true;if(e.key==='ArrowRight'||e.key==='d')movement.right=true;if(e.key==='ArrowUp'||e.key===' ')jump();if(e.key==='ArrowDown')duck();if(e.key==='Escape')pause();if(e.key==='f'||e.key==='Control')shoot()});
 addEventListener('keyup',e=>{if(e.key==='ArrowLeft'||e.key==='a')movement.left=false;if(e.key==='ArrowRight'||e.key==='d')movement.right=false});
