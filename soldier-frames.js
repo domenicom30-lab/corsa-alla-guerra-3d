@@ -172,7 +172,7 @@ export function drawSoldierFrame(ctx,pose,frame,x,y,w,h){if(drawExternalSoldierF
 // CC0 drakzlin 32x32 sprite sheet (downloaded at build time).
 // Source: https://opengameart.org/content/space-soldier-sprite-sheet-32x32
 let externalSheet=null;
-const externalRows={idle:0,run:2,jump:3,fire:4,duck:5};
+const externalRows={idle:0,run:3,jump:2,fire:5,duck:4};
 const externalCounts={idle:4,run:8,jump:8,fire:8,duck:8};
 export function loadExternalSoldier(){
  const image=new Image();image.onload=()=>{if(image.naturalWidth>=256&&image.naturalHeight>=192)externalSheet=image};
