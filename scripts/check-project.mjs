@@ -25,6 +25,7 @@ const checks = [
  ['Esplosione pixel a otto stadi',()=>{for(const token of ['Math.min(7,Math.floor(progress*8))','if(frame<6)','ctx.fillRect(Math.round(e.x-core*.5)'])assert.ok(main.includes(token),token)}],
  ['Distruzione pixel dei nemici',()=>{for(const token of ['const enemyDebris=[]','function shatterEnemy(','function drawEnemyDebris()','drawEnemyDebris();','enemyDebris.length=0'])assert.ok(main.includes(token),token)}],
  ['Autofire touch e stop dopo danno fatale',()=>{for(const token of ['if(!running)start();fireHeld=true','if(!running){hud();return}'])assert.ok(main.includes(token),token)}],
+ ['Sospensione sicura su Android',()=>{for(const token of ["document.addEventListener('visibilitychange'",'if(!visible){last=t;requestAnimationFrame(frame);return}','const dt=Math.min(last?(t-last)/1000:0,.05)'])assert.ok(main.includes(token),token)}],
  ['Prestazioni mobile',()=>{assert.ok(main.includes('devicePixelRatio'));assert.ok(main.includes('requestAnimationFrame(frame)'))}],
  ['Build configurata',()=>assert.ok(pkg.scripts.build)]
 ];
