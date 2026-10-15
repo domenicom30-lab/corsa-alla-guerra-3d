@@ -44,22 +44,35 @@ jobs:
       - name: Import 2D artwork from ZIP packages
         run: python3 scripts/import_2d_assets.py
 
-      - name: Fetch CC0 animated soldier sprite sheet
+      - name: Fetch optional CC0 soldier sprite sheet (non-blocking)
         shell: bash
         run: |
           mkdir -p public/assets/arcade
-          curl --fail --location --retry 4 --retry-delay 3 --connect-timeout 15 --max-time 90 \
-            'https://opengameart.org/sites/default/files/all_sprites.png' \
-            -o public/assets/arcade/space-soldier-cc0.png
-          python3 - <<'PY'
+          tmp="$(mktemp)"
+          if curl --fail --location --retry 2 --retry-delay 2 --connect-timeout 12 --max-time 45 \\
+            'https://opengameart.org/sites/default/files/all_sprites.png' -o "$tmp"; then
+            if python3 - "$tmp" <<'PY'
+          import sys,struct
           from pathlib import Path
-          import struct
-          p=Path('public/assets/arcade/space-soldier-cc0.png')
-          data=p.read_bytes()
-          assert data[:8]==b'\\x89PNG\\r\\n\\x1a\\n', 'Asset is not a PNG'
-          w,h=struct.unpack('>II',data[16:24]);assert w>=256 and h>=192,(w,h)
-          print('CC0 soldier integrated:',w,h,len(data),'bytes')
+          data=Path(sys.argv[1]).read_bytes()
+          if data[:8]!=bytes.fromhex('89504e470d0a1a0a'):
+              print('Remote asset is not a PNG; keeping bundled procedural soldier.')
+              sys.exit(1)
+          w,h=struct.unpack('>II',data[16:24])
+          if w<256 or h<192:
+              print('Remote sprite dimensions unsupported:',w,h)
+              sys.exit(1)
+          print('Validated optional CC0 soldier:',w,h)
           PY
+            then
+              cp "$tmp" public/assets/arcade/space-soldier-cc0.png
+            else
+              echo "::warning::External sprite unavailable or invalid; using procedural soldier."
+            fi
+          else
+            echo "::warning::External sprite download failed; using procedural soldier."
+          fi
+          rm -f "$tmp"
 
       - name: Validate pure 2D gameplay
         run: npm run check
