@@ -24,6 +24,7 @@ const checks = [
  ['Nemici animati in otto fotogrammi',()=>{const enemy=readFileSync('enemy-frames.js','utf8');for(const token of ['prepareEnemyFrames','drawEnemyFrame','i<8'])assert.ok(enemy.includes(token),token);for(const token of ["from './enemy-frames.js'",'prepareEnemyFrames();','drawEnemyFrame(ctx,'])assert.ok(main.includes(token),token)}],
  ['Esplosione pixel a otto stadi',()=>{for(const token of ['Math.min(7,Math.floor(progress*8))','if(frame<6)','ctx.fillRect(Math.round(e.x-core*.5)'])assert.ok(main.includes(token),token)}],
  ['Distruzione pixel dei nemici',()=>{for(const token of ['const enemyDebris=[]','function shatterEnemy(','function drawEnemyDebris()','drawEnemyDebris();','enemyDebris.length=0'])assert.ok(main.includes(token),token)}],
+ ['Autofire touch e stop dopo danno fatale',()=>{for(const token of ['if(!running)start();fireHeld=true','if(!running){hud();return}'])assert.ok(main.includes(token),token)}],
  ['Prestazioni mobile',()=>{assert.ok(main.includes('devicePixelRatio'));assert.ok(main.includes('requestAnimationFrame(frame)'))}],
  ['Build configurata',()=>assert.ok(pkg.scripts.build)]
 ];
