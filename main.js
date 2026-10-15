@@ -57,7 +57,7 @@ function drawTicks(){
  if(x<-w||x>W+w)continue;ctx.imageSmoothingEnabled=false;const sheet=arcadeArt.tick;const frame=Math.floor(phase*.9+t.phase)%4;if(sheet){const fw=sheet.width/4;ctx.drawImage(sheet,frame*fw,0,fw,sheet.height,x-w*.5,y-h*.5,w,h)}else ctx.drawImage(sprites.tick[frame],x-w*.5,y-h*.5,w,h);
  }
 }
-function drawBullets(){for(const b of bullets){ctx.fillStyle='#ffeeb0';ctx.fillRect(b.x,b.y,Math.max(12,H*.032),Math.max(3,H*.006));ctx.fillStyle='#e87d28';ctx.fillRect(b.x-5,b.y+1,Math.max(5,H*.012),Math.max(2,H*.004))}}
+function drawBullets(){for(const b of bullets){ctx.fillStyle='#ffeeb0';ctx.fillRect(b.x,b.y,Math.max(12,H*.032)*Math.sign(b.vx),Math.max(3,H*.006));ctx.fillStyle='#e87d28';ctx.fillRect(b.x-5,b.y+1,Math.max(5,H*.012)*Math.sign(b.vx),Math.max(2,H*.004))}}
 function burst(x,y){for(let i=0;i<13;i++){const angle=i*Math.PI*2/13;particles.push({x,y,vx:Math.cos(angle)*(80+i*9),vy:Math.sin(angle)*(80+i*7)-60,life:.38+i*.012,color:i%3===0?'#ffdc6b':i%3===1?'#ee5828':'#aa181b'})}}
 function drawParticles(){for(const p of particles){ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,Math.max(3,H*.007),Math.max(3,H*.007))}}
 function shoot(){if(!running){start();return}if(paused||shotCooldown>0)return;shotCooldown=arcade.weapon==='heavy'?.09:.17;muzzleFlash=.07;bullets.push(...arcade.fire(playerX()+facing*H*.12,ground()-jumpY-H*(duckTime>0?.12:.21),facing,Math.max(550,W*.8)))}
