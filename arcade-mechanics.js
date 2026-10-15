@@ -45,7 +45,7 @@ export function createArcadeSystems(){
    if(boss.cooldown<=0&&Math.abs(dx)<H*2.5&&enemyShots.length<=21){
     boss.cooldown=boss.hp<boss.maxHp*.4?1.45:3;boss.recoil=1;screenShake=Math.min(12,screenShake+6);
     const dirX=Math.cos(boss.turretAngle),dirY=Math.sin(boss.turretAngle);
-    enemyShots.push({x:boss.x-scroll+dirX*H*.43,y:turretY+dirY*H*.43,vx:dirX*H*.85,vy:dirY*H*.85,life:3});
+    for(const spread of (boss.hp<boss.maxHp*.4?[-.18,0,.18]:[0])){const angle=boss.turretAngle+spread;enemyShots.push({x:boss.x-scroll+Math.cos(angle)*H*.43,y:turretY+Math.sin(angle)*H*.43,vx:Math.cos(angle)*H*.85,vy:Math.sin(angle)*H*.85,life:3})}
     boss.velocity-=dirX*H*.045;
    }
    }
