@@ -70,12 +70,14 @@ function update(dt){
  if(!running||paused)return;
  const direction=Number(movement.right)-Number(movement.left);
  const advance=SPEED*dt*direction;
- scroll=Math.max(0,Math.min(10000,scroll+advance));distance=scroll/50;phase+=dt*15;if(direction!==0)facing=direction;
+ const previousScroll=scroll;
+ scroll=Math.max(0,Math.min(10000,scroll+advance));
+ const cameraDelta=scroll-previousScroll;distance=scroll/50;phase+=dt*15;if(direction!==0)facing=direction;
  const collected=arcade.collect(scroll+playerX(),jumpY,ground(),H);if(collected==='health')health=Math.min(3,health+1);
- arcade.step(dt,scroll,playerX(),ground(),H,damage,explosion);
+ arcade.step(dt,scroll,playerX(),ground(),H,damage,explosion,cameraDelta);
  shotCooldown=Math.max(0,shotCooldown-dt);muzzleFlash=Math.max(0,muzzleFlash-dt);if(fireHeld&&shotCooldown===0)shoot();
- for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=400*dt;p.life-=dt;if(p.life<=0)particles.splice(i,1)}
- for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;let hit=false;for(const t of ticks){const x=t.x-scroll;if(t.alive&&Math.abs(b.x-x)<H*.055&&Math.abs(b.y-(ground()-H*.055))<H*.145){t.alive=false;score+=arcade.kill();burst(x,ground()-H*.07);hit=true;break}}if(!hit&&arcade.boss.active&&!arcade.boss.defeated&&Math.abs(b.x-(arcade.boss.x-scroll))<H*.27&&Math.abs(b.y-(ground()-H*.3))<H*.25){arcade.boss.hp-=b.damage;hit=true;burst(b.x,b.y);if(arcade.boss.hp<=0){arcade.boss.defeated=true;score+=3000;explosion(arcade.boss.x-scroll,ground()-H*.25,H*.4)}}if(hit||b.life<=0||b.x>W+40||b.x< -40)bullets.splice(i,1)}
+ for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt-cameraDelta;p.y+=p.vy*dt;p.vy+=400*dt;p.life-=dt;if(p.life<=0)particles.splice(i,1)}
+ for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];b.x+=b.vx*dt-cameraDelta;b.y+=b.vy*dt;b.life-=dt;let hit=false;for(const t of ticks){const x=t.x-scroll;if(t.alive&&Math.abs(b.x-x)<H*.055&&Math.abs(b.y-(ground()-H*.055))<H*.145){t.alive=false;score+=arcade.kill();burst(x,ground()-H*.07);hit=true;break}}if(!hit&&arcade.boss.active&&!arcade.boss.defeated&&Math.abs(b.x-(arcade.boss.x-scroll))<H*.27&&Math.abs(b.y-(ground()-H*.3))<H*.25){arcade.boss.hp-=b.damage;hit=true;burst(b.x,b.y);if(arcade.boss.hp<=0){arcade.boss.defeated=true;score+=3000;explosion(arcade.boss.x-scroll,ground()-H*.25,H*.4)}}if(hit||b.life<=0||b.x>W+40||b.x< -40)bullets.splice(i,1)}
  for(const t of ticks){const x=t.x-scroll;if(t.alive&&invulnerable===0&&Math.abs(x-playerX())<H*.075&&jumpY<H*.09){t.alive=false;damage()}}
  if(duckTime>0)duckTime=Math.max(0,duckTime-dt);
  if(invulnerable>0)invulnerable=Math.max(0,invulnerable-dt);
