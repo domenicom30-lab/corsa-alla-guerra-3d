@@ -2,10 +2,13 @@
 export function createArcadeSystems(){
  const pickups=Array.from({length:8},(_,i)=>({x:1400+i*2100,type:i%3===0?'spread':i%3===1?'heavy':'health',taken:false}));
  const grenades=[],enemyShots=[];
+ const covers=[2350,5750,8850].map(x=>({x,hp:100}));
+ const prisoners=[1750,4850,7950].map(x=>({x,rescued:false}));
  const boss={x:9600,hp:28,maxHp:28,active:false,defeated:false,cooldown:1.3,velocity:0,turretAngle:0,recoil:0,treadDistance:0};
  let weapon='normal',ammo=Infinity,grenadeCount=8,combo=0,comboTimer=0,screenShake=0;
- const reset=()=>{weapon='normal';ammo=Infinity;grenadeCount=8;combo=0;comboTimer=0;screenShake=0;grenades.length=0;enemyShots.length=0;pickups.forEach(p=>p.taken=false);Object.assign(boss,{hp:28,active:false,defeated:false,cooldown:1.3,velocity:0,turretAngle:0,recoil:0,treadDistance:0})};
+ const reset=()=>{weapon='normal';ammo=Infinity;grenadeCount=8;combo=0;comboTimer=0;screenShake=0;grenades.length=0;enemyShots.length=0;pickups.forEach(p=>p.taken=false);covers.forEach(c=>c.hp=100);prisoners.forEach(p=>p.rescued=false);Object.assign(boss,{hp:28,active:false,defeated:false,cooldown:1.3,velocity:0,turretAngle:0,recoil:0,treadDistance:0})};
  const collect=(worldX,jump,ground,H)=>{let reward=null;for(const p of pickups){if(p.taken||Math.abs(p.x-worldX)>H*.12||jump>H*.18)continue;p.taken=true;reward=p.type;if(p.type==='health'){}else{weapon=p.type;ammo=p.type==='spread'?100:160}}return reward};
+ const rescue=(worldX,jump,H)=>{let n=0;for(const p of prisoners)if(!p.rescued&&Math.abs(p.x-worldX)<H*.12&&jump<H*.2){p.rescued=true;n++}return n};
  const fire=(x,y,direction,speed)=>{if(ammo<=0){weapon='normal';ammo=Infinity}const pattern=weapon==='spread'?[-.14,0,.14]:[0];const shots=pattern.map(a=>({x,y,vx:direction*speed,vy:a*speed,damage:weapon==='heavy'?2:1,life:1.8,kind:weapon}));if(Number.isFinite(ammo)){ammo--;if(ammo<=0){weapon='normal';ammo=Infinity}}return shots};
  const throwGrenade=(x,y,direction,H)=>{if(grenadeCount<=0)return false;grenadeCount--;grenades.push({x,y,vx:direction*H*1.2,vy:-H*.9,fuse:.9,life:1.5});return true};
  const kill=()=>{combo++;comboTimer=3;screenShake=Math.min(12,screenShake+3);return 100+Math.min(combo,15)*20};
@@ -41,9 +44,11 @@ export function createArcadeSystems(){
    }
   }
   for(let i=enemyShots.length-1;i>=0;i--){const b=enemyShots[i];b.x+=b.vx*dt-cameraDelta;b.y+=b.vy*dt;b.life-=dt;if(Math.abs(b.x-playerX)<H*.065&&Math.abs(b.y-(ground-H*.18))<H*.16){onDamage();enemyShots.splice(i,1)}else if(b.life<=0)enemyShots.splice(i,1)}
-  for(let i=grenades.length-1;i>=0;i--){const g=grenades[i];g.x+=g.vx*dt-cameraDelta;g.y+=g.vy*dt;g.vy+=H*2.4*dt;g.fuse-=dt;if(g.y>ground-H*.02){g.y=ground-H*.02;g.vy*=-.35;g.vx*=.8}if(g.fuse<=0){onExplosion(g.x,g.y,H*.35);screenShake=14;grenades.splice(i,1)}}
+  for(let i=grenades.length-1;i>=0;i--){const g=grenades[i];g.x+=g.vx*dt-cameraDelta;g.y+=g.vy*dt;g.vy+=H*2.4*dt;g.fuse-=dt;if(g.y>ground-H*.02){g.y=ground-H*.02;g.vy*=-.35;g.vx*=.8}if(g.fuse<=0){for(const c of covers)if(Math.abs(c.x-(scroll+g.x))<H*.4)c.hp=Math.max(0,c.hp-50);onExplosion(g.x,g.y,H*.35);screenShake=14;grenades.splice(i,1)}}
  };
  const draw=(ctx,scroll,ground,H,phase)=>{
+  for(const c of covers){if(c.hp<=0)continue;const x=c.x-scroll;if(x< -H*.2||x>ctx.canvas.width+H*.2)continue;ctx.fillStyle=c.hp>50?'#796548':'#56483a';ctx.fillRect(x-H*.08,ground-H*.13,H*.16,H*.13);ctx.strokeStyle='#bca77c';for(let row=0;row<3;row++)ctx.strokeRect(x-H*.08,ground-H*(.13-row*.04),H*.16,H*.04)}
+  for(const p of prisoners){if(p.rescued)continue;const x=p.x-scroll;if(x< -H*.2||x>ctx.canvas.width+H*.2)continue;ctx.fillStyle='#c4ad6d';ctx.fillRect(x-H*.03,ground-H*.13,H*.06,H*.1);ctx.fillStyle='#e3bb8c';ctx.fillRect(x-H*.03,ground-H*.17,H*.06,H*.05)}
   for(const p of pickups){if(p.taken)continue;const x=p.x-scroll;if(x< -80||x>(ctx.canvas.clientWidth||ctx.canvas.width)+80)continue;const y=ground-H*.18+Math.sin(phase*.12)*H*.013;ctx.save();ctx.translate(x,y);ctx.fillStyle=p.type==='health'?'#c63e42':p.type==='spread'?'#d9b64e':'#6cba96';ctx.fillRect(-H*.035,-H*.035,H*.07,H*.07);ctx.strokeStyle='#fff5d4';ctx.lineWidth=2;ctx.strokeRect(-H*.035,-H*.035,H*.07,H*.07);ctx.fillStyle='#171d19';ctx.font='bold '+Math.max(11,H*.042)+'px monospace';ctx.textAlign='center';ctx.fillText(p.type==='health'?'+':p.type==='spread'?'S':'H',0,H*.015);ctx.restore()}
   for(const g of grenades){ctx.fillStyle='#313e30';ctx.beginPath();ctx.arc(g.x,g.y,H*.02,0,Math.PI*2);ctx.fill();ctx.fillStyle='#e2c06d';ctx.fillRect(g.x-2,g.y-H*.03,4,5)}
   for(const b of enemyShots){ctx.fillStyle='#ff5d3d';ctx.fillRect(b.x-5,b.y-3,10,6)}
@@ -129,5 +134,5 @@ export function createArcadeSystems(){
    ctx.restore();
   }
  };
- return {pickups,grenades,enemyShots,boss,reset,collect,fire,throwGrenade,kill,step,draw,get weapon(){return weapon},get ammo(){return ammo},get grenadeCount(){return grenadeCount},get combo(){return combo},get screenShake(){return screenShake},set screenShake(value){screenShake=Number.isFinite(value)?Math.max(0,value):0}};
+ return {pickups,grenades,enemyShots,covers,prisoners,boss,reset,collect,rescue,fire,throwGrenade,kill,step,draw,get weapon(){return weapon},get ammo(){return ammo},get grenadeCount(){return grenadeCount},get combo(){return combo},get screenShake(){return screenShake},set screenShake(value){screenShake=Number.isFinite(value)?Math.max(0,value):0}};
 }
