@@ -71,7 +71,7 @@ function drawObstacles(){
 }
 function drawTicks(){
  for(const t of ticks){if(!t.alive)continue;const x=t.x-scroll,y=ground()-H*.065+Math.sin(phase*1.7+t.phase)*H*.006,w=H*.095,h=H*.078;
- if(x<-w||x>W+w)continue;ctx.imageSmoothingEnabled=false;const sheet=arcadeArt.tick;const frame=Math.floor(phase*.9+t.phase)%4;drawEnemyFrame(ctx,Math.floor(phase*1.4+t.phase)%8,x-w*.5,y-h*.5,w,h);
+ if(x<-w||x>W+w)continue;ctx.imageSmoothingEnabled=false;ctx.save();ctx.globalAlpha=.25;ctx.fillStyle='#201910';ctx.beginPath();ctx.ellipse(x,ground()+H*.006,w*.48,H*.009,0,0,Math.PI*2);ctx.fill();ctx.restore();drawEnemyFrame(ctx,Math.floor(phase*1.4+t.phase)%8,x-w*.5,y-h*.5,w,h);
  }
 }
 function drawBullets(){for(const b of bullets){const dir=Math.sign(b.vx)||1;const len=Math.max(12,H*.032),tail=b.x-dir*len*.9,thick=Math.max(3,H*.006);ctx.fillStyle=b.kind==='heavy'?'#245e7b':'#8c4b2c';ctx.fillRect(tail-dir*len*.45,b.y+thick*.2,len*.55,thick*.65);ctx.fillStyle=b.kind==='heavy'?'#a9e9ff':'#ffeeb0';ctx.fillRect(b.x-(dir<0?len:0),b.y,len,thick);ctx.fillStyle=b.kind==='heavy'?'#e7ffff':'#fff8d1';ctx.fillRect(b.x-dir*len*.18,b.y,Math.max(3,len*.3),Math.max(2,thick*.55));ctx.fillStyle='#e87d28';ctx.fillRect(b.x-dir*5-(dir<0?len*.45:0),b.y+1,Math.max(5,H*.012),Math.max(2,H*.004))}}
