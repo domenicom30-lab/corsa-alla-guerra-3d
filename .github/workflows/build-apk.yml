@@ -46,6 +46,10 @@ jobs:
       - name: Import verified CC0 PBR terrain textures
         run: python3 scripts/download_pbr.py Ground054 Ground037
 
+      - name: Import scanned CC0 forest vegetation
+        continue-on-error: true
+        run: python3 scripts/import_polyhaven_fern.py
+
       - name: Build web game
         run: npm run build
 
