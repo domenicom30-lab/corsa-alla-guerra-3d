@@ -11,8 +11,8 @@ const checks = [
       assert.ok(html.includes('id="' + id + '"') || html.includes("id='" + id + "'"), 'Elemento mancante: ' + id);
     }
   }],
-  ['Modello soldato presente', () => assert.ok(existsSync('public/models/Soldier.glb'), 'Soldier.glb mancante')],
-  ['Caricamento GLB', () => assert.ok(main.includes('./models/Soldier.glb'))],
+  ['Modello soldato presente', () => assert.ok(existsSync('public/models/ww2_panzergrenadier_2k_cc0-optimized.glb'), 'ww2_panzergrenadier_2k_cc0-optimized.glb mancante')],
+  ['Caricamento GLB', () => assert.ok(main.includes('./models/ww2_panzergrenadier_2k_cc0-optimized.glb'))],
   ['Animazioni e movimento', () => {
     for (const token of ['GLTFLoader', 'soldierMixer', 'function jump()', 'function move(']) assert.ok(main.includes(token), token);
   }],
