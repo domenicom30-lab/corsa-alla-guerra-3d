@@ -24,3 +24,8 @@
 .control-group .grenade-button{border-color:#d7ba70;background:radial-gradient(circle at 50% 20%,#596542c8,#1a241ddc)}
 .control-group .grenade-button:active{background:#788748}
 @media(max-width:850px){.control-group{gap:clamp(4px,1vw,10px)}.control-group button{width:clamp(48px,7.6vw,88px);height:clamp(48px,7.6vw,88px);padding:8%}}
+
+/* Final victory typography: separate title, replay cue and small credit on landscape phones. */
+#message.victory-message{top:22%;left:10%;width:80%;padding:clamp(10px,2vh,24px);font-size:clamp(20px,3.8vw,48px);line-height:1.45;color:#ffe4a1;text-shadow:0 3px 0 #6e3223,0 6px 12px #000;white-space:pre-line;background:linear-gradient(90deg,transparent,#101819b8 15%,#101819b8 85%,transparent)}
+#victory-credit{top:calc(22% + clamp(20px,3.8vw,48px)*3.3);font-size:clamp(10px,1.25vw,15px);color:#e9dfcb}
+@media(max-height:450px){#message.victory-message{top:18%;font-size:clamp(18px,3.3vw,35px);line-height:1.35}#victory-credit{top:calc(18% + clamp(18px,3.3vw,35px)*3.1)}}
