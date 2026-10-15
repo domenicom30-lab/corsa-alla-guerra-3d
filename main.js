@@ -773,7 +773,7 @@ let soldierActiveAction = null;
 const loader = new GLTFLoader();
 
 loader.load(
-  './models/Soldier.glb',
+  './models/ww2_panzergrenadier_2k_cc0-optimized.glb',
   (gltf) => {
     const soldier = gltf.scene;
 
@@ -789,7 +789,6 @@ loader.load(
       for (const material of materials) {
         if (!material) continue;
         if (material.isMeshStandardMaterial || material.isMeshPhysicalMaterial) {
-          material.envMapIntensity = 0.8;
           // Preserva le texture e i colori PBR originali dell'asset.
           // Non moltiplicare i colori: i materiali del GLB sono già calibrati.
           material.envMapIntensity = 1.0;
@@ -860,13 +859,13 @@ loader.load(
   },
   undefined,
   (error) => {
-    console.error('Errore caricamento Soldier.glb:', error);
+    console.error('Errore caricamento Panzergrenadier:', error);
     message.textContent = 'ERRORE NEL CARICAMENTO DEL SOLDATO';
   }
 );
 
 
-// Il modello Soldier.glb sostituisce il vecchio soldato costruito con cubi.
+// Il modello Panzergrenadier storico sostituisce il vecchio soldato costruito con cubi.
 
 // Materiale tela dei sacchi con dettaglio superficiale procedurale.
 // Un futuro set PBR locale potrà sostituirlo senza cambiare la geometria.
