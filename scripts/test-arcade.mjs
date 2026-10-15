@@ -37,4 +37,13 @@ a.step(.01,25,100,400,500,()=>{},()=>{},25);
 assert.ok(a.grenades[0].x<100,'Grenade must shift with camera');
 a.reset();
 assert.equal(typeof a.draw,'function','Boss and pickup renderer must exist');
+
+a.reset();
+a.step(.02,8500,1000,400,500,()=>{},()=>{});
+for(let i=0;i<150;i++)a.step(1.2,0,100,400,500,()=>{},()=>{});
+assert.equal(a.enemyShots.length,0,'Offscreen boss must not spawn projectiles');
+a.reset();
+a.step(.02,8500,1000,400,500,()=>{},()=>{});
+for(let i=0;i<150;i++)a.step(1.2,8500,1000,400,500,()=>{},()=>{});
+assert.ok(a.enemyShots.length<=24,'Boss projectiles must stay bounded');
 console.log('PASS: arcade combat, grenades, pickups, weapons, combo, reset and boss');
