@@ -9,6 +9,7 @@ export function createArcadeSystems(){
  const reset=()=>{weapon='normal';ammo=Infinity;grenadeCount=8;combo=0;comboTimer=0;screenShake=0;grenades.length=0;enemyShots.length=0;pickups.forEach(p=>p.taken=false);covers.forEach(c=>c.hp=100);prisoners.forEach(p=>p.rescued=false);Object.assign(boss,{hp:28,active:false,defeated:false,cooldown:1.3,velocity:0,turretAngle:0,recoil:0,treadDistance:0})};
  const collect=(worldX,jump,ground,H)=>{let reward=null;for(const p of pickups){if(p.taken||Math.abs(p.x-worldX)>H*.12||jump>H*.18)continue;p.taken=true;reward=p.type;if(p.type==='health'){}else{weapon=p.type;ammo=p.type==='spread'?100:160}}return reward};
  const rescue=(worldX,jump,H)=>{let n=0;for(const p of prisoners)if(!p.rescued&&Math.abs(p.x-worldX)<H*.12&&jump<H*.2){p.rescued=true;n++}return n};
+ const hitCover=(worldX,y,ground,H,damage=10)=>{if(y<ground-H*.15||y>ground+H*.02)return false;for(const c of covers){if(c.hp>0&&Math.abs(c.x-worldX)<H*.09){c.hp=Math.max(0,c.hp-damage);return true}}return false};
  const fire=(x,y,direction,speed)=>{if(ammo<=0){weapon='normal';ammo=Infinity}const pattern=weapon==='spread'?[-.14,0,.14]:[0];const shots=pattern.map(a=>({x,y,vx:direction*speed,vy:a*speed,damage:weapon==='heavy'?2:1,life:1.8,kind:weapon}));if(Number.isFinite(ammo)){ammo--;if(ammo<=0){weapon='normal';ammo=Infinity}}return shots};
  const throwGrenade=(x,y,direction,H)=>{if(grenadeCount<=0)return false;grenadeCount--;grenades.push({x,y,vx:direction*H*1.2,vy:-H*.9,fuse:.9,life:1.5});return true};
  const kill=()=>{combo++;comboTimer=3;screenShake=Math.min(12,screenShake+3);return 100+Math.min(combo,15)*20};
@@ -43,7 +44,7 @@ export function createArcadeSystems(){
    }
    }
   }
-  for(let i=enemyShots.length-1;i>=0;i--){const b=enemyShots[i];b.x+=b.vx*dt-cameraDelta;b.y+=b.vy*dt;b.life-=dt;if(Math.abs(b.x-playerX)<H*.065&&Math.abs(b.y-(ground-H*.18))<H*.16){onDamage();enemyShots.splice(i,1)}else if(b.life<=0)enemyShots.splice(i,1)}
+  for(let i=enemyShots.length-1;i>=0;i--){const b=enemyShots[i];b.x+=b.vx*dt-cameraDelta;b.y+=b.vy*dt;b.life-=dt;if(hitCover(scroll+b.x,b.y,ground,H,10)){enemyShots.splice(i,1);continue}if(Math.abs(b.x-playerX)<H*.065&&Math.abs(b.y-(ground-H*.18))<H*.16){onDamage();enemyShots.splice(i,1)}else if(b.life<=0)enemyShots.splice(i,1)}
   for(let i=grenades.length-1;i>=0;i--){const g=grenades[i];g.x+=g.vx*dt-cameraDelta;g.y+=g.vy*dt;g.vy+=H*2.4*dt;g.fuse-=dt;if(g.y>ground-H*.02){g.y=ground-H*.02;g.vy*=-.35;g.vx*=.8}if(g.fuse<=0){for(const c of covers)if(Math.abs(c.x-(scroll+g.x))<H*.4)c.hp=Math.max(0,c.hp-50);onExplosion(g.x,g.y,H*.35);screenShake=14;grenades.splice(i,1)}}
  };
  const draw=(ctx,scroll,ground,H,phase)=>{
@@ -134,5 +135,5 @@ export function createArcadeSystems(){
    ctx.restore();
   }
  };
- return {pickups,grenades,enemyShots,covers,prisoners,boss,reset,collect,rescue,fire,throwGrenade,kill,step,draw,get weapon(){return weapon},get ammo(){return ammo},get grenadeCount(){return grenadeCount},get combo(){return combo},get screenShake(){return screenShake},set screenShake(value){screenShake=Number.isFinite(value)?Math.max(0,value):0}};
+ return {pickups,grenades,enemyShots,covers,prisoners,boss,reset,collect,rescue,hitCover,fire,throwGrenade,kill,step,draw,get weapon(){return weapon},get ammo(){return ammo},get grenadeCount(){return grenadeCount},get combo(){return combo},get screenShake(){return screenShake},set screenShake(value){screenShake=Number.isFinite(value)?Math.max(0,value):0}};
 }
