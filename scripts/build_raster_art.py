@@ -317,12 +317,9 @@ def paint_forest_v21(im, layer):
             f=f*f*(3-2*f)
             color=tuple(int(palette_top[k]*(1-f)+palette_horizon[k]*f) for k in range(3))
             d.line((0,y,W,y),fill=color+(255,))
-        # Smoky light at dawn with smooth translucent concentric rings.
-        for ring in range(36,0,-1):
-            alpha=1+int((36-ring)*.20)
-            r=80+ring*4
-            d.ellipse((1040-r,155-r,1040+r,155+r),fill=(225,171,104,alpha))
-        d.ellipse((992,108,1100,216),fill=(204,170,116,78))
+        # Distant, restrained warm disk; avoid giant opaque rings in RGBA raster export.
+        d.ellipse((1005,124,1077,196),fill=(187,163,123,255))
+        d.arc((1005,124,1077,196),180,325,fill=(218,187,142,255),width=3)
         # Natural overlapping foothills, irregular outlines instead of triangles.
         for depth in range(3):
             color=[(71,96,89,240),(54,83,77,248),(40,70,67,255)][depth]
@@ -344,10 +341,7 @@ def paint_forest_v21(im, layer):
                 spread=(22+j*8)*rng.uniform(.8,1.2)
                 col=(46+j*2,78+j*2,69+j,230)
                 d.ellipse((x-spread,cy-16,x+spread,cy+30),fill=col)
-        # Haze across the distant tree line, subtle horizontal blending.
-        for j in range(90):
-            y=295+j*2
-            d.line((0,y,W,y),fill=(167,152,121,max(0,int(4-(j%15)*.15))),width=1)
+        # No per-scanline translucent strokes: they produced visible banding on OLED.
     else:
         # Woods are grounded behind player, with open sightlines around the soldier.
         for i in range(19):
