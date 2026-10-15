@@ -52,6 +52,8 @@ jobs:
 
       - name: Visual fidelity regression tests
         run: python3 scripts/test_visual_v21.py
+      - name: Validate battle FX and other scene skies
+        run: python3 scripts/test_art_v23.py
 
       - name: Validate pure 2D gameplay
         run: npm run check
@@ -76,7 +78,7 @@ jobs:
 
       - name: Set Android 2.1 preview version
         run: |
-          sed -i 's/versionCode 1/versionCode 22/; s/versionName "1.0"/versionName "2.2.0"/' android/app/build.gradle
+          sed -i 's/versionCode 1/versionCode 23/; s/versionName "1.0"/versionName "2.3.0"/' android/app/build.gradle
           grep -E 'versionCode|versionName' android/app/build.gradle
 
       - name: Setup Gradle cache
@@ -117,14 +119,14 @@ jobs:
           TOOLS=$(find "$SDK/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
           "$TOOLS/apksigner" verify --verbose "$APK"
           "$TOOLS/aapt" dump badging "$APK" | tee /tmp/cag-apk-badging.txt
-          grep -q "name='com.corsaguerra.arcadeprova22'" /tmp/cag-apk-badging.txt
-          grep -q "versionName='2.2.0'" /tmp/cag-apk-badging.txt
-          echo "PASS: signed 2.2.0 installation package."
+          grep -q "name='com.corsaguerra.arcadeprova23'" /tmp/cag-apk-badging.txt
+          grep -q "versionName='2.3.0'" /tmp/cag-apk-badging.txt
+          echo "PASS: signed 2.3.0 installation package."
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Corsa-alla-Guerra-2D-v2.2-Arcade-APK
+          name: Corsa-alla-Guerra-2D-v2.3-Arcade-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30

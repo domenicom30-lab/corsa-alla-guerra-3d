@@ -101,3 +101,12 @@ Questo non equivale a risorse illustrate a mano dello stesso livello qualitativo
 La scala di eroe, quattro classi nemiche, carro utilizzabile e boss è centralizzata in `arcade-proportions.js`. Il corpo del protagonista visibile occupa circa il 28% dell'altezza di gioco; il soldato pesante è poco più alto, il boss più voluminoso. L'aspetto fa riferimento a proporzioni arcade esagerate, ma non include grafiche copiate dai giochi SNK. Sono stati aggiunti dettagli distintivi delle divise (elmetti, cicatrici del metallo, sciarpa, granate, pettorine), il puntamento direzionale reale degli sprite nemici e segnali visivi di preparazione del colpo, fiammate e danni. Il veicolo del giocatore rispetta la medesima scala anziché sembrare un giocattolo. Le collisioni rimangono calibrate come nella versione precedente.
 
 La versione mostra `v2.2` e usa l'identificativo `com.corsaguerra.arcadeprova22` per installarsi accanto alle prove precedenti. Nuovi test impediscono regressioni nelle proporzioni, nel ribaltamento degli sprite e nei segnali di sparo.
+
+
+## v2.3 — Explosion polish and sky cleanup
+- Replace the flat explosion blobs with ten animated frames showing white-hot ignition, uneven fire lobes, embers, and dispersing soot.
+- All four backgrounds now remove random screen-wide high-contrast square speckles, preserving readable characters and natural color gradients.
+- `scripts/test_art_v23.py` checks all four sky regions and each animation frame before GitHub builds the Android package.
+- Independent Android test ID `com.corsaguerra.arcadeprova23` and versionName `2.3.0` avoid APK signature mismatches with older debug builds.
+
+This pixel-art is original; it is not extracted from or identical to any copyrighted Metal Slug artwork.

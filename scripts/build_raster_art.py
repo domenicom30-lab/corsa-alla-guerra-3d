@@ -276,15 +276,42 @@ def fx(im,kind,n,count):
     x=64;y=64
     rng=random.Random(900+sum(map(ord,kind))*5+n)
     if kind in ("explosion","blast"):
-        radius=int((19+progress*38)*(1-progress*.43))
-        for i in range(19):
-            a=i*math.pi*2/19+(progress*.3)
-            rr=radius*(.5+rng.random()*.65)
-            px=x+math.cos(a)*rr;py=y+math.sin(a)*rr
-            rad=int(5+(1-progress)*rng.randint(5,13))
-            ell(d,(px-rad,py-rad,px+rad,py+rad),["#ffefad","#ffca54","#ee6631","#932f2b"][i%4],None)
-        radius2=int(radius*.55)
-        ell(d,(x-radius2,y-radius2,x+radius2,y+radius2),"#fff3c4" if n<4 else "#ff9940",None)
+        # Hand-staged animation timing: white-hot ignition -> lobed fire -> soot cloud.
+        power=max(.08,math.sin((.12+progress*.87)*math.pi))
+        radius=10+int(43*power)
+        segments=20
+        edge=[]
+        for j in range(segments*2):
+            a=j*math.pi/segments+progress*.4
+            stretch=(.87+rng.random()*.42)*(1 if j%2==0 else .61)
+            rr=radius*stretch
+            edge.append((x+math.cos(a)*rr,y+math.sin(a)*rr*.88))
+        poly(d,edge,("#ce431f" if n<5 else "#4b4940"),None)
+        inner=[]
+        for j in range(24):
+            a=j*math.pi/12+progress*.4
+            rr=radius*(.40+rng.random()*.26)
+            inner.append((x+math.cos(a)*rr,y+math.sin(a)*rr))
+        if progress<.75:poly(d,inner,"#ffba3b" if progress<.5 else "#ed7132",None)
+        if progress<.64:
+            core=radius*(.40-progress*.16)
+            ell(d,(x-core,y-core,x+core,y+core),"#fff3b4" if n<4 else "#ffc961",None)
+        # Scattered animated ember arcs retain silhouette without noise.
+        for j in range(12):
+            a=j*math.pi/6+progress*.45
+            dist=radius*(1.05+rng.random()*.45)
+            bx=x+math.cos(a)*dist;by=y+math.sin(a)*dist*.87
+            size=(2+rng.random()*4)*(1-progress*.55)
+            col="#fff4ae" if j%4==0 else "#d95b29"
+            if progress>.65:col="#8e7660"
+            ell(d,(bx-size,by-size,bx+size,by+size),col,None)
+        if progress>.5:
+            for j in range(7):
+                a=rng.random()*math.pi*2
+                bx=x+math.cos(a)*radius*.6;by=y+math.sin(a)*radius*.46
+                rad=7+rng.random()*10
+                ell(d,(bx-rad,by-rad,bx+rad,by+rad),
+                    (68,66,59,int(170*(1-progress)+20)),None)
     elif kind=="muzzle":
         for i in range(11):
             a=(i-5)*math.pi/15; rr=(26+10*math.sin(n+i))*max(.2,1-progress*.4)
@@ -577,10 +604,12 @@ def bg(im,kind,layer):
                 hh=rng.randint(210,315)
                 rect(d,(x,H-hh,x+88,H),(39,52,58,255))
                 for j in range(3):rect(d,(x+j*27,H-hh-32,x+16+j*27,H-hh),(43,56,63,255))
-        for _ in range(2400):
-            x=rng.randrange(W);y=rng.randrange(H)
-            col=(230,203,167,rng.randint(10,40)) if rng.random()<.55 else (25,35,38,rng.randint(15,55))
-            d.rectangle((x,y,x+rng.randrange(1,5),y+rng.randrange(1,4)),fill=col)
+        # Night sky remains uninterrupted: atmospheric debris is painted near ground,
+        # never sprinkled as opaque, high-contrast pixels across every scene.
+        for i in range(65):
+            xx=rng.randrange(W); yy=rng.randrange(int(H*.84),H)
+            col=(121,104,83,210) if i%3 else (34,41,42,220)
+            d.line([(xx,yy),(xx+rng.randint(3,14),yy)],fill=col,width=rng.randint(1,2))
     else:
         # Transparent near buildings, platforms, foreground objects and set dressings.
         for i in range(32):
