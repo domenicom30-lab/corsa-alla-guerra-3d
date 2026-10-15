@@ -29,10 +29,11 @@ const checks = [
  ['Sospensione sicura su Android',()=>{for(const token of ["document.addEventListener('visibilitychange'",'if(!visible){last=t;requestAnimationFrame(frame);return}','const dt=Math.min(last?(t-last)/1000:0,.05)'])assert.ok(main.includes(token),token)}],
  ['Pausa automatica al cambio app',()=>{for(const token of ["if(running&&!paused){paused=true;message.textContent='IN PAUSA",'message.style.display=\'block\'}}});'])assert.ok(main.includes(token),token)}],
  ['Fuoco touch continuo e pausa su blur',()=>{assert.ok(main.includes("['pointerup','pointercancel','lostpointercapture'])fireButton"));assert.ok(main.includes("addEventListener('blur',()=>"));assert.ok(main.includes("if(running&&!paused){paused=true;message.textContent='IN PAUSA"))}],
- ['Movimento multitouch indipendente',()=>{for(const token of ['const pointers=new Set()','pointers.add(e.pointerId)','pointers.delete(e.pointerId)','movement[id]=pointers.size>0'])assert.ok(main.includes(token),token)}],
+ ['Movimento multitouch indipendente',()=>{for(const token of ['const pointers=activeMovementPointers[id]','pointers.add(e.pointerId)','pointers.delete(e.pointerId)','movement[id]=pointers.size>0'])assert.ok(main.includes(token),token)}],
  ['Culling pickup su schermi ad alta densità',()=>{let draws=0;const ctx={canvas:{width:400,clientWidth:100},save(){},restore(){},translate(){},fillRect(){draws++},strokeRect(){},fillText(){}};const systems=createArcadeSystems();systems.draw(ctx,1100,100,100,0);assert.equal(draws,0,'pickup fuori dalla viewport CSS');systems.draw(ctx,1330,100,100,0);assert.ok(draws>0,'pickup visibile') }],
  ['Limite proiettili per prestazioni Android',()=>assert.ok(main.includes('if(bullets.length>120)bullets.splice(0,bullets.length-120)'))],
  ['Budget pixel canvas Android',()=>{for(const token of ['const pixelBudget=2400000','Math.sqrt(pixelBudget/Math.max(1,W*H))','Math.max(1,Math.round(W*dpr))'])assert.ok(main.includes(token),token)}],
+ ['Pulizia tocchi su pausa e riavvio',()=>{for(const token of ['function clearTouchMovement()','activeMovementPointers.left.clear()','activeMovementPointers.right.clear()','if(!visible){fireHeld=false;clearTouchMovement()','clearTouchMovement();message.style.display','addEventListener(\'blur\',()=>{clearTouchMovement()'])assert.ok(main.includes(token),token)}],
  ['Prestazioni mobile',()=>{assert.ok(main.includes('devicePixelRatio'));assert.ok(main.includes('requestAnimationFrame(frame)'))}],
  ['Build configurata',()=>assert.ok(pkg.scripts.build)]
 ];
