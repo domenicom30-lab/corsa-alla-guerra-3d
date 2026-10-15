@@ -11,6 +11,7 @@ let scroll=0,vy=0,jumpY=0,duckTime=0,phase=0,invulnerable=0,shotCooldown=0,muzzl
 const movement={left:false,right:false};
 let facing=1;
 let bossVictoryAwarded=false;
+let runCycle=0;
 const arcade=createArcadeSystems();
 const bullets=[];
 const particles=[];
@@ -36,8 +37,10 @@ function background(){
  }
 }
 function drawPlayer(){
- const h=H*(duckTime>0?.145:.255),w=h*72/88,runFrame=jumpY>0?1:Math.floor(phase*1.1)%6;
+ const h=H*(duckTime>0?.145:.255),w=h*72/88,runFrame=jumpY>0?1:Math.floor(runCycle)%6;
  const x=playerX()-w*.5,y=ground()-jumpY-h;
+ const moving=Math.abs(Number(movement.right)-Number(movement.left))>0;
+ const footstepBob=moving&&jumpY===0&&duckTime===0?Math.abs(Math.sin(runCycle*Math.PI)) * H*.006:0;
  ctx.save();ctx.imageSmoothingEnabled=false;
  if(facing<0){ctx.translate(playerX()*2,0);ctx.scale(-1,1)}
  // Keep character readable while invulnerable: use a subtle outline, not transparency.
@@ -45,8 +48,8 @@ function drawPlayer(){
  const sheet=arcadeArt.soldier;
  const pose=jumpY>0?'jump':duckTime>0?'duck':muzzleFlash>0||fireHeld?'fire':Math.abs(Number(movement.right)-Number(movement.left))>0?'run':'idle';
  const poseSheet=arcadeArt['soldier_'+pose];
- if(poseSheet){const count=pose==='run'?6:pose==='fire'?3:1;const frame=pose==='run'?runFrame:pose==='fire'?Math.floor(phase*.65)%3:0;ctx.drawImage(poseSheet,frame*poseSheet.width/count,0,poseSheet.width/count,poseSheet.height,x,y,w,h)}
- else if(sheet){const frameW=sheet.width/6;ctx.drawImage(sheet,runFrame*frameW,0,frameW,sheet.height,x,y,w,h)}else ctx.drawImage(sprites.soldier[runFrame],x,y,w,h);
+ if(poseSheet){const count=pose==='run'?6:pose==='fire'?3:1;const frame=pose==='run'?runFrame:pose==='fire'?Math.floor(phase*.65)%3:0;ctx.drawImage(poseSheet,frame*poseSheet.width/count,0,poseSheet.width/count,poseSheet.height,x,y-footstepBob,w,h)}
+ else if(sheet){const frameW=sheet.width/6;ctx.drawImage(sheet,runFrame*frameW,0,frameW,sheet.height,x,y-footstepBob,w,h)}else ctx.drawImage(sprites.soldier[runFrame],x,y-footstepBob,w,h);
  if(muzzleFlash>0){ctx.fillStyle='#ffe27a';const mx=x+w*.95,my=y+h*.48;ctx.beginPath();ctx.moveTo(mx,my);ctx.lineTo(mx+H*.042,my-H*.019);ctx.lineTo(mx+H*.025,my);ctx.lineTo(mx+H*.042,my+H*.02);ctx.fill()}
  ctx.restore();
 }
@@ -76,6 +79,7 @@ function update(dt){
  const advance=SPEED*dt*direction;
  const previousScroll=scroll;
  scroll=Math.max(0,Math.min(10000,scroll+advance));
+ if(direction!==0)runCycle+=Math.abs(scroll-previousScroll)/Math.max(1,H)*7;
  const cameraDelta=scroll-previousScroll;distance=scroll/50;phase+=dt*15;if(direction!==0)facing=direction;
  const collected=arcade.collect(scroll+playerX(),jumpY,ground(),H);if(collected==='health')health=Math.min(3,health+1);
  arcade.step(dt,scroll,playerX(),ground(),H,damage,explosion,cameraDelta);
@@ -91,7 +95,7 @@ function update(dt){
  if(distance>=200&&arcade.boss.defeated){running=false;fireHeld=false;movement.left=false;movement.right=false;message.textContent='MISSIONE COMPLETATA — TOCCA PER RIPROVARE';message.style.display='block'}hud();
 }
 function frame(t){const dt=Math.min((t-last)/1000||0,.05);last=t;update(dt);ctx.save();if(arcade.screenShake>0){const shake=arcade.screenShake;ctx.translate(Math.sin(phase*3.1)*shake*.5,Math.cos(phase*4.3)*shake*.35)}background();drawObstacles();drawTicks();arcade.draw(ctx,scroll,ground(),H,phase);drawPlayer();drawBullets();drawBlastEffects();drawParticles();ctx.restore();requestAnimationFrame(frame)}
-function start(){running=true;paused=false;score=0;health=3;distance=0;scroll=0;facing=1;bossVictoryAwarded=false;arcade.reset();vy=0;jumpY=0;duckTime=0;phase=0;invulnerable=0;shotCooldown=0;muzzleFlash=0;fireHeld=false;bullets.length=0;particles.length=0;blastEffects.length=0;ticks.forEach(t=>t.alive=true);obstacles.forEach(o=>o.hit=false);movement.left=false;movement.right=false;message.style.display='none';hud()}
+function start(){running=true;paused=false;score=0;health=3;distance=0;scroll=0;facing=1;bossVictoryAwarded=false;arcade.reset();vy=0;jumpY=0;duckTime=0;phase=0;runCycle=0;invulnerable=0;shotCooldown=0;muzzleFlash=0;fireHeld=false;bullets.length=0;particles.length=0;blastEffects.length=0;ticks.forEach(t=>t.alive=true);obstacles.forEach(o=>o.hit=false);movement.left=false;movement.right=false;message.style.display='none';hud()}
 function jump(){if(!running){start()}if(!paused&&jumpY===0){vy=Math.sqrt(2*GRAVITY*H*.23);duckTime=0}}
 function duck(){if(!running){start()}if(!paused)duckTime=.7}
 function pause(){if(!running)return;paused=!paused;message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display=paused?'block':'none'}
