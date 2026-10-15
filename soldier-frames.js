@@ -1,5 +1,5 @@
 // Original hand-authored pixel-character animation: each pose has independent frames.
-const COLORS={outline:'#25251e',shadow:'#394638',cloth:'#667751',light:'#a0a77a',helmet:'#596b50',skin:'#d8a17a',skinShade:'#a86e56',boot:'#39352d',metal:'#444d4a',shine:'#a6aaa0'};
+const COLORS={outline:'#17191b',shadow:'#24282c',cloth:'#34383b',light:'#62686a',helmet:'#202428',skin:'#d8a17a',skinShade:'#a86e56',boot:'#39352d',metal:'#444d4a',shine:'#a6aaa0'};
 const frameCounts={idle:4,run:8,jump:3,fire:4,duck:3};
 export const soldierFrameCounts=Object.freeze({...frameCounts});
 function makeFrame(pose,index){
@@ -167,7 +167,7 @@ function makeFrame(pose,index){
 }
 export const soldierFrames={};
 export function loadSoldierFrames(){for(const [pose,count] of Object.entries(frameCounts)){if(soldierFrames[pose]?.length===count)continue;soldierFrames[pose]=Array.from({length:count},(_,i)=>makeFrame(pose,i))}}
-export function drawSoldierFrame(ctx,pose,frame,x,y,w,h){if(drawExternalSoldierFrame(ctx,pose,frame,x,y,w,h))return true;const frames=soldierFrames[pose]||soldierFrames.idle;if(!frames)return false;ctx.imageSmoothingEnabled=false;ctx.drawImage(frames[Math.abs(Math.floor(frame))%frames.length],x,y,w,h);return true}
+export function drawSoldierFrame(ctx,pose,frame,x,y,w,h){const frames=soldierFrames[pose]||soldierFrames.idle;if(!frames)return false;ctx.imageSmoothingEnabled=false;ctx.drawImage(frames[Math.abs(Math.floor(frame))%frames.length],x,y,w,h);return true}
 
 // CC0 drakzlin 32x32 sprite sheet (downloaded at build time).
 // Source: https://opengameart.org/content/space-soldier-sprite-sheet-32x32
