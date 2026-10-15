@@ -9,7 +9,7 @@ const checks = [
  ['Motore 2D laterale senza prospettiva',()=>{for(const token of ['function ground(', 'function drawPlayer(', 'function drawObstacles('])assert.ok(main.includes(token),token);assert.ok(!main.includes('function projection('))}],
  ['Movimento platform laterale',()=>{assert.ok(main.includes('function ground('));assert.ok(main.includes('function move('));assert.ok(main.includes('function jump('))}],
  ['Grafica platform 2D',()=>{for(const token of ['forest-background.webp','sandbags.png','function drawPlayer(','function background('])assert.ok(main.includes(token),token)}],
- ['Traguardo e punteggio',()=>{assert.ok(main.includes('distance>=200'));assert.ok(main.includes('score+=20'))}],
+ ['Traguardo e punteggio',()=>{assert.ok(main.includes('distance>=200'));assert.ok(main.includes('score+=100'))}],
  ['Fucile e nemici rossi',()=>{for(const token of ['function shoot(','function drawTicks(','function drawBullets(','shotCooldown','bullets.push(','score+=100'])assert.ok(main.includes(token),token)}],
  ['Prestazioni mobile',()=>{assert.ok(main.includes('devicePixelRatio'));assert.ok(main.includes('requestAnimationFrame(frame)'))}],
  ['Build configurata',()=>assert.ok(pkg.scripts.build)]
