@@ -49,8 +49,9 @@ const checks = [
  ['Barra vita boss in pixel art',()=>{for(const token of ['function drawBossHealthBar()','if(!arcade.boss.active||arcade.boss.defeated)return','ctx.fillRect(x,y,width*ratio,height)','ctx.restore();drawBossHealthBar();requestAnimationFrame(frame)'])assert.ok(main.includes(token),token)}],
  ['Distruzione scenografica boss',()=>{for(const token of ['for(let i=0;i<5;i++){burst(bossScreenX','for(let i=0;i<4;i++){shatterEnemy(bossScreenX','arcade.screenShake=Math.max(arcade.screenShake,18)'])assert.ok(main.includes(token),token)}],
  ['Vittoria azzera controlli touch e fuoco',()=>{for(const token of ['if(distance>=200&&arcade.boss.defeated){running=false;fireHeld=false;clearTouchMovement()','shotCooldown=0;last=0;message.textContent=\'HAI SCONFITTO LE ZECCHE ROSSE!'])assert.ok(main.includes(token),token)}],
- ['Messaggio finale zecche rosse',()=>assert.ok(main.includes("message.textContent='HAI SCONFITTO LE ZECCHE ROSSE! — TOCCA PER RIPROVARE'"))],
+ ['Messaggio finale zecche rosse',()=>assert.ok(main.includes("message.textContent='HAI SCONFITTO LE ZECCHE ROSSE!\\nTOCCA PER RIPROVARE'"))],
  ['Credito finale discreto',()=>{for(const token of ['victory-credit','Grazie per aver giocato — firmato il pittore austriaco'])assert.ok(html.includes(token),token);assert.ok(main.includes("document.getElementById('victory-credit').style.display='block'"));assert.ok(main.includes("function start(){document.getElementById('victory-credit').style.display='none'"))}],
+ ['Schermata vittoria leggibile',()=>{for(const token of ["message.classList.add('victory-message')","message.classList.remove('victory-message')"])assert.ok(main.includes(token),token)}],
  ['Prestazioni mobile',()=>{assert.ok(main.includes('devicePixelRatio'));assert.ok(main.includes('requestAnimationFrame(frame)'))}],
  ['Build configurata',()=>assert.ok(pkg.scripts.build)]
 ];
