@@ -27,7 +27,7 @@ def fetch(asset_id, prefix):
         names = archive.namelist()
         for channel, suffix in CHANNELS.items():
             candidates = [n for n in names
-                          if re.search(rf"_{channel}\\.(jpg|jpeg|png|webp)$", n, re.I)
+                          if re.search(rf"_{channel}\.(jpg|jpeg|png|webp)$", n, re.I)
                           and not n.startswith("__MACOSX/")]
             if not candidates:
                 raise ValueError(f"Missing {channel} in {asset_id}; archive entries: {names[:30]}")
