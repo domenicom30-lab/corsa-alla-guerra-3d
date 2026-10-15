@@ -44,36 +44,6 @@ jobs:
       - name: Import 2D artwork from ZIP packages
         run: python3 scripts/import_2d_assets.py
 
-      - name: Import CC0 sprite through verified mirror
-        shell: bash
-        run: |
-          mkdir -p public/assets/arcade
-          python3 - <<'PY'
-          from urllib.request import Request, urlopen
-          from pathlib import Path
-          import struct, time
-          output=Path('public/assets/arcade/space-soldier-cc0.png')
-          urls=[
-            'https://images.weserv.nl/?url=opengameart.org%2Fsites%2Fdefault%2Ffiles%2Fall_sprites.png&output=png',
-            'https://wsrv.nl/?url=https%3A%2F%2Fopengameart.org%2Fsites%2Fdefault%2Ffiles%2Fall_sprites.png&output=png',
-            'https://opengameart.org/sites/default/files/all_sprites.png',
-          ]
-          for url in urls:
-            try:
-              request=Request(url,headers={'User-Agent':'Mozilla/5.0 (compatible; CorsaAllaGuerraAssetImporter/1.0)','Accept':'image/png,image/*;q=0.9,*/*;q=0.5'})
-              with urlopen(request,timeout=35) as response: data=response.read(2_000_000)
-              if data[:8]!=bytes.fromhex('89504e470d0a1a0a'): raise ValueError('server returned non-PNG content')
-              w,h=struct.unpack('>II',data[16:24])
-              if not (w>=256 and h>=192):raise ValueError(f'invalid sprite dimensions {w}x{h}')
-              output.write_bytes(data)
-              print(f'IMPORTED CC0 SOLDIER: {w}x{h}, {len(data)} bytes from {url}')
-              break
-            except Exception as exc:
-              print(f'Source unavailable: {url}: {exc}')
-          else:
-            print('WARNING: CC0 sheet could not be imported; original soldier will remain active.')
-          PY
-
       - name: Validate pure 2D gameplay
         run: npm run check
 
@@ -121,7 +91,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Corsa-alla-Guerra-3D-APK
+          name: Corsa-alla-Guerra-2D-Arcade-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14

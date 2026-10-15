@@ -6,12 +6,11 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
-    "check": "node scripts/check-project.mjs && node scripts/test-arcade.mjs && node scripts/test-arcade-mechanics.mjs && node scripts/test-3d-boot.mjs"
+    "check": "node scripts/check-project.mjs && node scripts/test-arcade.mjs && node scripts/test-arcade-mechanics.mjs && node scripts/test-2d-upgrade.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.3",
-    "@capacitor/core": "^7.4.3",
-    "three": "^0.180.0"
+    "@capacitor/core": "^7.4.3"
   },
   "devDependencies": {
     "@capacitor/cli": "^7.4.3",

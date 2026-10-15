@@ -79,44 +79,59 @@ export function drawBossDeathCinematic(ctx,W,H,ground,elapsed,x){
  ctx.restore();
 }
 
-// Four deterministic, seamless parallax planes. Each tile repeats at its own period.
+// Original multi-plane 2D battlefront: timber, bunkers, trenches and stones.
 const tileNoise=n=>{const v=Math.sin(n*91.73+4.17)*19413.17;return v-Math.floor(v)};
 export function drawWarzoneParallax(ctx,W,H,scroll,ground){
  ctx.save();ctx.imageSmoothingEnabled=false;
  const wrap=(value,period)=>((value%period)+period)%period;
- // Distant ruined skyline (20% of camera travel).
- const cityStep=H*.22,cityOffset=wrap(scroll*.2,cityStep);
- for(let i=-1;i<Math.ceil(W/cityStep)+2;i++){
-  const worldIndex=i+Math.floor(scroll*.2/cityStep),x=i*cityStep-cityOffset;
-  const height=H*(.13+tileNoise(worldIndex+19)*.19);
-  const width=cityStep*(.68+tileNoise(worldIndex+55)*.3);
-  ctx.fillStyle='#26302f';ctx.fillRect(x,ground-H*.09-height,width,height);
-  ctx.fillStyle='#37403b';ctx.fillRect(x,ground-H*.09-height,width,H*.008);
-  for(let j=0;j<3;j++)for(let k=0;k<2;k++){
-   if(tileNoise(worldIndex*31+j*7+k)>.76){
-    ctx.fillStyle='#967952';ctx.globalAlpha=.32;
-    ctx.fillRect(x+width*(.2+k*.42),ground-H*.09-height+H*(.035+j*.045),H*.008,H*.013);
-   }
-  }
-  ctx.globalAlpha=1;
- }
- // Burned tree trunks and rubble move at half the camera speed.
- const step=H*.45,offset=wrap(scroll*.5,step);
+ // Smoke-veiled structures move at 20% of camera speed.
+ const shift=scroll*.2,step=H*.41,offset=wrap(shift,step);
  for(let i=-1;i<Math.ceil(W/step)+2;i++){
-  const index=i+Math.floor(scroll*.5/step),x=i*step-offset;
-  const trunk=H*(.1+tileNoise(index+101)*.14);
-  ctx.fillStyle='#30332b';ctx.fillRect(x,ground-H*.075-trunk,H*.014,trunk);
-  ctx.fillRect(x-H*.018,ground-H*.075-trunk*.73,H*.044,H*.009);
-  ctx.fillStyle='#4b4437';ctx.beginPath();ctx.ellipse(x+H*.065,ground-H*.055,H*.085,H*.034,0,Math.PI,0);ctx.fill();
+  const index=i+Math.floor(shift/step),x=i*step-offset;
+  const v=tileNoise(index+30);
+  if(v>.53){
+   const h=H*(.11+v*.09);
+   ctx.globalAlpha=.4;ctx.fillStyle='#333f38';
+   ctx.fillRect(x,ground-H*.12-h,H*.014,h);
+   ctx.fillRect(x-H*.038,ground-H*.11-h*.63,H*.11,H*.014);
+   ctx.globalAlpha=1;
+  }else if(v<.23){
+   ctx.fillStyle='#41423a';ctx.fillRect(x,ground-H*.145,H*.16,H*.11);
+   ctx.fillStyle='#292d2c';ctx.fillRect(x-H*.02,ground-H*.165,H*.20,H*.027);
+   ctx.fillStyle='#202626';ctx.fillRect(x+H*.046,ground-H*.10,H*.07,H*.045);
+  }
  }
- // Ground is world-anchored at 100% camera speed.
- ctx.fillStyle='#4d4933';ctx.fillRect(0,ground,W,H-ground);
- ctx.fillStyle='#77704b';ctx.fillRect(0,ground,W,H*.012);
+ // Scarred sand berms move at half the scroll speed.
+ const middleShift=scroll*.5,middleStep=H*.37,middleOffset=wrap(middleShift,middleStep);
+ for(let i=-1;i<Math.ceil(W/middleStep)+2;i++){
+  const index=i+Math.floor(middleShift/middleStep),x=i*middleStep-middleOffset;
+  if(tileNoise(index+217)>.4){
+   const size=H*(.03+tileNoise(index+103)*.055);
+   ctx.fillStyle='#4b4e3d';
+   ctx.beginPath();ctx.ellipse(x,ground-H*.017,size*1.65,size*.45,0,Math.PI,0);ctx.fill();
+   ctx.fillStyle='#7e775b';
+   ctx.fillRect(x-size*.45,ground-H*.025,size*.6,H*.006);
+  }
+ }
+ // World-aligned pixel ground prevents swimming when the camera scrolls.
+ ctx.fillStyle='#403b2d';ctx.fillRect(0,ground,W,H-ground);
+ ctx.fillStyle='#899078';ctx.fillRect(0,ground,W,H*.012);
+ ctx.fillStyle='#626549';ctx.fillRect(0,ground+H*.012,W,H*.024);
+ ctx.fillStyle='#32352d';ctx.fillRect(0,ground+H*.038,W,H*.026);
  const rockStep=H*.085,rockOffset=wrap(scroll,rockStep);
  for(let i=-1;i<Math.ceil(W/rockStep)+2;i++){
   const index=i+Math.floor(scroll/rockStep),x=i*rockStep-rockOffset;
-  ctx.fillStyle=tileNoise(index+413)>.5?'#6e5d46':'#332e29';
-  ctx.fillRect(x,ground+H*(.028+tileNoise(index+729)*.085),H*.011,H*.007);
+  const size=H*(.004+tileNoise(index+817)*.012);
+  ctx.fillStyle=tileNoise(index+413)>.5?'#9a8966':'#282c27';
+  ctx.fillRect(x,ground+H*(.014+tileNoise(index+729)*.17),size*2,size);
+  if(index%5===0){
+   ctx.fillStyle='#53664b';ctx.fillRect(x+size,ground-H*.008,size*.7,H*.02);
+   ctx.fillStyle='#758759';ctx.fillRect(x-size*.5,ground-H*.012,size*.8,H*.008);
+  }
+ }
+ for(let i=0;i<3;i++){
+  ctx.globalAlpha=.13;ctx.fillStyle=i%2?'#e0be83':'#141915';
+  ctx.fillRect(0,ground+H*(.08+i*.085),W,H*.009);
  }
  ctx.restore();
 }

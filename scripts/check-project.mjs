@@ -11,7 +11,7 @@ const checks = [
  ['Boss: effetto camera modificabile senza errore',()=>{const systems=createArcadeSystems();systems.screenShake=Math.max(systems.screenShake,18);assert.equal(systems.screenShake,18);systems.reset();assert.equal(systems.screenShake,0)}],
  ['Cache frame soldato',()=>{const source=readFileSync('soldier-frames.js','utf8');assert.ok(source.includes('if(soldierFrames[pose]?.length===count)continue'),'evita di ricreare i frame già caricati')}],
  ['Canvas e controlli',()=>{for(const id of ['game','message','stats','left','right','jump','duck','pause','points','hearts','shoot','grenade'])assert.ok(html.includes('id="'+id+'"'),id)}],
- ['Backup 3D documentato',()=>assert.ok(existsSync('docs/2-5d-assets.md'))],
+ ['Solo motore 2D senza dipendenze Three.js',()=>{assert.ok(!existsSync('three-game.js'));assert.ok(!existsSync('bootstrap.js'));assert.ok(!existsSync('public/models/Soldier.glb'));assert.ok(!pkg.dependencies?.three);assert.ok(html.includes('src="./main.js"'))}],
  ['Motore 2D laterale senza prospettiva',()=>{for(const token of ['function ground(', 'function drawPlayer(', 'function drawTicks('])assert.ok(main.includes(token),token);assert.ok(!main.includes('function projection('))}],
  ['Movimento platform laterale',()=>{assert.ok(main.includes('function ground('));assert.ok(main.includes('const direction=Number(movement.right)-Number(movement.left)'));assert.ok(main.includes('function jump('))}],
  ['Grafica platform 2D',()=>{for(const token of ['pixelBackdrop','sprites.soldier','sprites.tick','function drawPlayer(','function background('])assert.ok(main.includes(token),token)}],

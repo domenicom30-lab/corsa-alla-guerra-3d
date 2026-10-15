@@ -1,25 +1,17 @@
-# Istruzioni per l'agente di sviluppo — Corsa alla Guerra 3D
+# Istruzioni tecniche — Corsa alla Guerra 2D
 
-## Missione
-Migliorare progressivamente la qualità grafica del gioco Android Three.js verso il riferimento visivo concordato: soldato dettagliato visto da dietro, strada forestale fangosa, conifere realistiche, postazioni militari e portale TRAGUARDO. Mantenere controlli, giocabilità e prestazioni su Android.
+## Obiettivo
+Sviluppare esclusivamente un gioco arcade laterale Canvas 2D, con animazioni dettagliate, parallasse, nemici, armi e boss. Arte originale ispirata ai classici run-and-gun, senza copiare sprite, marchi o audio protetti di Metal Slug.
 
-## Regole inderogabili
-- Lavora su un ramo dedicato, mai direttamente su main. Apri una pull request piccola, spiegando modifiche, test e rischi.
-- Non fare merge automatico delle modifiche visive senza test su dispositivo e approvazione. Il verde della build non dimostra il realismo né gli FPS.
-- Prima di ogni PR: esegui `npm ci` se il lockfile è disponibile, `npm run check`, `npm run build`; la CI costruisce anche l'APK.
-- Non eliminare il modello Soldier.glb né cambiare scheletro, orientamento, altezza, animazioni o collider senza fallback e verifica.
-- Non introdurre asset esterni senza URL stabile, licenza esplicita compatibile e attribuzione quando necessaria. Vietato incorporare chiavi, token o credenziali nel repository.
-- Evita draw call aggiuntive: condividi geometrie/materiali, usa InstancedMesh e LOD, limita ombre e texture adatte a smartphone.
-- Non usare simboli di propaganda o glorificazione estremista; mantenere la rappresentazione storica contestualizzata.
-- Non disabilitare controlli per far diventare verde una build.
-- Ogni PR deve avere un piano di rollback: revert della PR o ripristino del commit stabile.
+## Vincoli
+- Non reintrodurre Three.js, GLB/GLTF, motori 3D, PBR o selettori 2D/3D.
+- Non cancellare i due pacchetti ZIP degli asset 2D originali dell'utente.
+- Sprite animati realmente utilizzati per idle, run, fire, jump, duck, con fallback.
+- Conservare controlli touch multitouch, sparo continuo, granate, boss, carri, ostaggi, armi, punteggio, vite e traguardo.
+- Eseguire npm run check, npm run build e workflow CI Android senza bypassare test.
+- Non certificare la qualità visiva o FPS senza prova reale su Android.
+- Ottimizzare Canvas, pooling e effetti per smartphone. Nessuna credenziale o asset senza licenza.
+- Usare normalmente PR per cambi rischiosi, con rollback e test su telefono.
 
-## Priorità in ordine
-1. Correggere bug di corsa, salto, traguardo e camera.
-2. Migliorare asset del soldato con licenza e rig compatibili.
-3. Migliorare alberi, terreno, strutture e illuminazione.
-4. Aggiungere misurazioni FPS su dispositivo e confronti screenshot.
-5. Rifinire HUD e UX mobile.
-
-## Definizione di completato
-La PR contiene screenshot o descrizione delle differenze visive, licenze asset, test passati, APK generata e indicazione se la prova su Android è stata effettivamente eseguita. Non dichiarare mai fotorealismo o prestazioni verificate sulla sola base della compilazione.
+## Diagnostica
+La APK è prodotta da .github/workflows/build-apk.yml. Le immagini originali 2D vengono estratte dai due ZIP prima della build. Il nome storico del repository GitHub non implica l'esistenza del motore 3D.

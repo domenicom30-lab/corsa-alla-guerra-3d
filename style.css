@@ -29,3 +29,16 @@
 #message.victory-message{top:22%;left:10%;width:80%;padding:clamp(10px,2vh,24px);font-size:clamp(20px,3.8vw,48px);line-height:1.45;color:#ffe4a1;text-shadow:0 3px 0 #6e3223,0 6px 12px #000;white-space:pre-line;background:linear-gradient(90deg,transparent,#101819b8 15%,#101819b8 85%,transparent)}
 #victory-credit{top:calc(22% + clamp(20px,3.8vw,48px)*3.3);font-size:clamp(10px,1.25vw,15px);color:#e9dfcb}
 @media(max-height:450px){#message.victory-message{top:18%;font-size:clamp(18px,3.3vw,35px);line-height:1.35}#victory-credit{top:calc(18% + clamp(18px,3.3vw,35px)*3.1)}}
+
+/* 2D-only military arcade HUD, with high-contrast scores and open playfield. */
+#hud{color:#fff5d7}
+.hud-pill{border-color:#c1a46c9c;background:linear-gradient(115deg,#211f1ced,#121a1aef 75%,#0a1215ef)}
+.points{color:#ffe09b}
+.finish{color:#e9e4d3}
+.game-title{color:#fff1d4;font-size:clamp(13px,1.8vw,23px);letter-spacing:.10em;text-shadow:2px 3px #21201a,0 4px 12px #000}
+.game-title strong{color:#ffb948}
+.pause-button{border-color:#c1a46c}
+#message{white-space:pre-line;pointer-events:auto;color:#ffebc7}
+.control-group button{backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.control-group button:active{border-color:#fff2ad;box-shadow:0 0 15px #fbd67a7a,inset 0 1px 12px #fff8}
+@media(max-height:410px){.topbar{height:clamp(37px,8vh,53px)}.game-title{top:15.5%}}
