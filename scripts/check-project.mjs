@@ -41,6 +41,7 @@ const checks = [
  ['Polvere passi pixel art stratificata',()=>{for(const token of ["ctx.fillStyle='#d7c6a2'",'Math.round(p.y-p.size*.25)','Math.max(2,p.size*.45)'])assert.ok(main.includes(token),token)}],
  ['Frammenti nemici rotanti',()=>{for(const token of ['ctx.rotate((p.x+p.y)*.012)',"ctx.fillStyle='#e9ad70'",'ctx.fillRect(-p.size*.5,-p.size*.5,p.size,p.size*.7)'])assert.ok(main.includes(token),token)}],
  ['Ombre contatto nemici',()=>{for(const token of ["ctx.globalAlpha=.25;ctx.fillStyle='#201910'",'ctx.ellipse(x,ground()+H*.006,w*.48,H*.009','drawEnemyFrame(ctx,Math.floor(phase*1.4+t.phase)%8'])assert.ok(main.includes(token),token)}],
+ ['Pausa rilascia comandi attivi',()=>{for(const token of ['paused=!paused;last=0','if(paused){fireHeld=false;clearTouchMovement()}'])assert.ok(main.includes(token),token)}],
  ['Prestazioni mobile',()=>{assert.ok(main.includes('devicePixelRatio'));assert.ok(main.includes('requestAnimationFrame(frame)'))}],
  ['Build configurata',()=>assert.ok(pkg.scripts.build)]
 ];
