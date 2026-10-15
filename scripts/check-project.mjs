@@ -1,5 +1,6 @@
 import { readFileSync, existsSync } from 'node:fs';
 import assert from 'node:assert/strict';
+import {createArcadeSystems} from '../arcade-mechanics.js';
 const main = readFileSync('main.js', 'utf8');
 const html = readFileSync('index.html', 'utf8');
 const art = readFileSync('pixel-art.js','utf8');
@@ -29,6 +30,7 @@ const checks = [
  ['Pausa automatica al cambio app',()=>{for(const token of ["if(running&&!paused){paused=true;message.textContent='IN PAUSA",'message.style.display=\'block\'}}});'])assert.ok(main.includes(token),token)}],
  ['Fuoco touch continuo e pausa su blur',()=>{assert.ok(main.includes("['pointerup','pointercancel','lostpointercapture'])fireButton"));assert.ok(main.includes("addEventListener('blur',()=>"));assert.ok(main.includes("if(running&&!paused){paused=true;message.textContent='IN PAUSA"))}],
  ['Movimento multitouch indipendente',()=>{for(const token of ['const pointers=new Set()','pointers.add(e.pointerId)','pointers.delete(e.pointerId)','movement[id]=pointers.size>0'])assert.ok(main.includes(token),token)}],
+ ['Culling pickup su schermi ad alta densità',()=>{let draws=0;const ctx={canvas:{width:400,clientWidth:100},save(){},restore(){},translate(){},fillRect(){draws++},strokeRect(){},fillText(){}};const systems=createArcadeSystems();systems.draw(ctx,1100,100,100,0);assert.equal(draws,0,'pickup fuori dalla viewport CSS');systems.draw(ctx,1330,100,100,0);assert.ok(draws>0,'pickup visibile') }],
  ['Prestazioni mobile',()=>{assert.ok(main.includes('devicePixelRatio'));assert.ok(main.includes('requestAnimationFrame(frame)'))}],
  ['Build configurata',()=>assert.ok(pkg.scripts.build)]
 ];
