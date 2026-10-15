@@ -78,3 +78,45 @@ export function drawBossDeathCinematic(ctx,W,H,ground,elapsed,x){
  ctx.fillStyle='#fff6dc';ctx.fillRect(0,0,W,H);
  ctx.restore();
 }
+
+// Four deterministic, seamless parallax planes. Each tile repeats at its own period.
+const tileNoise=n=>{const v=Math.sin(n*91.73+4.17)*19413.17;return v-Math.floor(v)};
+export function drawWarzoneParallax(ctx,W,H,scroll,ground){
+ ctx.save();ctx.imageSmoothingEnabled=false;
+ const wrap=(value,period)=>((value%period)+period)%period;
+ // Distant ruined skyline (20% of camera travel).
+ const cityStep=H*.22,cityOffset=wrap(scroll*.2,cityStep);
+ for(let i=-1;i<Math.ceil(W/cityStep)+2;i++){
+  const worldIndex=i+Math.floor(scroll*.2/cityStep),x=i*cityStep-cityOffset;
+  const height=H*(.13+tileNoise(worldIndex+19)*.19);
+  const width=cityStep*(.68+tileNoise(worldIndex+55)*.3);
+  ctx.fillStyle='#26302f';ctx.fillRect(x,ground-H*.09-height,width,height);
+  ctx.fillStyle='#37403b';ctx.fillRect(x,ground-H*.09-height,width,H*.008);
+  for(let j=0;j<3;j++)for(let k=0;k<2;k++){
+   if(tileNoise(worldIndex*31+j*7+k)>.76){
+    ctx.fillStyle='#967952';ctx.globalAlpha=.32;
+    ctx.fillRect(x+width*(.2+k*.42),ground-H*.09-height+H*(.035+j*.045),H*.008,H*.013);
+   }
+  }
+  ctx.globalAlpha=1;
+ }
+ // Burned tree trunks and rubble move at half the camera speed.
+ const step=H*.45,offset=wrap(scroll*.5,step);
+ for(let i=-1;i<Math.ceil(W/step)+2;i++){
+  const index=i+Math.floor(scroll*.5/step),x=i*step-offset;
+  const trunk=H*(.1+tileNoise(index+101)*.14);
+  ctx.fillStyle='#30332b';ctx.fillRect(x,ground-H*.075-trunk,H*.014,trunk);
+  ctx.fillRect(x-H*.018,ground-H*.075-trunk*.73,H*.044,H*.009);
+  ctx.fillStyle='#4b4437';ctx.beginPath();ctx.ellipse(x+H*.065,ground-H*.055,H*.085,H*.034,0,Math.PI,0);ctx.fill();
+ }
+ // Ground is world-anchored at 100% camera speed.
+ ctx.fillStyle='#4d4933';ctx.fillRect(0,ground,W,H-ground);
+ ctx.fillStyle='#77704b';ctx.fillRect(0,ground,W,H*.012);
+ const rockStep=H*.085,rockOffset=wrap(scroll,rockStep);
+ for(let i=-1;i<Math.ceil(W/rockStep)+2;i++){
+  const index=i+Math.floor(scroll/rockStep),x=i*rockStep-rockOffset;
+  ctx.fillStyle=tileNoise(index+413)>.5?'#6e5d46':'#332e29';
+  ctx.fillRect(x,ground+H*(.028+tileNoise(index+729)*.085),H*.011,H*.007);
+ }
+ ctx.restore();
+}
