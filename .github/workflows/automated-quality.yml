@@ -31,6 +31,8 @@ jobs:
         run: node --check main.js
       - name: Gameplay and asset smoke tests
         run: npm run check
+      - name: Functional 2D gameplay mechanics tests
+        run: node scripts/test-arcade-mechanics.mjs
       - name: Production web build
         run: npm run build
       - name: Save diagnostic summary
