@@ -13,6 +13,12 @@ export function prepareEnemyFrames(){
    b(x+2,25+lift-Math.round(phase*3),11,3,'#4c171b');
    b(x-7,27+lift+Math.round(phase*3),3,8,'#822e2b');
    b(x+11,28+lift-Math.round(phase*3),3,7,'#822e2b');
+   // Independently animated foreleg tips and contact highlights.
+   const leftStep=Math.round(phase*3),rightStep=Math.round(-phase*3);
+   b(x-9+leftStep,33+lift+Math.max(0,leftStep),6,2,'#3c1c22');
+   b(x+10+rightStep,34+lift+Math.max(0,rightStep),6,2,'#3c1c22');
+   b(x-7+leftStep,34+lift+Math.max(0,leftStep),3,1,'#dc7d55');
+   b(x+12+rightStep,35+lift+Math.max(0,rightStep),3,1,'#dc7d55');
   }
   b(9,12+lift,31,18,'#331b1e');
   b(11,10+lift,27,17,'#7d272a');
