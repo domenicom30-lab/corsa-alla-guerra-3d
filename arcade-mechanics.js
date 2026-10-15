@@ -106,7 +106,7 @@ export function createArcadeSystems(){
    const x=boss.x-scroll,unit=H*.01;
    const viewportWidth=ctx.canvas?.clientWidth||ctx.canvas?.width||Infinity;
    if(x<-H*.55||x>viewportWidth+H*.55)return;
-   if(spritePacksReady()){drawRaster(ctx,'boss','commander',Math.floor(phase*.5)%6,x-H*.325,ground-H*.6,H*.65,H*.6);return}
+   if(spritePacksReady()){drawRaster(ctx,'boss','commander',Math.floor(phase*.5)%6,x-H*.355,ground-H*.5,H*.71,H*.5);return}
    const treadFrame=Math.floor(boss.treadDistance/Math.max(1,H*.035))%4;
    ctx.save();ctx.translate(x,ground);
    // Original armored crawler: layered pixel-like hull, track links and turret.

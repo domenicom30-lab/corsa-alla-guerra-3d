@@ -201,7 +201,7 @@ function background(){
  }
 }
 function drawPlayer(){
- const h=H*(isCrouching()?.205:.30),w=h*160/152,runFrame=jumpY>0?1:Math.floor(runCycle)%8;
+ const h=H*(isCrouching()?.205:.30),w=h*240/210,runFrame=jumpY>0?1:Math.floor(runCycle)%8;
  const x=playerX()-w*.5,y=ground()-jumpY-h;
  ctx.save();ctx.globalAlpha=.24*Math.max(.3,1-jumpY/H);ctx.fillStyle='#17150e';ctx.beginPath();ctx.ellipse(playerX(),ground()+H*.006,w*.4,H*.012,0,0,Math.PI*2);ctx.fill();ctx.restore();
  const moving=Math.abs(horizontalSpeed)>SPEED*.09;
@@ -223,7 +223,7 @@ function drawTicks(){
  if(x<-w||x>W+w)continue;ctx.imageSmoothingEnabled=false;ctx.save();ctx.globalAlpha=.25;ctx.fillStyle='#201910';ctx.beginPath();ctx.ellipse(x,ground()+H*.006,w*.48,H*.009,0,0,Math.PI*2);ctx.fill();ctx.restore();drawEnemyFrame(ctx,Math.floor(phase*1.4+t.phase)%8,x-w*.5,y-h*.5,w,h);
  }
 }
-function drawSentries(){for(const e of sentries){if(!e.alive)continue;const x=e.x-scroll;if(x<-H*.32||x>W+H*.32)continue;const facingPlayer=e.x>scroll+playerX()?-1:1;drawRaster(ctx,'enemies',e.type,Math.floor(e.walk+(e.vx?0:phase*.25)+e.phase)%8,x-H*(e.type==='heavy'?.118:.096),ground()-H*(e.stance==='crouch'?.18:.255),H*(e.type==='heavy'?.236:.192),H*(e.stance==='crouch'?.18:.255));}}
+function drawSentries(){for(const e of sentries){if(!e.alive)continue;const x=e.x-scroll;if(x<-H*.32||x>W+H*.32)continue;const facingPlayer=e.x>scroll+playerX()?-1:1;const h=H*(e.stance==='crouch'?.18:e.type==='heavy'?.28:.25),w=h*240/210;drawRaster(ctx,'enemies',e.type,Math.floor(e.walk+(e.vx?0:phase*.25)+e.phase)%8,x-w*.5,ground()-h,w,h);}}
 function drawBullets(){
  for(const b of bullets){
   if(b.kind==='rocket'){drawRocketProjectile(ctx,b,H,phase);continue}
