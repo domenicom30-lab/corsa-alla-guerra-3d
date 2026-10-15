@@ -205,7 +205,7 @@ function update(dt) {
   }
   stats.textContent='TRAGUARDO: '+Math.max(0,200-Math.floor(distance/5))+' m';
   document.getElementById('points').textContent='PUNTI: '+score;
-  document.getElementById('hearts').textContent='❤️'.repeat(health)+'🖤'.repeat(3-health);
+  document.getElementById('hearts').innerHTML=Array.from({length:3},(_,i)=>'<span class="heart '+(i>=health?'heart-lost':'')+'">♥</span>').join('');
   if(distance>=1000){running=false;message.textContent='MISSIONE COMPLETATA — TOCCA PER RIPROVARE';message.style.display='block';}
 }
 function frame(now) {
