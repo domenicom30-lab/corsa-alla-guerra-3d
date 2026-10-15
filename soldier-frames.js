@@ -137,7 +137,31 @@ function makeFrame(pose,index){
  // High-contrast pixel clusters keep the silhouette readable at mobile scale.
  box(25,torsoY+19,6,2,'#343d30');
  box(37,torsoY+19,6,2,'#343d30');
- if(firing&&index%2===0){box(61,torsoY+4,3,3,'#ffcf66')}
+ // High-contrast arcade finishing pass: bandolier, cloth flutter, gear and facial animation.
+ const flutter=running?Math.round(Math.sin(cycle)*4):pose==='jump'?-3:0;
+ poly([[27,torsoY],[30,torsoY+1],[40,torsoY+17],[37,torsoY+18]],'#b1a078');
+ box(29,torsoY+2,2,3,'#e1c68a');
+ box(33,torsoY+8,2,3,'#e1c68a');
+ box(37,torsoY+14,2,3,'#e1c68a');
+ box(18+packSwing,torsoY+15,8,3,'#242e29');
+ box(19+packSwing,torsoY+16,6,1,'#c2a878');
+ box(24,torsoY+18,5,4,'#333d31');
+ box(25,torsoY+19,3,2,'#9ba87b');
+ // Wind-driven jacket flap follows the eight running poses.
+ poly([[26,torsoY+19],[32,torsoY+21],[27+flutter,torsoY+28],[22+flutter,torsoY+25]],'#344436');
+ poly([[27,torsoY+20],[30,torsoY+21],[26+flutter,torsoY+25]],'#86956b');
+ // Helmet buckle, nose highlight and weapon charging handle.
+ box(27,torsoY-8,3,1,'#c5b99a');
+ box(32,torsoY-2,2,2,'#805340');
+ box(41,torsoY-6,2,1,'#f1c09a');
+ box(49,torsoY+3+armShift,5,1,'#aeb9b1');
+ box(52,torsoY+2+armShift,2,2,'#303b38');
+ box(56,torsoY+11+armShift,2,3,'#151d1d');
+ if(running&&index%2===0){
+  box(17-stride,77,7,1,'#c3b18c');
+  box(43+stride,77,7,1,'#c3b18c');
+ }
+  if(firing&&index%2===0){box(61,torsoY+4,3,3,'#ffcf66')}
  if(pose==='jump'){box(18,64,5,3,COLORS.boot)}
  g.imageSmoothingEnabled=false;return c;
 }
