@@ -24,7 +24,11 @@ const checks = [
   ['Prestazioni mobile', () => {
     assert.ok(main.includes('setPixelRatio'));
     assert.ok(main.includes('InstancedMesh'));
-    assert.ok(main.includes('shadow.mapSize.set(1024, 1024)'));
+    const shadow = main.match(/sun\\.shadow\\.mapSize\\.set\\(\\s*(\\d+)\\s*,\\s*(\\d+)\\s*\\)/);
+    assert.ok(shadow, 'Risoluzione shadow map mancante');
+    const width = Number(shadow[1]), height = Number(shadow[2]);
+    assert.ok(width >= 512 && width <= 2048 && height >= 512 && height <= 2048,
+      'Shadow map fuori dal budget mobile (512–2048)');
   }],
   ['Build configurata', () => assert.ok(pkg.scripts.build)]
 ];
