@@ -6,7 +6,8 @@ const main = readFileSync('main.js', 'utf8');
 const html = readFileSync('index.html', 'utf8');
 const art = readFileSync('pixel-art.js','utf8');
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
-const checks = [ 
+const checks = [
+ ['Schermata vittoria visibile almeno sei secondi',()=>{assert.ok(main.includes('const VICTORY_RESTART_DELAY_MS=6000'));assert.ok(main.includes('victoryRestartAt=performance.now()+VICTORY_RESTART_DELAY_MS'));assert.ok(main.includes('if(victoryRestartAt&&performance.now()<victoryRestartAt)return'))}], 
  ['Boss: effetto camera modificabile senza errore',()=>{const systems=createArcadeSystems();systems.screenShake=Math.max(systems.screenShake,18);assert.equal(systems.screenShake,18);systems.reset();assert.equal(systems.screenShake,0)}],
  ['Cache frame soldato',()=>{const source=readFileSync('soldier-frames.js','utf8');assert.ok(source.includes('if(soldierFrames[pose]?.length===count)continue'),'evita di ricreare i frame già caricati')}],
  ['Canvas e controlli',()=>{for(const id of ['game','message','stats','left','right','jump','duck','pause','points','hearts','shoot','grenade'])assert.ok(html.includes('id="'+id+'"'),id)}],
