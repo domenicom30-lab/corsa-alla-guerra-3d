@@ -8,7 +8,7 @@ const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 const checks = [
  ['Canvas e controlli',()=>{for(const id of ['game','message','stats','left','right','jump','duck','pause','points','hearts','shoot','grenade'])assert.ok(html.includes('id="'+id+'"'),id)}],
  ['Backup 3D documentato',()=>assert.ok(existsSync('docs/2-5d-assets.md'))],
- ['Motore 2D laterale senza prospettiva',()=>{for(const token of ['function ground(', 'function drawPlayer(', 'function drawObstacles('])assert.ok(main.includes(token),token);assert.ok(!main.includes('function projection('))}],
+ ['Motore 2D laterale senza prospettiva',()=>{for(const token of ['function ground(', 'function drawPlayer(', 'function drawTicks('])assert.ok(main.includes(token),token);assert.ok(!main.includes('function projection('))}],
  ['Movimento platform laterale',()=>{assert.ok(main.includes('function ground('));assert.ok(main.includes('const direction=Number(movement.right)-Number(movement.left)'));assert.ok(main.includes('function jump('))}],
  ['Grafica platform 2D',()=>{for(const token of ['pixelBackdrop','sprites.soldier','sprites.tick','function drawPlayer(','function background('])assert.ok(main.includes(token),token)}],
  ['Asset pixel art indipendenti',()=>{for(const token of ['soldier:Array.from','tick:Array.from','crate:draw','sandbags:draw','tower:draw','pixelBackdrop'])assert.ok(art.includes(token),token);assert.ok(!main.includes('forest-background.webp'))}],
@@ -44,7 +44,7 @@ const checks = [
  ['Pausa rilascia comandi attivi',()=>{for(const token of ['paused=!paused;last=0','if(paused){fireHeld=false;clearTouchMovement();movement.left=false;movement.right=false}'])assert.ok(main.includes(token),token)}],
  ['Comandi reali puliti senza variabile keys inesistente',()=>{assert.ok(!main.includes('keys.left=false'));assert.ok(main.includes('if(!visible){fireHeld=false;clearTouchMovement();movement.left=false;movement.right=false;'));assert.ok(main.includes("addEventListener('blur',()=>{clearTouchMovement();movement.left=false;movement.right=false;fireHeld=false;"))}],
  ['Boss animato e rendering limitato alla viewport',()=>{const combat=readFileSync('arcade-mechanics.js','utf8');for(const t of ['const treadFrame=Math.floor(phase*.55)%4','if(x<-H*.55||x>viewportWidth+H*.55)return','treadFrame%2'])assert.ok(combat.includes(t),t)}],
- ['Nuova partita azzera movimento e tempo',()=>{assert.ok(main.includes("obstacles.forEach(o=>o.hit=false);clearTouchMovement();movement.left=false;movement.right=false;last=0;message.style.display='none';hud()"))}],
+ ['Nuova partita azzera movimento e tempo',()=>{assert.ok(main.includes("clearTouchMovement();movement.left=false;movement.right=false;last=0;message.style.display='none';hud()"))}],
  ['Salute boss visibile durante lo scontro',()=>{for(const token of ["arcade.boss.active&&!arcade.boss.defeated?' · BOSS '",'Math.ceil(arcade.boss.hp/arcade.boss.maxHp*100)'])assert.ok(main.includes(token),token)}],
  ['Barra vita boss in pixel art',()=>{for(const token of ['function drawBossHealthBar()','if(!arcade.boss.active||arcade.boss.defeated)return','ctx.fillRect(x,y,width*ratio,height)','ctx.restore();drawBossHealthBar();requestAnimationFrame(frame)'])assert.ok(main.includes(token),token)}],
  ['Distruzione scenografica boss',()=>{for(const token of ['for(let i=0;i<5;i++){burst(bossScreenX','for(let i=0;i<4;i++){shatterEnemy(bossScreenX','arcade.screenShake=Math.max(arcade.screenShake,18)'])assert.ok(main.includes(token),token)}],
@@ -55,6 +55,7 @@ const checks = [
  ['Dettagli sprite soldato',()=>{const soldier=readFileSync('soldier-frames.js','utf8');for(const token of ['Hand-pixelled material detail','High-contrast pixel clusters','torsoY-14','frontKnee-3'])assert.ok(soldier.includes(token),token)}],
  ['Sprite soldato con ombreggiatura stratificata',()=>{const soldier=readFileSync('soldier-frames.js','utf8');for(const token of ['const armor=(x,y,w,h,base,light,shade)=>','Layered high-resolution pixel rendering','Combat vest, belts, buckles and pouches','Rifle receiver, magazine, muzzle'])assert.ok(soldier.includes(token),token)}],
  ['Silhouette originali non rettangolari',()=>{const soldier=readFileSync('soldier-frames.js','utf8');for(const token of ['const poly=(points,color)=>','Organic stepped combat jacket','Curved, chipped steel helmet silhouette'])assert.ok(soldier.includes(token),token)}],
+ ['Percorso senza ostacoli da saltare',()=>{for(const token of ['const obstacles=','function drawObstacles(','drawObstacles();','for(const o of obstacles)'])assert.ok(!main.includes(token),token);assert.ok(main.includes('function drawTicks('))}],
  ['Prestazioni mobile',()=>{assert.ok(main.includes('devicePixelRatio'));assert.ok(main.includes('requestAnimationFrame(frame)'))}],
  ['Build configurata',()=>assert.ok(pkg.scripts.build)]
 ];
