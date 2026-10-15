@@ -1,6 +1,7 @@
 // Original hand-authored pixel-character animation: each pose has independent frames.
 const COLORS={outline:'#25251e',shadow:'#394638',cloth:'#667751',light:'#a0a77a',helmet:'#596b50',skin:'#d8a17a',skinShade:'#a86e56',boot:'#39352d',metal:'#444d4a',shine:'#a6aaa0'};
 const frameCounts={idle:4,run:8,jump:3,fire:4,duck:3};
+export const soldierFrameCounts=Object.freeze({...frameCounts});
 function makeFrame(pose,index){
  const c=document.createElement('canvas');c.width=64;c.height=80;const g=c.getContext('2d');
  const box=(x,y,w,h,color)=>{g.fillStyle=color;g.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h))};
@@ -32,6 +33,9 @@ function makeFrame(pose,index){
  box(28,torsoY-17,16,7,COLORS.helmet);
  box(30,torsoY-16,11,2,COLORS.light);
  box(25,torsoY-10,22,4,COLORS.helmet);
+ box(29,torsoY-19,10,2,COLORS.outline);
+ box(30,torsoY-18,7,2,COLORS.light);
+ box(27,torsoY-11,5,2,COLORS.shadow);
  box(40,torsoY-7,3,2,COLORS.outline);
  const armShift=firing?index%2*3:running?Math.sin(cycle)*4:0;
  limb(39,torsoY+3,45,torsoY+10+armShift,7,COLORS.cloth);
@@ -40,6 +44,14 @@ function makeFrame(pose,index){
  box(46,torsoY+6+armShift,16,3,COLORS.metal);
  box(56,torsoY+3+armShift,3,4,COLORS.shine);
  box(48,torsoY+10+armShift,6,4,COLORS.boot);
+ box(51,torsoY+6+armShift,3,2,COLORS.shine);
+ box(55,torsoY+9+armShift,2,6,COLORS.outline);
+ // Equipment, webbing and separate swaying satchel add silhouette depth.
+ const packSwing=running?Math.round(Math.cos(cycle)*2):0;
+ box(17+packSwing,torsoY+1,10,18,COLORS.outline);
+ box(18+packSwing,torsoY+2,8,15,COLORS.shadow);
+ box(19+packSwing,torsoY+3,6,4,COLORS.light);
+ box(20+packSwing,torsoY+10,5,2,'#b9a879');
  box(27,torsoY+1,6,13,COLORS.shadow);
  box(28,torsoY+4,3,7,COLORS.light);
  if(firing&&index%2===0){box(61,torsoY+4,3,3,'#ffcf66')}
