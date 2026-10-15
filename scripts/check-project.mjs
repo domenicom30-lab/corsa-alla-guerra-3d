@@ -20,7 +20,7 @@ const checks = [
  ['Fucile e nemici rossi',()=>{for(const token of ['function shoot(','function drawTicks(','function drawBullets(','shotCooldown','bullets.push(','score+=arcade.kill()'])assert.ok(main.includes(token),token)}],
  ['Meccaniche arcade',()=>{const combat=readFileSync('arcade-mechanics.js','utf8');for(const token of ['throwGrenade','enemyShots','boss','pickups','spread','heavy','combo'])assert.ok(combat.includes(token),token);assert.ok(main.includes('arcade.step('));assert.ok(main.includes('arcade.fire('))}],
  ['Controlli granata e fine partita',()=>{assert.ok(main.includes("['grenade',grenade]"));assert.ok(main.includes('distance=scroll/50'));assert.ok(main.includes('movement.left=false;movement.right=false'))}],
- ['Boss: premio assegnato una sola volta',()=>{assert.ok(main.includes('function defeatBoss('));assert.ok(main.includes('if(bossVictoryAwarded)return'));assert.ok(main.includes('bossVictoryAwarded=false;arcade.reset()'))}],
+ ['Boss: premio assegnato una sola volta',()=>{assert.ok(main.includes('function defeatBoss('));assert.ok(main.includes('if(bossVictoryAwarded)return'));assert.ok(main.includes('bossVictoryAwarded=false;bossDeathTime=-1;bossDeathX=0;arcade.reset()'))}],
  ['Feedback arcade visivo',()=>{for(const token of ['function drawBlastEffects(', 'blastEffects.length=0','COMBO x'])assert.ok(main.includes(token),token)}],
  ['Animazione soldato sincronizzata',()=>{for(const token of ['let runCycle=0','runCycle+=Math.abs(scroll-previousScroll)','Math.floor(runCycle)%8','footstepBob'])assert.ok(main.includes(token),token)}],
  ['Rinculo e ombra del soldato',()=>{for(const token of ['let recoil=0','recoil=1;bullets.push','recoil=Math.max(0,recoil-dt*12)','ctx.ellipse(playerX()'])assert.ok(main.includes(token),token)}],
