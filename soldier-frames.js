@@ -5,6 +5,7 @@ export const soldierFrameCounts=Object.freeze({...frameCounts});
 function makeFrame(pose,index){
  const c=document.createElement('canvas');c.width=64;c.height=80;const g=c.getContext('2d');
  const box=(x,y,w,h,color)=>{g.fillStyle=color;g.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h))};
+ const poly=(points,color)=>{g.fillStyle=color;g.beginPath();g.moveTo(Math.round(points[0][0]),Math.round(points[0][1]));for(let i=1;i<points.length;i++)g.lineTo(Math.round(points[i][0]),Math.round(points[i][1]));g.closePath();g.fill()};
  const limb=(x1,y1,x2,y2,width,color)=>{g.strokeStyle=COLORS.outline;g.lineWidth=width+3;g.lineCap='square';g.beginPath();g.moveTo(x1,y1);g.lineTo(x2,y2);g.stroke();g.strokeStyle=color;g.lineWidth=width;g.beginPath();g.moveTo(x1,y1);g.lineTo(x2,y2);g.stroke()};
  const cycle=index*Math.PI*2/frameCounts[pose];
  const running=pose==='run',crouched=pose==='duck',firing=pose==='fire';
@@ -20,8 +21,11 @@ function makeFrame(pose,index){
  limb(40+stride*.5,rearKnee,45+stride,75-(pose==='jump'?12:0),8,COLORS.cloth);
  box(12-stride,73-(pose==='jump'?10:0),16,5,COLORS.boot);
  box(39+stride,73-(pose==='jump'?12:0),15,5,COLORS.boot);
- box(24,torsoY-2,19,23,COLORS.outline);
- box(26,torsoY,15,19,COLORS.cloth);
+ // Organic stepped combat jacket: tapered waist, angled shoulders and separate collar.
+ poly([[25,torsoY-4],[36,torsoY-5],[44,torsoY+1],[45,torsoY+15],[41,torsoY+22],[26,torsoY+21],[23,torsoY+13]],COLORS.outline);
+ poly([[27,torsoY-2],[35,torsoY-3],[42,torsoY+2],[43,torsoY+14],[39,torsoY+19],[27,torsoY+18],[25,torsoY+11]],COLORS.cloth);
+ poly([[27,torsoY-2],[34,torsoY-3],[32,torsoY+2],[26,torsoY+5]],'#8e9c70');
+ poly([[38,torsoY-2],[43,torsoY+2],[42,torsoY+8],[39,torsoY+5]],'#374936');
  box(28,torsoY+3,4,12,COLORS.light);
  box(36,torsoY+4,4,12,COLORS.shadow);
  box(24,torsoY+14,20,5,COLORS.shadow);
@@ -29,8 +33,10 @@ function makeFrame(pose,index){
  box(28,torsoY-8,11,9,COLORS.skinShade);
  box(30,torsoY-8,10,8,COLORS.skin);
  box(38,torsoY-5,5,3,COLORS.skinShade);
- box(26,torsoY-16,19,9,COLORS.outline);
- box(28,torsoY-17,16,7,COLORS.helmet);
+ // Curved, chipped steel helmet silhouette instead of a rectangular cap.
+ poly([[26,torsoY-12],[27,torsoY-17],[30,torsoY-20],[38,torsoY-21],[43,torsoY-18],[46,torsoY-12],[46,torsoY-9],[25,torsoY-9]],COLORS.outline);
+ poly([[28,torsoY-12],[29,torsoY-16],[32,torsoY-19],[38,torsoY-19],[42,torsoY-17],[44,torsoY-12]],COLORS.helmet);
+ poly([[30,torsoY-16],[33,torsoY-19],[39,torsoY-18],[40,torsoY-16]],'#93a17c');
  box(30,torsoY-16,11,2,COLORS.light);
  box(25,torsoY-10,22,4,COLORS.helmet);
  box(29,torsoY-19,10,2,COLORS.outline);
