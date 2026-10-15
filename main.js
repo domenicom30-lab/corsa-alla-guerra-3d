@@ -94,18 +94,27 @@ function toggleRide(){
  soundEffect('enter');hud();
 }
 function drawRide(){
- const x=ride.x-scroll;if(x< -H*.4||x>W+H*.4)return;
- const u=H*.01;
- ctx.save();ctx.translate(x,ground());
- ctx.fillStyle=ride.hp>0?'#202824':'#262323';
- ctx.fillRect(-14*u,-8*u,28*u,7*u);
- for(let i=0;i<6;i++){ctx.fillStyle=i%2?'#626c53':'#333a34';ctx.fillRect((-12+i*4)*u,-7*u,3*u,5*u)}
- ctx.fillStyle=ride.hp>0?'#566f55':'#493f38';ctx.fillRect(-12*u,-17*u,24*u,11*u);
- ctx.fillStyle='#7e9370';ctx.fillRect(-9*u,-21*u,15*u,5*u);
- ctx.fillStyle='#343b35';ctx.fillRect(1*u,-20*u,19*u,3*u);
- if(ride.occupied&&ride.hp>0){ctx.fillStyle='#e3b68c';ctx.fillRect(-4*u,-26*u,5*u,5*u)}
+ const x=ride.x-scroll;if(x< -H*.55||x>W+H*.55)return;
+ const u=H*.01,t=scroll*.075;
+ ctx.save();ctx.translate(x,ground());ctx.imageSmoothingEnabled=false;
+ const box=(x,y,w,h,c)=>{ctx.fillStyle=c;ctx.fillRect(x*u,y*u,w*u,h*u)};
+ const dead=ride.hp<=0,steel=dead?'#443d39':'#525d4b',light=dead?'#66544a':'#89917a';
+ // Armored tracked chassis, road wheels and animated track links.
+ box(-20,-9,40,10,'#171d1c');box(-19,-8,38,8,'#30382f');
+ for(let i=-17;i<=17;i+=4){box(i,-9,3,2,'#6c705e');box(i,-2,3,2,'#727865')}
+ for(let i=-14;i<=14;i+=7){ctx.fillStyle='#151a19';ctx.beginPath();ctx.arc(i*u,-5*u,3.1*u,0,Math.PI*2);ctx.fill();ctx.fillStyle='#929581';ctx.beginPath();ctx.arc(i*u,-5*u,1.6*u,0,Math.PI*2);ctx.fill();box(i-1,-6,2,2,'#444e45')}
+ for(let i=0;i<9;i++){const px=-18+((i*5+Math.floor(t))%37);box(px,-10,3,1,'#9b9b82')}
+ box(-17,-17,34,10,'#202923');box(-15,-19,30,11,steel);box(-13,-18,25,2,light);
+ box(-15,-11,30,2,'#29372d');box(-16,-15,4,5,'#39483b');
+ for(let i=0;i<5;i++)box(-10+i*5,-14,2,3,'#333d33');
+ // Sloped turret, commander hatch, heavy gun barrel and muzzle brake.
+ ctx.fillStyle=steel;ctx.beginPath();ctx.moveTo(-11*u,-19*u);ctx.lineTo(-7*u,-25*u);ctx.lineTo(8*u,-25*u);ctx.lineTo(14*u,-19*u);ctx.closePath();ctx.fill();
+ box(-5,-26,11,2,light);box(8,-22,23,4,'#252d29');box(12,-21,21,2,'#707969');box(29,-23,5,6,'#343d34');box(32,-22,2,4,'#a0a68e');
+ box(-3,-28,10,3,'#242d28');box(-1,-29,6,1,'#a1a58e');box(-13,-20,4,2,'#a1a58e');
+ if(ride.occupied&&!dead){box(-2,-32,6,5,'#b68c6a');box(-3,-34,8,3,'#333e34');box(2,-31,2,1,'#292d28')}
+ if(dead){box(-13,-17,4,5,'#1d2020');box(4,-21,5,4,'#242323')}
  ctx.restore();
- if(!ride.occupied&&ride.hp>0&&Math.abs(ride.x-scroll-playerX())<H*.2){ctx.fillStyle='#ffe19a';ctx.font='bold '+Math.max(12,H*.025)+'px monospace';ctx.fillText('E / CARRO',x-H*.1,ground()-H*.3)}
+ if(!ride.occupied&&!dead&&Math.abs(ride.x-scroll-playerX())<H*.2){ctx.fillStyle='#ffe19a';ctx.font='bold '+Math.max(12,H*.025)+'px monospace';ctx.fillText('E / CARRO',x-H*.1,ground()-H*.37)}
 }
 const rideButton=document.createElement('button');rideButton.id='vehicle-toggle';rideButton.type='button';rideButton.textContent='CARRO';rideButton.setAttribute('aria-label','Entra o esci dal carro');
 Object.assign(rideButton.style,{position:'fixed',right:'12px',top:'45%',zIndex:'20',padding:'10px',background:'#4b624c',color:'white',border:'2px solid #b9c49a',borderRadius:'9px',fontWeight:'bold',touchAction:'manipulation'});
@@ -149,8 +158,7 @@ function playerX(){return W*.22}
 function rect(x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(x,y,w,h)}
 const backdrop=document.createElement('canvas');backdrop.width=960;backdrop.height=540;const bg=backdrop.getContext('2d');
 function background(){
- bg.imageSmoothingEnabled=false;if(!paintArcadeBackground(bg,960,540,scroll*960/Math.max(W,1)))pixelBackdrop(bg,960,540,scroll*960/Math.max(W,1));
- ctx.imageSmoothingEnabled=false;ctx.drawImage(backdrop,0,0,W,H);
+ ctx.imageSmoothingEnabled=false;ctx.fillStyle='#191d23';ctx.fillRect(0,0,W,H);
  drawRuinedCity(ctx,W,H,scroll,ground(),phase);
  drawWarzoneParallax(ctx,W,H,scroll,ground());
  // Detailed modular scenery, on the same horizontal plane.
