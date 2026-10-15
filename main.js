@@ -547,14 +547,14 @@ for (const x of [-1.45, 1.45]) {
 // Geometria condivisa e materiale senza ombre: effetto leggero per Android.
 const puddleGeometry = new THREE.CircleGeometry(1, 18);
 const puddleMaterial = new THREE.MeshStandardMaterial({
-  color: 0x424e4c, roughness: 0.16, metalness: 0.02,
-  transparent: true, opacity: 0.69, depthWrite: false,
+  color: 0x77776a, roughness: 0.32, metalness: 0.0,
+  transparent: true, opacity: 0.24, depthWrite: false,
   polygonOffset: true, polygonOffsetFactor: -2,
   side: THREE.DoubleSide
 });
 const mudRimMaterial = new THREE.MeshStandardMaterial({
   color: 0x342e25, roughness: 1, transparent: true,
-  opacity: 0.55, depthWrite: false, side: THREE.DoubleSide
+  opacity: 0.23, depthWrite: false, side: THREE.DoubleSide
 });
 const puddles = [];
 let puddleSeed = 7829;
@@ -630,15 +630,9 @@ function makePineFoliage() {
 const pineFoliageMat = makePineFoliage();
 // Layered spruce canopy: silhouette cards are supplemented by real 3D boughs.
 // Shared geometry and materials keep memory bounded on mobile GPUs.
+// Restore organic needle silhouettes: remove the visibly geometric cone tiers.
 const pineFoliageGeo = new THREE.PlaneGeometry(3.5, 5.2);
 const pineTrunkGeo = new THREE.CylinderGeometry(0.10, 0.22, 4.8, 8);
-const pineBranchGeo = new THREE.ConeGeometry(1, 1, 7, 1);
-pineBranchGeo.translate(0, 0.5, 0);
-const pineBranchMats = [
-  new THREE.MeshStandardMaterial({color:0x263e2b, roughness:1, flatShading:false}),
-  new THREE.MeshStandardMaterial({color:0x324b32, roughness:1, flatShading:false}),
-  new THREE.MeshStandardMaterial({color:0x3b5235, roughness:1, flatShading:false})
-];
 function createTree(x, z, scale = 1) {
   const group = new THREE.Group();
   group.position.set(x, 0, z);
@@ -648,27 +642,12 @@ function createTree(x, z, scale = 1) {
   const trunk = new THREE.Mesh(pineTrunkGeo, barkMat);
   trunk.position.y = 2.4;
   trunk.castShadow = true;
-  trunk.receiveShadow = true;
   group.add(trunk);
-  // Irregular overlapping cones give branches volume and real light response.
-  // Five shared low-poly meshes per tree avoid expensive alpha overdraw.
-  for (let tier = 0; tier < 5; tier++) {
-    const bough = new THREE.Mesh(pineBranchGeo, pineBranchMats[(tier + Math.floor(variation * 3)) % 3]);
-    const taper = 1 - tier / 6;
-    bough.scale.set((1.75 + variation * 0.2) * taper, 1.65 - tier * 0.12, (1.62 + variation * 0.17) * taper);
-    bough.position.y = 1.15 + tier * 0.74;
-    bough.rotation.y = tier * 1.17 + variation;
-    bough.castShadow = tier < 3;
-    bough.receiveShadow = true;
-    group.add(bough);
-  }
-  // Fine needles on crossed cards break up the otherwise geometric silhouette.
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 5; i++) {
     const foliage = new THREE.Mesh(pineFoliageGeo, pineFoliageMat);
     foliage.position.y = 2.9;
-    foliage.rotation.y = i * Math.PI / 3 + 0.17;
-    foliage.castShadow = false;
-    foliage.receiveShadow = false;
+    foliage.rotation.y = i * Math.PI / 5 + 0.17;
+    foliage.castShadow = i === 0;
     group.add(foliage);
   }
   scene.add(group);
