@@ -57,5 +57,5 @@ export function createArcadeSystems(){
    ctx.restore();
   }
  };
- return {pickups,grenades,enemyShots,boss,reset,collect,fire,throwGrenade,kill,step,draw,get weapon(){return weapon},get ammo(){return ammo},get grenadeCount(){return grenadeCount},get combo(){return combo},get screenShake(){return screenShake}};
+ return {pickups,grenades,enemyShots,boss,reset,collect,fire,throwGrenade,kill,step,draw,get weapon(){return weapon},get ammo(){return ammo},get grenadeCount(){return grenadeCount},get combo(){return combo},get screenShake(){return screenShake},set screenShake(value){screenShake=Number.isFinite(value)?Math.max(0,value):0}};
 }
