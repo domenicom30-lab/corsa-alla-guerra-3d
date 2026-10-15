@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
-"""Fetch CC0 ambientCG JPG PBR sets into the Vite public directory.
-Usage: python scripts/download_pbr.py ROAD_ASSET_ID FOREST_ASSET_ID
-Asset IDs must be verified at https://ambientcg.com before running.
-"""
+"""Import ambientCG 1K CC0 material sets as validated, normalized JPEGs."""
 from pathlib import Path
+from PIL import Image, UnidentifiedImageError
 import io
 import re
 import sys
@@ -17,28 +15,41 @@ def fetch(asset_id, prefix):
     if not re.fullmatch(r"[A-Za-z]+[0-9]{3,5}", asset_id):
         raise ValueError("Invalid ambientCG asset ID")
     url = f"https://ambientcg.com/get?file={asset_id}_1K-JPG.zip"
-    req = urllib.request.Request(url, headers={"User-Agent": "CorsaAllaGuerra3D/1.0"})
-    with urllib.request.urlopen(req, timeout=90) as response:
+    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 CorsaAllaGuerra3D/1.0"})
+    with urllib.request.urlopen(request, timeout=90) as response:
         payload = response.read(35 * 1024 * 1024 + 1)
     if len(payload) > 35 * 1024 * 1024:
         raise ValueError("Texture archive exceeds 35 MB")
-    OUT.mkdir(parents=True, exist_ok=True)
-    # Validate the entire material before publishing any files to the APK.
+    if not zipfile.is_zipfile(io.BytesIO(payload)):
+        raise ValueError(f"ambientCG returned non-ZIP response for {asset_id}")
+    images = {}
     with zipfile.ZipFile(io.BytesIO(payload)) as archive:
-        selected = {}
+        names = archive.namelist()
         for channel, suffix in CHANNELS.items():
-            candidates = [n for n in archive.namelist()
-                          if n.endswith(f"_{channel}.jpg") and not n.startswith("__MACOSX/")]
+            candidates = [n for n in names
+                          if re.search(rf"_{channel}\\.(jpg|jpeg|png|webp)$", n, re.I)
+                          and not n.startswith("__MACOSX/")]
             if not candidates:
-                raise ValueError(f"Missing {channel} map in {asset_id}")
-            data = archive.read(candidates[0])
-            if len(data) < 1024 or data[:3] != b"\\xff\\xd8\\xff":
-                raise ValueError(f"Invalid JPEG {channel} in {asset_id}")
-            selected[suffix] = data
-        for suffix, data in selected.items():
-            dest = OUT / f"{prefix}_{suffix}.jpg"
-            dest.write_bytes(data)
-            print(dest, dest.stat().st_size, "bytes")
+                raise ValueError(f"Missing {channel} in {asset_id}; archive entries: {names[:30]}")
+            candidates.sort(key=lambda n: archive.getinfo(n).file_size, reverse=True)
+            raw = archive.read(candidates[0])
+            try:
+                with Image.open(io.BytesIO(raw)) as source:
+                    source.load()
+                    if source.width < 256 or source.height < 256:
+                        raise ValueError(f"Image too small: {candidates[0]} {source.size}")
+                    converted = source.convert("RGB")
+                    buffer = io.BytesIO()
+                    converted.save(buffer, format="JPEG", quality=88, optimize=True)
+                    images[suffix] = buffer.getvalue()
+                    print(f"{asset_id}: {channel} {source.format} {source.size} -> JPEG {len(images[suffix])} bytes")
+            except (UnidentifiedImageError, OSError) as exc:
+                raise ValueError(f"Unreadable image {candidates[0]} ({len(raw)} bytes): {exc}") from exc
+    OUT.mkdir(parents=True, exist_ok=True)
+    for suffix, data in images.items():
+        path = OUT / f"{prefix}_{suffix}.jpg"
+        path.write_bytes(data)
+        print(f"Saved {path}")
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
