@@ -31,6 +31,7 @@ const checks = [
  ['Fuoco touch continuo e pausa su blur',()=>{assert.ok(main.includes("['pointerup','pointercancel','lostpointercapture'])fireButton"));assert.ok(main.includes("addEventListener('blur',()=>"));assert.ok(main.includes("if(running&&!paused){paused=true;message.textContent='IN PAUSA"))}],
  ['Movimento multitouch indipendente',()=>{for(const token of ['const pointers=new Set()','pointers.add(e.pointerId)','pointers.delete(e.pointerId)','movement[id]=pointers.size>0'])assert.ok(main.includes(token),token)}],
  ['Culling pickup su schermi ad alta densità',()=>{let draws=0;const ctx={canvas:{width:400,clientWidth:100},save(){},restore(){},translate(){},fillRect(){draws++},strokeRect(){},fillText(){}};const systems=createArcadeSystems();systems.draw(ctx,1100,100,100,0);assert.equal(draws,0,'pickup fuori dalla viewport CSS');systems.draw(ctx,1330,100,100,0);assert.ok(draws>0,'pickup visibile') }],
+ ['Limite proiettili per prestazioni Android',()=>assert.ok(main.includes('if(bullets.length>120)bullets.splice(0,bullets.length-120)'))],
  ['Prestazioni mobile',()=>{assert.ok(main.includes('devicePixelRatio'));assert.ok(main.includes('requestAnimationFrame(frame)'))}],
  ['Build configurata',()=>assert.ok(pkg.scripts.build)]
 ];
