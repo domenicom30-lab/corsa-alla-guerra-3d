@@ -87,17 +87,13 @@ function start(){running=true;paused=false;score=0;health=3;distance=0;scroll=0;
 function jump(){if(!running){start();return}if(!paused&&jumpY===0){vy=H*1.13;duckTime=0}}
 function duck(){if(!running){start();return}if(!paused)duckTime=.7}
 function pause(){if(!running)return;paused=!paused;message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display=paused?'block':'none'}
-for(const [id,fn] of [['jump',jump],['duck',duck],['pause',pause]])document.getElementById(id).addEventListener('pointerdown',e=>{e.preventDefault();fn()});
+for(const [id,fn] of [['jump',jump],['duck',duck],['grenade',grenade],['pause',pause]])document.getElementById(id).addEventListener('pointerdown',e=>{e.preventDefault();fn()});
 for(const id of ['left','right']){const el=document.getElementById(id);el.addEventListener('pointerdown',e=>{e.preventDefault();el.setPointerCapture(e.pointerId);if(!running)start();movement[id]=true});for(const type of ['pointerup','pointercancel','lostpointercapture'])el.addEventListener(type,()=>movement[id]=false)}
 const fireButton=document.getElementById('shoot');fireButton.addEventListener('pointerdown',e=>{e.preventDefault();fireHeld=true;fireButton.setPointerCapture(e.pointerId);shoot()});for(const event of ['pointerup','pointercancel','pointerleave','lostpointercapture'])fireButton.addEventListener(event,()=>fireHeld=false);
 addEventListener('blur',()=>{movement.left=false;movement.right=false;fireHeld=false});
 message.addEventListener('pointerdown',()=>{if(paused)pause();else start()});canvas.addEventListener('pointerdown',()=>{if(!running)start()});
-addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='a')movement.left=true;if(e.key==='ArrowRight'||e.key==='d')movement.right=true;if(e.key==='ArrowUp'||e.key===' ')jump();if(e.key==='ArrowDown')duck();if(e.key==='Escape')pause();if(e.key==='f'||e.key==='Control')shoot();if(e.key==='g')grenade()});
+addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='a'){if(!running)start();movement.left=true;}if(e.key==='ArrowRight'||e.key==='d'){if(!running)start();movement.right=true;}if(e.key==='ArrowUp'||e.key===' ')jump();if(e.key==='ArrowDown')duck();if(e.key==='Escape')pause();if(e.key==='f'||e.key==='Control')shoot();if(e.key==='g')grenade()});
 addEventListener('keyup',e=>{if(e.key==='ArrowLeft'||e.key==='a')movement.left=false;if(e.key==='ArrowRight'||e.key==='d')movement.right=false});
 for(const [selector,sprite] of [['.portrait-player',sprites.soldier[0]],['.portrait-target',sprites.tick[0]]]){const el=document.querySelector(selector);if(el){el.style.backgroundImage='url('+sprite.toDataURL()+')';el.style.backgroundSize='contain';el.style.backgroundPosition='center';el.style.imageRendering='pixelated'}}
 requestAnimationFrame(frame);
 
-// Long press on duck launches a grenade; short press still crouches.
-let duckHold=0;const duckButton=document.getElementById('duck');
-duckButton.addEventListener('pointerdown',()=>{duckHold=performance.now()});
-duckButton.addEventListener('pointerup',()=>{if(performance.now()-duckHold>450)grenade()});
