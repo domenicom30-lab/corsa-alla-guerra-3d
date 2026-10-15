@@ -1,12 +1,12 @@
 {
-  "name": "corsa-alla-guerra-3d",
-  "version": "1.0.0",
+  "name": "corsa-alla-guerra-2d",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
-    "check": "node scripts/check-project.mjs && node scripts/test-arcade.mjs && node scripts/test-arcade-mechanics.mjs && node scripts/test-2d-upgrade.mjs"
+    "check": "node scripts/check-project.mjs && node scripts/test-arcade.mjs && node scripts/test-arcade-mechanics.mjs && node scripts/test-2d-upgrade.mjs && node scripts/test-arcade-presentation.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.3",

@@ -141,6 +141,35 @@ export function createArcadeSystems(){
    }
    ctx.fillStyle='#202a27';ctx.fillRect(-13*unit,-42*unit,8*unit,4*unit);
    ctx.fillStyle='#a3ae96';ctx.fillRect(-12*unit,-42*unit,5*unit,unit);
+   // Original painted armor: chamfers, rivets, welded seams and live track arches.
+   ctx.save();
+   ctx.strokeStyle='#171d1b';ctx.lineWidth=2.8*unit;
+   ctx.fillStyle='#536551';ctx.beginPath();
+   ctx.moveTo(-25*unit,-29*unit);ctx.lineTo(-16*unit,-36*unit);
+   ctx.lineTo(19*unit,-34*unit);ctx.lineTo(27*unit,-24*unit);
+   ctx.lineTo(23*unit,-20*unit);ctx.lineTo(-23*unit,-21*unit);
+   ctx.closePath();ctx.fill();ctx.stroke();
+   ctx.fillStyle='#91a080';ctx.beginPath();
+   ctx.moveTo(-18*unit,-34*unit);ctx.lineTo(18*unit,-32*unit);
+   ctx.lineTo(22*unit,-29*unit);ctx.lineTo(-21*unit,-29*unit);ctx.fill();
+   ctx.fillStyle='#384b41';ctx.fillRect(-18*unit,-24*unit,36*unit,3*unit);
+   ctx.fillStyle='#202c29';ctx.fillRect(7*unit,-35*unit,9*unit,14*unit);
+   ctx.fillStyle='#9aaa8b';ctx.fillRect(9*unit,-32*unit,3*unit,7*unit);
+   for(const dx of [-19,-9,1,11,21]){
+    ctx.strokeStyle='#171e1c';ctx.lineWidth=2.5*unit;ctx.beginPath();
+    ctx.arc(dx*unit,-8*unit,6.8*unit,Math.PI,0);ctx.stroke();
+    ctx.strokeStyle='#b0b098';ctx.lineWidth=unit;ctx.beginPath();
+    ctx.arc(dx*unit,-8*unit,4.5*unit,Math.PI*.10,Math.PI*.9);ctx.stroke();
+    ctx.fillStyle='#d2bf91';ctx.fillRect((dx-1)*unit,-9*unit,2*unit,2*unit);
+   }
+   ctx.fillStyle='#252f2b';ctx.beginPath();
+   ctx.ellipse(1*unit,-43*unit,7*unit,2.5*unit,0,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle='#a1a88b';ctx.fillRect(-4*unit,-45*unit,9*unit,unit);
+   for(const [rx,ry] of [[-18,-26],[-7,-25],[5,-25],[17,-26]]){
+    ctx.fillStyle='#202a29';ctx.fillRect(rx*unit,ry*unit,2.7*unit,2.7*unit);
+    ctx.fillStyle='#d0c59d';ctx.fillRect(rx*unit,ry*unit,unit,unit);
+   }
+   ctx.restore();
    ctx.restore();
   }
  };
