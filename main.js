@@ -1,1592 +1,232 @@
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import './style.css';
 
-// CORSA ALLA GUERRA 3D - Enhanced Edition
-// Three.js / Android
-
-const canvas = document.querySelector('#game');
-const message = document.querySelector('#message');
-const stats = document.querySelector('#stats');
-
-const leftButton = document.querySelector('#left');
-const rightButton = document.querySelector('#right');
-const jumpButton = document.querySelector('#jump');
-
-if (!canvas || !message || !stats ||
-    !leftButton || !rightButton || !jumpButton) {
-  throw new Error('Elementi del gioco mancanti in index.html');
-}
-
-const renderer = new THREE.WebGLRenderer({
-  canvas,
-  antialias: true,
-  powerPreference: 'high-performance'
-});
-
-// Limita i pixel elaborati sui display Android ad alta densità.
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
-renderer.setSize(innerWidth, innerHeight);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.88;
-renderer.shadowMap.autoUpdate = true;
-
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x9dbbd1);
-scene.fog = new THREE.FogExp2(0x9eafa9, 0.007);
-
- // Atmospheric gradient dome: a horizon glow and deeper zenith instead of
- // a single flat background colour. BackSide keeps it behind all geometry.
-const skyUniforms = {
-  zenith: {value: new THREE.Color(0x6389ac)},
-  horizon: {value: new THREE.Color(0xc5d3cb)},
-  groundHaze: {value: new THREE.Color(0x9caa9d)}
+// Corsa alla Guerra 2.5D — canvas renderer with perspective projection.
+// All artwork can be replaced by transparent pre-rendered PNG/WebP sprites.
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d', { alpha: false });
+const message = document.getElementById('message');
+const stats = document.getElementById('stats');
+const lanes = [-1, 0, 1];
+let lane = 1, distance = 0, score = 0, health = 3, running = false;
+let jumping = false, jumpTime = 0, last = 0, worldShift = 0;
+let W = 0, H = 0, dpr = 1;
+const ASSETS = {
+  background: './assets/2d/forest-background.webp',
+  soldier: './assets/2d/soldier-back.webp',
+  tree: './assets/2d/spruce.webp',
+  sandbags: './assets/2d/sandbags.webp',
+  crate: './assets/2d/crate.webp',
+  road: './assets/2d/muddy-road.webp'
 };
-const skyDome = new THREE.Mesh(
-  new THREE.SphereGeometry(165, 32, 16),
-  new THREE.ShaderMaterial({
-    uniforms: skyUniforms,
-    vertexShader: `varying vec3 vDirection;
-      void main() {
-        vDirection = position;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }`,
-    fragmentShader: `varying vec3 vDirection;
-      uniform vec3 zenith;
-      uniform vec3 horizon;
-      uniform vec3 groundHaze;
-      void main() {
-        float h = normalize(vDirection).y;
-        float upper = smoothstep(-0.03, 0.8, h);
-        vec3 color = mix(horizon, zenith, upper);
-        color = mix(groundHaze, color, smoothstep(-0.25, 0.03, h));
-        gl_FragColor = vec4(color, 1.0);
-        #include <tonemapping_fragment>
-        #include <colorspace_fragment>
-      }`,
-    side: THREE.BackSide,
-    depthWrite: false,
-    fog: false
-  })
-);
-skyDome.frustumCulled = false;
-skyDome.renderOrder = -1000;
-scene.add(skyDome);
-
-
-const camera = new THREE.PerspectiveCamera(
-  62, innerWidth / innerHeight, 0.1, 180
-);
-
-camera.position.set(0, 3.3, 7.0);
-camera.lookAt(0, 1.35, -5);
-
-// Illuminazione
-scene.add(
-  new THREE.HemisphereLight(0xc3cfd0, 0x302d24, 1.15)
-);
-
-const sun = new THREE.DirectionalLight(0xffe5c4, 2.15);
-sun.position.set(-7, 13, 5);
-sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
-sun.shadow.camera.left = -11;
-sun.shadow.camera.right = 11;
-sun.shadow.camera.top = 15;
-sun.shadow.camera.bottom = -10;
-sun.shadow.normalBias = 0.025;
-sun.shadow.bias = -0.00012;
-sun.shadow.radius = 2;
-scene.add(sun);
-
-const fillLight = new THREE.DirectionalLight(0xaac4d2, 0.38);
-fillLight.position.set(6, 5, -8);
-scene.add(fillLight);
-
-// Materiali
-function mat(color, roughness = 0.9, extra = {}) {
-  return new THREE.MeshStandardMaterial({
-    color,
-    roughness,
-    ...extra
-  });
+const images = {};
+for (const [key, url] of Object.entries(ASSETS)) {
+  const img = new Image();
+  img.onload = () => { images[key] = img; };
+  img.onerror = () => { /* offline fallback remains playable */ };
+  img.src = url;
 }
-
-// Texture condivisa di legno stagionato per torrette, casse e barriere.
-// Generata una sola volta: nessun download o geometria aggiuntiva.
-function createWeatheredWoodTexture() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 256; canvas.height = 512;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#80674c'; ctx.fillRect(0, 0, 256, 512);
-  let seed = 98731;
-  const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
-  for (let i = 0; i < 460; i++) {
-    const x = rnd() * 256, y = rnd() * 512;
-    ctx.strokeStyle = rnd() > 0.5 ? 'rgba(36,24,18,0.19)' : 'rgba(205,172,122,0.20)';
-    ctx.lineWidth = 0.5 + rnd() * 2.6;
-    ctx.beginPath(); ctx.moveTo(x, y);
-    ctx.bezierCurveTo(x + rnd()*9-4, y+35, x+rnd()*13-6, y+90, x+rnd()*12-6, y+105+rnd()*160);
-    ctx.stroke();
-  }
-  for (let i = 0; i < 22; i++) {
-    const x = rnd()*256, y = rnd()*512;
-    ctx.strokeStyle = 'rgba(43,30,23,0.30)'; ctx.lineWidth = 1.3;
-    ctx.beginPath(); ctx.ellipse(x,y,2+rnd()*5,8+rnd()*18,rnd()*0.25,0,Math.PI*2);ctx.stroke();
-  }
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
-  return texture;
+function resize() {
+  dpr = Math.min(devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
-const woodTexture = createWeatheredWoodTexture();
-function weatheredWood(color = 0xffffff) {
-  return new THREE.MeshStandardMaterial({map: woodTexture, color, roughness: 0.98});
+window.addEventListener('resize', resize);
+resize();
+
+const rand = (n) => { const x = Math.sin(n * 127.1 + 78.233) * 43758.5453; return x - Math.floor(x); };
+const objects = Array.from({ length: 80 }, (_, i) => ({
+  depth: i * 22 + 18,
+  side: i % 2 ? -1 : 1,
+  type: i % 5 === 0 ? 'sandbags' : 'tree',
+  seed: i
+}));
+const obstacles = Array.from({ length: 18 }, (_, i) => ({
+  depth: 90 + i * 72,
+  lane: Math.floor(rand(i + 37) * 3),
+  hit: false
+}));
+function horizon() { return H * 0.38; }
+function projection(depth) {
+  const t = 1 / (1 + Math.max(0, depth) * 0.017);
+  return { t, y: horizon() + (H * 0.57) * t, roadHalf: W * (0.045 + 0.57 * t) };
 }
-
-const dirtMat = mat(0xffffff, 0.96);
-const roadMat = mat(0xffffff, 0.94);
-const vergeMat = mat(0xffffff, 0.95);
-const stripeMat = mat(0xc9c2aa);
-const barkMat = weatheredWood(0x8e806c);
-const darkMat = mat(0x282c28);
-const uniformMat = mat(0x555d3d);
-const uniformDarkMat = mat(0x414833);
-const skinMat = mat(0x9e755a);
-const bootMat = mat(0x252620);
-const beltMat = mat(0x35372a);
-const metalMat = mat(0x41473f, 0.62, {
-  metalness: 0.25
-});
-const packMat = mat(0x424a32);
-
-const leafMats = [
-  mat(0x243a29),
-  mat(0x30462e),
-  mat(0x3b5033),
-  mat(0x46583a)
-];
-
-const rockMats = [
-  mat(0x57564c),
-  mat(0x48483e),
-  mat(0x716959)
-];
-
-// Texture procedurale del terreno
-function createDirtTexture() {
-  const c = document.createElement('canvas');
-  c.width = 256;
-  c.height = 256;
-
-  const ctx = c.getContext('2d');
-  ctx.fillStyle = '#514634';
-  ctx.fillRect(0, 0, 256, 256);
-
-  for (let i = 0; i < 6000; i++) {
-    const shade = 35 + Math.random() * 60;
-
-    ctx.fillStyle =
-      `rgba(${shade},${shade * 0.87},${shade * 0.65},${Math.random() * 0.28})`;
-
-    ctx.beginPath();
-    ctx.ellipse(
-      Math.random() * 256,
-      Math.random() * 256,
-      1 + Math.random() * 4,
-      1 + Math.random() * 2,
-      Math.random() * 3,
-      0,
-      Math.PI * 2
-    );
-    ctx.fill();
-  }
-
-  const texture = new THREE.CanvasTexture(c);
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(2, 25);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = Math.min(
-    4,
-    renderer.capabilities.getMaxAnisotropy()
-  );
-
-  return texture;
+function roadX(laneIndex, depth) {
+  const p = projection(depth);
+  return W * 0.5 + (laneIndex - 1) * p.roadHalf * 0.58;
 }
-
-// Texture procedurali leggere: dettagli visivi senza download esterni
-function createSurfaceTexture(kind) {
-  const c = document.createElement('canvas');
-  c.width = c.height = 512;
-  const ctx = c.getContext('2d');
-  const road = kind === 'road';
-  ctx.fillStyle = road ? '#55524d' : '#63533e';
-  ctx.fillRect(0, 0, 512, 512);
-  for (let i = 0; i < 17000; i++) {
-    const x = Math.random() * 512, y = Math.random() * 512;
-    const v = Math.floor(35 + Math.random() * 110);
-    ctx.fillStyle = road
-      ? `rgba(${v},${v},${v},${Math.random() * .18})`
-      : `rgba(${v},${Math.floor(v*.82)},${Math.floor(v*.6)},${Math.random()*.2})`;
-    ctx.fillRect(x, y, Math.random()*4+1, Math.random()*4+1);
-  }
-  if (road) {
-    for (let i=0;i<70;i++) {
-      ctx.strokeStyle = `rgba(24,22,20,${Math.random()*.13})`;
-      ctx.lineWidth = Math.random()*2+.3;
-      ctx.beginPath();
-      const x=Math.random()*512, y=Math.random()*512;
-      ctx.moveTo(x,y); ctx.lineTo(x+Math.random()*12-6,y+Math.random()*100);
-      ctx.stroke();
-    }
-  }
-  const t = new THREE.CanvasTexture(c);
-  t.wrapS=t.wrapT=THREE.RepeatWrapping;
-  t.repeat.set(2, 30);
-  t.colorSpace=THREE.SRGBColorSpace;
-  t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
-  return t;
+function drawImageContain(img, x, bottom, width, height) {
+  if (!img) return false;
+  ctx.drawImage(img, x - width / 2, bottom - height, width, height);
+  return true;
 }
-// Procedural micro-normal detail: gives the road and soil visible relief
-// even when optional downloaded PBR assets are unavailable in the APK.
-function createTerrainNormalMap() {
-  const size = 256;
-  const heights = new Float32Array(size * size);
-  let seed = 78123;
-  const random = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
-  for (let i = 0; i < heights.length; i++) heights[i] = random();
-  // Smooth the noise to form small soil grains instead of harsh pixels.
-  const smooth = new Float32Array(heights.length);
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      let total = 0;
-      for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
-          total += heights[((y + dy + size) % size) * size + ((x + dx + size) % size)];
-        }
-      }
-      smooth[y * size + x] = total / 9;
-    }
-  }
-  const pixels = new Uint8Array(size * size * 4);
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const left = smooth[y * size + ((x - 1 + size) % size)];
-      const right = smooth[y * size + ((x + 1) % size)];
-      const up = smooth[((y - 1 + size) % size) * size + x];
-      const down = smooth[((y + 1) % size) * size + x];
-      const normal = new THREE.Vector3((left - right) * 4, (up - down) * 4, 1).normalize();
-      const index = (y * size + x) * 4;
-      pixels[index] = Math.round((normal.x * 0.5 + 0.5) * 255);
-      pixels[index + 1] = Math.round((normal.y * 0.5 + 0.5) * 255);
-      pixels[index + 2] = Math.round((normal.z * 0.5 + 0.5) * 255);
-      pixels[index + 3] = 255;
-    }
-  }
-  const texture = new THREE.DataTexture(pixels, size, size, THREE.RGBAFormat);
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(2, 30);
-  texture.generateMipmaps = true;
-  texture.minFilter = THREE.LinearMipmapLinearFilter;
-  texture.magFilter = THREE.LinearFilter;
-  texture.needsUpdate = true;
-  return texture;
-}
-const terrainNormal = createTerrainNormalMap();
-roadMat.normalMap = terrainNormal;
-roadMat.normalScale = new THREE.Vector2(0.7, 0.7);
-dirtMat.normalMap = terrainNormal.clone();
-dirtMat.normalMap.repeat.set(2, 25);
-dirtMat.normalMap.needsUpdate = true;
-dirtMat.normalScale = new THREE.Vector2(0.6, 0.6);
-
-// Seeded multi-scale earth coloration: dark damp patches, mineral flecks,
-// and broken gravel, with no network dependency in the Android APK.
-function createEarthAlbedo(road = false) {
-  const size = 512;
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  const image = ctx.createImageData(size, size);
-  let seed = road ? 61823 : 71291;
-  const random = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
-  const coarse = Array.from({length: 16 * 16}, random);
-  const medium = Array.from({length: 64 * 64}, random);
-  const sample = (grid, count, x, y) => {
-    const gx = x * count / size, gy = y * count / size;
-    const ix = Math.floor(gx), iy = Math.floor(gy);
-    const tx = gx - ix, ty = gy - iy;
-    const a = grid[(iy % count) * count + (ix % count)];
-    const b = grid[(iy % count) * count + ((ix + 1) % count)];
-    const c = grid[((iy + 1) % count) * count + (ix % count)];
-    const d = grid[((iy + 1) % count) * count + ((ix + 1) % count)];
-    const fx = tx * tx * (3 - 2 * tx), fy = ty * ty * (3 - 2 * ty);
-    return THREE.MathUtils.lerp(THREE.MathUtils.lerp(a,b,fx),THREE.MathUtils.lerp(c,d,fx),fy);
-  };
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const wet = sample(coarse, 16, x, y);
-      const grains = sample(medium, 64, x, y);
-      const grit = random();
-      const variation = (wet - 0.5) * 55 + (grains - 0.5) * 38 + (grit - 0.5) * 28;
-      const i = (y * size + x) * 4;
-      const base = road ? [113, 98, 78] : [99, 89, 65];
-      const stone = grit > 0.96 ? 32 : 0;
-      image.data[i] = Math.max(0, Math.min(255, base[0] + variation + stone));
-      image.data[i+1] = Math.max(0, Math.min(255, base[1] + variation * .86 + stone));
-      image.data[i+2] = Math.max(0, Math.min(255, base[2] + variation * .72 + stone));
-      image.data[i+3] = 255;
-    }
-  }
-  ctx.putImageData(image, 0, 0);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(2, road ? 30 : 25);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-  return texture;
-}
-
-const dirtTexture = createDirtTexture();
-dirtMat.map = createEarthAlbedo(false);
-roadMat.map = createEarthAlbedo(true);
-// Preferisce mappe PBR locali quando presenti; mantiene le texture generate come fallback.
-const pbrLoader = new THREE.TextureLoader();
-function installPBR(material, basePath, repeatX, repeatY) {
-  const configure = (texture, color = false) => {
-    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(repeatX, repeatY);
-    texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-    if (color) texture.colorSpace = THREE.SRGBColorSpace;
-    return texture;
-  };
-  // Only replace the procedural fallback when a complete photographic
-  // material set has loaded. Prevents mixed/inconsistent maps in offline APKs.
-  const load = (suffix) => new Promise((resolve, reject) => {
-    pbrLoader.load(basePath + '_' + suffix + '.jpg', resolve, undefined, reject);
-  });
-  Promise.all([load('color'), load('normal'), load('roughness')])
-    .then(([color, normal, roughness]) => {
-      material.map = configure(color, true);
-      material.normalMap = configure(normal);
-      material.roughnessMap = configure(roughness);
-      material.color.set(0xffffff);
-      material.normalScale.set(0.7, 0.7);
-      material.roughness = 1;
-      material.needsUpdate = true;
-      console.info('Photographic PBR enabled:', basePath);
-    })
-    .catch(() => {
-      // Offline or absent asset pack: retain existing lightweight fallback.
-    });
-}
-installPBR(roadMat, './assets/textures/road', 2, 18);
-installPBR(dirtMat, './assets/textures/forest', 5, 13);
-// The roadside shoulders previously kept a bright procedural texture even
-// when the adjacent ground used photographic PBR. Match the same material set.
-vergeMat.map = createEarthAlbedo(false);
-installPBR(vergeMat, './assets/textures/forest', 1, 18);
-
-// Funzioni per creare oggetti 3D
-function addBox(parent, size, material, pos, cast = true) {
-  const mesh = new THREE.Mesh(
-    new THREE.BoxGeometry(...size),
-    material
-  );
-
-  mesh.position.set(...pos);
-  mesh.castShadow = cast;
-  mesh.receiveShadow = true;
-  parent.add(mesh);
-
-  return mesh;
-}
-
-function addSphere(parent, radius, material, pos, scale = [1, 1, 1]) {
-  const mesh = new THREE.Mesh(
-    new THREE.SphereGeometry(radius, 12, 8),
-    material
-  );
-
-  mesh.position.set(...pos);
-  mesh.scale.set(...scale);
-  mesh.castShadow = true;
-  parent.add(mesh);
-
-  return mesh;
-}
-
-function addCylinder(
-  parent, top, bottom, height, material, pos, sides = 8
-) {
-  const mesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(top, bottom, height, sides),
-    material
-  );
-
-  mesh.position.set(...pos);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  parent.add(mesh);
-
-  return mesh;
-}
-
-// Terreno e strada
-// Low-frequency height field on the off-road soil: actual geometry receives
-// directional highlights, while the flat runner road keeps reliable gameplay.
-function createBattlefieldGround() {
-  const geometry = new THREE.PlaneGeometry(100, 190, 80, 120);
-  const position = geometry.attributes.position;
-  for (let i = 0; i < position.count; i++) {
-    const x = position.getX(i), y = position.getY(i);
-    const outsideRoad = THREE.MathUtils.smoothstep(Math.abs(x), 3.9, 7.5);
-    const broad = Math.sin(x * 0.31 + y * 0.14) * Math.cos(y * 0.23 - x * 0.12);
-    const detail = Math.sin(x * 1.17 - y * 0.91) * Math.sin(y * 0.73 + x * 0.83);
-    const ridges = Math.sin(x * 0.13 + y * 0.045) * 0.21;
-    position.setZ(i, outsideRoad * (broad * 0.23 + detail * 0.065 + ridges));
-  }
-  position.needsUpdate = true;
-  geometry.computeVertexNormals();
-  return geometry;
-}
-const ground = new THREE.Mesh(
-  createBattlefieldGround(),
-  dirtMat
-);
-
-ground.rotation.x = -Math.PI / 2;
-ground.position.set(0, -0.23, -55);
-ground.receiveShadow = true;
-scene.add(ground);
-
-// Subtle physical height variation gives grazing light real surface contours.
-// Road stays nearly flat so runner collisions and lane controls are unchanged.
-function createRoadSurfaceGeometry() {
-  const width = 8, length = 180;
-  const geometry = new THREE.PlaneGeometry(width, length, 24, 180);
-  const positions = geometry.attributes.position;
-  for (let i = 0; i < positions.count; i++) {
-    const x = positions.getX(i);
-    const y = positions.getY(i);
-    const shoulder = Math.pow(Math.abs(x) / 4, 3);
-    const ruts = Math.exp(-Math.pow((Math.abs(x) - 1.45) / 0.40, 2));
-    const ripples = Math.sin(y * 1.4 + x * 1.7) * 0.009 +
-      Math.sin(y * 3.2 - x * 2.1) * 0.004;
-    positions.setZ(i, shoulder * 0.055 - ruts * 0.026 + ripples);
-  }
-  positions.needsUpdate = true;
-  geometry.computeVertexNormals();
-  return geometry;
-}
-const road = new THREE.Mesh(
-  createRoadSurfaceGeometry(),
-  roadMat
-);
-
-road.rotation.x = -Math.PI / 2;
-road.position.set(0, -0.07, -55);
-road.receiveShadow = true;
-scene.add(road);
-
-for (const x of [-4.1, 4.1]) {
-  const verge = new THREE.Mesh(
-    new THREE.BoxGeometry(0.08, 0.025, 180),
-    vergeMat
-  );
-
-  verge.position.set(x, -0.065, -55);
-  verge.receiveShadow = true;
-  scene.add(verge);
-}
-
-// Solchi irregolari da mezzi militari, non due linee perfette.
-// Una sola texture procedurale condivisa dai due solchi, senza mesh extra.
-function createWheelRutTexture() {
-  const c = document.createElement('canvas');
-  c.width = 128; c.height = 512;
-  const ctx = c.getContext('2d');
-  let seed = 41;
-  const rnd = () => ((seed = (1664525 * seed + 1013904223) >>> 0) / 4294967296);
-  for (let y = 0; y < 512; y += 3) {
-    const drift = Math.sin(y * 0.031) * 9 + Math.sin(y * 0.087) * 4;
-    const width = 18 + rnd() * 13;
-    const opacity = 0.11 + rnd() * 0.17;
-    ctx.fillStyle = 'rgba(45,32,23,' + opacity + ')';
-    ctx.fillRect(64 + drift - width / 2, y, width, 2 + rnd() * 5);
-    if (rnd() > 0.45) {
-      ctx.fillStyle = 'rgba(23,20,16,0.14)';
-      ctx.fillRect(64 + drift - width / 2, y, 3, 5 + rnd() * 9);
-      ctx.fillRect(64 + drift + width / 2 - 3, y, 3, 5 + rnd() * 9);
-    }
-  }
-  const texture = new THREE.CanvasTexture(c);
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(1, 16);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
-}
-const rutMaterial = new THREE.MeshBasicMaterial({
-  map: createWheelRutTexture(), transparent: true,
-  opacity: 0.8, depthWrite: false, polygonOffset: true,
-  polygonOffsetFactor: -1, side: THREE.DoubleSide
-});
-for (const x of [-1.45, 1.45]) {
-  const rut = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 180), rutMaterial);
-  rut.rotation.x = -Math.PI / 2;
-  rut.position.set(x, -0.051, -55);
-  scene.add(rut);
-}
-
-// Pozzanghere e fango umido lungo i margini della carreggiata.
-// Geometria condivisa e materiale senza ombre: effetto leggero per Android.
-// Organic wet patches: irregular silhouettes and feathered edges instead of
-// opaque circular discs. One shared texture/geometry for all mobile instances.
-function createWetPatchTexture() {
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = 128;
-  const ctx = canvas.getContext('2d');
-  const image = ctx.createImageData(128, 128);
-  for (let y = 0; y < 128; y++) for (let x = 0; x < 128; x++) {
-    const dx = (x - 64) / 64, dy = (y - 64) / 64;
-    const angle = Math.atan2(dy, dx);
-    const radius = Math.hypot(dx, dy);
-    const edge = 0.73 + 0.09 * Math.sin(angle * 5 + 1.2) + 0.07 * Math.sin(angle * 9 - 0.8);
-    const fade = THREE.MathUtils.clamp((edge - radius) * 11, 0, 1);
-    const grain = 0.86 + 0.14 * Math.sin(x * 0.48 + y * 0.27) * Math.sin(y * 0.33);
-    const i = (y * 128 + x) * 4;
-    image.data[i] = 79; image.data[i + 1] = 72; image.data[i + 2] = 60;
-    image.data[i + 3] = Math.round(255 * fade * grain);
-  }
-  ctx.putImageData(image, 0, 0);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
-}
-const wetPatchTexture = createWetPatchTexture();
-const puddleGeometry = new THREE.PlaneGeometry(2, 2);
-const puddleMaterial = new THREE.MeshStandardMaterial({
-  map: wetPatchTexture, color: 0xb5b0a4, roughness: 0.4, metalness: 0.0,
-  transparent: true, opacity: 0.44, depthWrite: false,
-  polygonOffset: true, polygonOffsetFactor: -2,
-  side: THREE.DoubleSide
-});
-const mudRimMaterial = new THREE.MeshStandardMaterial({
-  map: wetPatchTexture, color: 0x514737, roughness: 1, transparent: true,
-  opacity: 0.23, depthWrite: false, side: THREE.DoubleSide
-});
-const puddles = [];
-let puddleSeed = 7829;
-const puddleRand = () => ((puddleSeed = (puddleSeed * 1664525 + 1013904223) >>> 0) / 4294967296);
-for (let i = 0; i < 28; i++) {
-  const z = 10 - i * 5.9;
-  const x = (puddleRand() > 0.5 ? 1 : -1) * (2.25 + puddleRand() * 1.05);
-  const sx = 0.42 + puddleRand() * 0.65;
-  const sz = 0.7 + puddleRand() * 1.25;
-  const rim = new THREE.Mesh(puddleGeometry, mudRimMaterial);
-  rim.rotation.x = -Math.PI / 2;
-  rim.scale.set(sx * 1.2, sz * 1.16, 1);
-  rim.position.set(x, -0.047, z);
-  scene.add(rim);
-  const water = new THREE.Mesh(puddleGeometry, puddleMaterial);
-  water.rotation.x = -Math.PI / 2;
-  water.scale.set(sx, sz, 1);
-  water.position.set(x, -0.043, z);
-  scene.add(water);
-  puddles.push({rim, water});
-}
-
-// Strada forestale: niente strisce bianche da asfalto.
-const dashes = [];
-
-const forest = [];
-const bushes = [];
-const rocks = [];
-
-// Alberi
-// Chiome con silhouette organiche su piani incrociati: pochi draw call,
-// molto meno geometriche delle precedenti decine di coni per albero.
-function makePineFoliage() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 256;
-  canvas.height = 512;
-  const ctx = canvas.getContext('2d');
-  let seed = 173;
-  const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
-  for (let level = 0; level < 28; level++) {
-    const y = 72 + level * 13;
-    const width = Math.sin((level / 29) * Math.PI * 0.82) * 111 + 7;
-    for (let side of [-1, 1]) {
-      for (let twig = 0; twig < 7; twig++) {
-        const reach = width * (0.55 + rnd() * 0.5);
-        const yy = y + (rnd() - 0.5) * 20;
-        ctx.strokeStyle = ['#253c2d','#304d35','#3b593b','#4b6443'][Math.floor(rnd()*4)];
-        ctx.lineWidth = 3 + rnd() * 7;
-        ctx.beginPath();
-        ctx.moveTo(128 + side * (rnd() * 12), yy - 8);
-        ctx.lineTo(128 + side * reach, yy + 6 + rnd() * 17);
-        ctx.stroke();
-        for (let n = 0; n < 7; n++) {
-          const t = n / 7;
-          const xx = 128 + side * reach * t;
-          const py = yy + t * 12;
-          ctx.strokeStyle = ['#29422e','#355337','#456044'][Math.floor(rnd()*3)];
-          ctx.lineWidth = 1.3 + rnd() * 2;
-          ctx.beginPath();
-          ctx.moveTo(xx, py - 10 - rnd()*8);
-          ctx.lineTo(xx + side * (5 + rnd()*10), py + 6 + rnd()*10);
-          ctx.stroke();
-        }
-      }
-    }
-  }
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
-  return new THREE.MeshStandardMaterial({map:texture, transparent:true, alphaTest:0.35,
-    side:THREE.DoubleSide, depthWrite:true, roughness:1});
-}
-const pineFoliageMat = makePineFoliage();
-// Layered spruce canopy: silhouette cards are supplemented by real 3D boughs.
-// Shared geometry and materials keep memory bounded on mobile GPUs.
-// Restore organic needle silhouettes: remove the visibly geometric cone tiers.
-const pineFoliageGeo = new THREE.PlaneGeometry(3.5, 5.2);
-const pineTrunkGeo = new THREE.CylinderGeometry(0.10, 0.22, 4.8, 8);
-function createTree(x, z, scale = 1) {
-  const group = new THREE.Group();
-  group.position.set(x, 0, z);
-  const variation = Math.abs(Math.sin(x * 12.9898 + z * 78.233));
-  group.scale.set(scale * (0.91 + variation * 0.19), scale * (0.94 + variation * 0.18), scale);
-  group.rotation.y = variation * Math.PI * 2;
-  const trunk = new THREE.Mesh(pineTrunkGeo, barkMat);
-  trunk.position.y = 2.4;
-  trunk.castShadow = true;
-  group.add(trunk);
-  for (let i = 0; i < 5; i++) {
-    const foliage = new THREE.Mesh(pineFoliageGeo, pineFoliageMat);
-    foliage.position.y = 2.9;
-    foliage.rotation.y = i * Math.PI / 5 + 0.17;
-    foliage.castShadow = i === 0;
-    group.add(foliage);
-  }
-  scene.add(group);
-  forest.push(group);
-}
-
-// Cespugli
-// Cespugli a foglie ritagliate: silhouette naturali con poche superfici.
-function createShrubMaterial() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 256; canvas.height = 256;
-  const ctx = canvas.getContext('2d');
-  let seed = 521;
-  const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
-  for (let i = 0; i < 95; i++) {
-    const x = 24 + rnd() * 208, y = 38 + rnd() * 192;
-    const radius = 8 + rnd() * 23;
-    ctx.fillStyle = ['#233e2c','#304c32','#41623a','#506d40','#62794a'][Math.floor(rnd()*5)];
-    ctx.beginPath();
-    ctx.ellipse(x, y, radius, radius * (0.4 + rnd()*0.4), rnd()*6.28, 0, Math.PI*2);
-    ctx.fill();
-  }
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return new THREE.MeshStandardMaterial({map:texture, transparent:true, alphaTest:0.35,
-    side:THREE.DoubleSide, roughness:1, depthWrite:true});
-}
-// Optional real scanned fern asset (Poly Haven CC0). The procedural shrubs remain
-// visible until a valid local GLB is loaded, so offline APKs never show gaps.
-const fernScanLoader = new GLTFLoader();
-let scannedFernPrototype = null;
-const pendingScannedShrubs = [];
-fernScanLoader.load('./models/fern_02.glb', (gltf) => {
-  const model = gltf.scene;
-  model.updateMatrixWorld(true);
-  const bounds = new THREE.Box3().setFromObject(model);
-  const size = bounds.getSize(new THREE.Vector3());
-  if (!Number.isFinite(size.x) || size.x < 0.001 || size.y < 0.001) return;
-  // Normalize a photogrammetry scan to a game-world bush footprint.
-  const factor = Math.min(1.9 / Math.max(size.x, size.z, 0.001), 1.2 / size.y);
-  model.scale.multiplyScalar(factor);
-  model.position.y -= bounds.min.y * factor;
-  model.traverse((obj) => {
-    if (obj.isMesh) {
-      obj.castShadow = false;
-      obj.receiveShadow = true;
-      if (obj.material) obj.material.side = THREE.DoubleSide;
-    }
-  });
-  scannedFernPrototype = model;
-  for (const group of pendingScannedShrubs) {
-    group.clear();
-    group.add(scannedFernPrototype.clone(true));
-  }
-  console.info('Photogrammetry vegetation loaded: fern_02');
-}, undefined, () => console.info('Scanned fern not packaged; keeping existing foliage'));
-const shrubMaterial = createShrubMaterial();
-const shrubGeometry = new THREE.PlaneGeometry(1.7, 1.35);
-function createBush(x, z, scale = 1) {
-  const group = new THREE.Group();
-  group.position.set(x, 0, z);
-  group.scale.setScalar(scale);
-  for (let i = 0; i < 3; i++) {
-    const foliage = new THREE.Mesh(shrubGeometry, shrubMaterial);
-    foliage.position.y = 0.64;
-    foliage.rotation.y = i * Math.PI / 3;
-    foliage.castShadow = false;
-    group.add(foliage);
-  }
-  if (scannedFernPrototype) {
-    group.clear();
-    group.add(scannedFernPrototype.clone(true));
-  } else {
-    pendingScannedShrubs.push(group);
-  }
-  scene.add(group);
-  bushes.push(group);
-}
-
-// Rocce
-// Irregular shared rock geometry avoids perfect low-poly dodecahedrons.
-const rockGeometry = (() => {
-  const geometry = new THREE.IcosahedronGeometry(0.43, 1);
-  const pos = geometry.attributes.position;
-  for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
-    const distortion = 1 + 0.16 * Math.sin(x * 19 + y * 7) * Math.cos(z * 13 - x * 5);
-    pos.setXYZ(i, x * distortion, y * distortion, z * distortion);
-  }
-  geometry.computeVertexNormals();
-  return geometry;
-})();
-function createRock(x, z, scale = 1) {
-  const rock = new THREE.Mesh(
-    rockGeometry,
-    rockMats[(Math.random() * rockMats.length) | 0]
-  );
-
-  rock.position.set(x, scale * 0.1, z);
-  rock.scale.set(scale * 1.3, scale * 0.75, scale);
-  rock.rotation.set(Math.random(), Math.random() * 3, Math.random());
-  rock.castShadow = true;
-  rock.receiveShadow = true;
-
-  scene.add(rock);
-  rocks.push(rock);
-}
-
-const sackCanvas = document.createElement('canvas');
-sackCanvas.width = sackCanvas.height = 128;
-const sackCtx = sackCanvas.getContext('2d');
-sackCtx.fillStyle = '#a99a77';
-sackCtx.fillRect(0, 0, 128, 128);
-for (let i = 0; i < 128; i += 4) {
-  sackCtx.strokeStyle = i % 8 === 0 ? '#877b60' : '#b9ab87';
-  sackCtx.beginPath();
-  sackCtx.moveTo(i, 0);
-  sackCtx.lineTo(i, 128);
-  sackCtx.moveTo(0, i);
-  sackCtx.lineTo(128, i);
-  sackCtx.stroke();
-}
-const sackTexture = new THREE.CanvasTexture(sackCanvas);
-sackTexture.colorSpace = THREE.SRGBColorSpace;
-const sackMat = new THREE.MeshStandardMaterial({map: sackTexture, roughness: 1});
-const sackGeometry = new THREE.SphereGeometry(0.27, 12, 8);
-
-// Scenario militare ispirato a un percorso forestale storico
-const scenery = [];
-function sandbagWall(x, z, width = 2.4) {
-  const group = new THREE.Group();
-  for (let row = 0; row < 4; row++) {
-    for (let i = 0; i < 6; i++) {
-      const mesh = new THREE.Mesh(sackGeometry, sackMat);
-      mesh.position.set((i - 2.5) * width / 6 + (row % 2) * 0.12, 0.2 + row * 0.27, 0);
-      mesh.scale.set(1.3, 0.68, 0.85);
-      mesh.castShadow = row === 3;
-      mesh.receiveShadow = true;
-      group.add(mesh);
-      mesh.rotation.z = (i % 2 ? 1 : -1) * 0.05;
-    }
-  }
-  group.position.set(x, 0, z);
-  scene.add(group);
-  scenery.push(group);
-}
-function watchTower(x, z) {
-  const g = new THREE.Group();
-  const timber = weatheredWood(0xb3a18a);
-  for (const dx of [-0.7, 0.7]) for (const dz of [-0.7, 0.7]) {
-    addBox(g, [0.18, 5.6, 0.18], timber, [dx, 2.8, dz]);
-  }
-  addBox(g, [2.2, 0.25, 2.2], timber, [0, 5.25, 0]);
-  addBox(g, [2.5, 0.24, 2.5], timber, [0, 6.7, 0]);
-  // Ringhiere e parapetti per dare alla torre una silhouette credibile.
-  for (const side of [-1, 1]) {
-    addBox(g, [2.35, 0.12, 0.12], timber, [0, 6.15, side * 1.12]);
-    addBox(g, [0.12, 0.12, 2.35], timber, [side * 1.12, 6.15, 0]);
-    for (const offset of [-0.9, 0, 0.9]) {
-      addBox(g, [0.1, 0.95, 0.1], timber, [offset, 5.7, side * 1.12]);
-      addBox(g, [0.1, 0.95, 0.1], timber, [side * 1.12, 5.7, offset]);
-    }
-  }
-  // Scala in legno appoggiata al lato della torre.
-  for (const side of [-0.38, 0.38]) {
-    const rail = addBox(g, [0.1, 5.8, 0.1], timber, [side, 2.8, 1.03]);
-    rail.rotation.x = -0.15;
-  }
-  for (let step = 0; step < 13; step++) {
-    addBox(g, [0.88, 0.09, 0.12], timber, [0, 0.42 + step * 0.4, 1.45 - step * 0.045]);
-  }
-  // Copertura a falde con una piccola sporgenza.
-  const roofMat = mat(0x3f3a32, 1);
-  for (const side of [-1, 1]) {
-    const roof = addBox(g, [2.9, 0.12, 1.75], roofMat, [0, 7.2, side * 0.72]);
-    roof.rotation.x = side * 0.38;
-  }
-  for (const y of [1.4, 3.0, 4.6]) {
-    for (const side of [-1, 1]) {
-      const beam = addBox(g, [0.12, 1.8, 0.12], timber, [side * 0.7, y, 0]);
-      beam.rotation.z = side * 0.65;
-    }
-  }
-  g.position.set(x, 0, z);
-  scene.add(g);
-  scenery.push(g);
-}
-function barricade(x, z) {
-  const g = new THREE.Group();
-  const wood = weatheredWood(0xa7977e);
-  for (const angle of [-0.72, 0.72]) {
-    const beam = addBox(g, [0.18, 2.5, 0.18], wood, [0, 1.05, 0]);
-    beam.rotation.z = angle;
-  }
-  addBox(g, [2.2, 0.16, 0.16], wood, [0, 1.1, 0]);
-  g.position.set(x, 0, z);
-  scene.add(g);
-  scenery.push(g);
-}
-for (let z = -28; z > -150; z -= 38) {
-  sandbagWall(-5.3, z);
-  sandbagWall(5.3, z - 12);
-  watchTower(9.2, z - 18);
-  barricade(-5.1, z - 7);
-}
-// Traguardo 3D: portale militare con striscione rosso e sacchi laterali.
-// Compare negli ultimi 200 metri, senza entrare nel riciclo degli ostacoli.
-const finishGate = new THREE.Group();
-const finishTimber = weatheredWood(0x96816c);
-const finishRed = mat(0x7e2928, 0.95, {side: THREE.DoubleSide});
-for (const side of [-1, 1]) {
-  const x = side * 4.25;
-  addBox(finishGate, [0.35, 5.1, 0.35], finishTimber, [x, 2.55, 0]);
-  addBox(finishGate, [0.55, 0.55, 0.55], finishTimber, [x, 0.28, 0]);
-  // Rinforzi diagonali del portale.
-  const brace = addBox(finishGate, [0.17, 2.0, 0.18], finishTimber, [x-side*0.5, 2.9, 0]);
-  brace.rotation.z = side * 0.52;
-  for (let row = 0; row < 3; row++) for (let i = 0; i < 4; i++) {
-    const finishSack = new THREE.Mesh(sackGeometry, sackMat);
-    finishSack.position.set(side * (5.05 + (i % 2)*0.3), 0.23 + row*0.33, (i-1.5)*0.56);
-    finishSack.scale.set(1.35, 0.65, 1);
-    finishSack.receiveShadow = true;
-    finishGate.add(finishSack);
-  }
-}
-addBox(finishGate, [9.0, 0.26, 0.35], finishTimber, [0, 5.05, 0]);
-const bannerCanvas = document.createElement('canvas');
-bannerCanvas.width = 1024; bannerCanvas.height = 192;
-const bannerCtx = bannerCanvas.getContext('2d');
-bannerCtx.fillStyle = '#722927'; bannerCtx.fillRect(0, 0, 1024, 192);
-// Tessuto consumato: pieghe, macchie e bordi scoloriti senza texture esterne.
-let bannerSeed = 93;
-const bannerRandom = () => ((bannerSeed = (bannerSeed * 1664525 + 1013904223) >>> 0) / 4294967296);
-for (let i = 0; i < 1800; i++) {
-  const x = bannerRandom() * 1024, y = bannerRandom() * 192;
-  bannerCtx.fillStyle = bannerRandom() > 0.5 ? 'rgba(235,171,135,0.07)' : 'rgba(23,13,12,0.10)';
-  bannerCtx.fillRect(x, y, 1 + bannerRandom() * 21, 1 + bannerRandom() * 4);
-}
-for (let i = 0; i < 13; i++) {
-  const x = 35 + bannerRandom() * 954;
-  bannerCtx.fillStyle = 'rgba(20,12,12,0.10)';
-  bannerCtx.fillRect(x, 0, 3 + bannerRandom() * 11, 192);
-}
-bannerCtx.strokeStyle = '#b87561'; bannerCtx.lineWidth = 12;
-bannerCtx.strokeRect(8, 8, 1008, 176);
-bannerCtx.fillStyle = '#f4e8d6'; bannerCtx.font = 'bold 112px Arial';
-bannerCtx.textAlign = 'center'; bannerCtx.textBaseline = 'middle';
-bannerCtx.fillText('TRAGUARDO', 512, 101);
-const bannerTexture = new THREE.CanvasTexture(bannerCanvas);
-bannerTexture.colorSpace = THREE.SRGBColorSpace;
-const banner = new THREE.Mesh(new THREE.PlaneGeometry(7.8, 1.45),
-  new THREE.MeshBasicMaterial({map: bannerTexture, side: THREE.DoubleSide}));
-banner.position.set(0, 4.2, 0.04);
-finishGate.add(banner);
-finishGate.visible = false;
-finishGate.position.set(0, 0, -97);
-scene.add(finishGate);
-
-// Foschia naturale al posto delle montagne coniche artificiali.
-// Dettagli del sottobosco
-// Vegetazione istanziata: una draw call per 500 fili anziché 500 mesh.
-const grassCount = 300;
-const grassMaterial = new THREE.MeshStandardMaterial({
-  color: 0x647552, side: THREE.DoubleSide, roughness: 1
-});
-// Lama d'erba incurvata invece di coni appuntiti.
-const grassGeometry = new THREE.BufferGeometry();
-grassGeometry.setAttribute('position', new THREE.Float32BufferAttribute([
-  -0.11,0,0, 0.11,0,0, -0.065,0.32,0.03,
-   0.11,0,0, 0.065,0.32,0.03, -0.065,0.32,0.03,
-  -0.065,0.32,0.03, 0.065,0.32,0.03, 0.02,0.76,0.13
-], 3));
-grassGeometry.computeVertexNormals();
-const grass = new THREE.InstancedMesh(grassGeometry, grassMaterial, grassCount);
-const grassTransform = new THREE.Object3D();
-const grassPositions = [];
-let grassUpdateFrame = 0;
-for (let i = 0; i < grassCount; i++) {
-  const side = Math.random() < 0.5 ? -1 : 1;
-  grassPositions.push({
-    x: side * (4.7 + Math.random() * 17),
-    z: 10 - Math.random() * 150,
-    size: 0.45 + Math.random() * 1.25,
-    angle: Math.random() * Math.PI * 2
-  });
-}
-function updateGrass() {
-  for (let i = 0; i < grassCount; i++) {
-    const g = grassPositions[i];
-    grassTransform.position.set(g.x, 0, g.z);
-    grassTransform.rotation.set(0, g.angle, 0);
-    grassTransform.scale.setScalar(g.size);
-    grassTransform.updateMatrix();
-    grass.setMatrixAt(i, grassTransform.matrix);
-  }
-  grass.instanceMatrix.needsUpdate = true;
-}
-updateGrass();
-grass.frustumCulled = false;
-scene.add(grass);
-// Genera il paesaggio
-for (let z = 15; z > -145; z -= 9) {
-  createTree(
-    -6 - Math.random() * 5,
-    z,
-    0.75 + Math.random() * 0.65
-  );
-
-  createTree(
-    6 + Math.random() * 5,
-    z - 2,
-    0.75 + Math.random() * 0.65
-  );
-
-  if (Math.random() > 0.25) {
-    createBush(
-      -4.8 - Math.random() * 3,
-      z - 1,
-      0.6 + Math.random() * 0.6
-    );
-
-    createBush(
-      4.8 + Math.random() * 3,
-      z - 3,
-      0.6 + Math.random() * 0.6
-    );
-  }
-
-  if (Math.random() > 0.45) {
-    createRock(
-      -4.5 - Math.random() * 2,
-      z - 2,
-      0.4 + Math.random() * 0.7
-    );
-
-    createRock(
-      4.5 + Math.random() * 2,
-      z,
-      0.4 + Math.random() * 0.7
-    );
-  }
-}
-
-
- // Soldato 3D animato
-const player = new THREE.Group();
-scene.add(player);
-player.position.set(0, 0, 3);
-
-// Soft contact shadow anchors the realistic soldier to the muddy road.
-// Canvas texture is shared and remains inexpensive on mobile GPUs.
-function createContactShadowTexture() {
-  const size = 128;
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  const gradient = ctx.createRadialGradient(64, 64, 4, 64, 64, 62);
-  gradient.addColorStop(0, 'rgba(15,13,11,0.60)');
-  gradient.addColorStop(0.34, 'rgba(18,15,12,0.38)');
-  gradient.addColorStop(0.72, 'rgba(18,15,12,0.10)');
-  gradient.addColorStop(1, 'rgba(18,15,12,0)');
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, size, size);
-  return new THREE.CanvasTexture(canvas);
-}
-const soldierContactShadow = new THREE.Mesh(
-  new THREE.PlaneGeometry(2.15, 1.6),
-  new THREE.MeshBasicMaterial({
-    map: createContactShadowTexture(),
-    transparent: true,
-    opacity: 0.75,
-    depthWrite: false,
-    polygonOffset: true,
-    polygonOffsetFactor: -3
-  })
-);
-soldierContactShadow.rotation.x = -Math.PI / 2;
-soldierContactShadow.position.set(0, -0.036, 3);
-soldierContactShadow.renderOrder = 2;
-scene.add(soldierContactShadow);
-
-const soldierClock = new THREE.Clock();
-let soldierMixer = null;
-let soldierRun = null;
-let soldierIdle = null;
-let soldierJump = null;
-let soldierActiveAction = null;
-
-
-/**
- * Create in-place locomotion for the Mixamo-compatible rig in the historical
- * Panzergrenadier GLB. Tracks use each bone's imported rest quaternion, so
- * they don't replace the bind pose with arbitrary absolute rotations.
- */
-function createRigClip(root, name, duration, poseAt) {
-  const boneNames = [
-    'Hips', 'Spine', 'Spine1', 'LeftArm', 'RightArm',
-    'LeftForeArm', 'RightForeArm', 'LeftUpLeg', 'RightUpLeg',
-    'LeftLeg', 'RightLeg', 'LeftFoot', 'RightFoot'
-  ];
-  const bones = new Map();
-  root.traverse((node) => {
-    if (!node.isBone) return;
-    const match = node.name.match(/mixamorig:([A-Za-z0-9]+)/i);
-    if (match && boneNames.includes(match[1])) bones.set(match[1], node);
-  });
-  if (!bones.has('LeftUpLeg') || !bones.has('RightUpLeg')) return null;
-
-  const samples = 17;
-  const times = Array.from({ length: samples }, (_, i) => duration * i / (samples - 1));
-  const tracks = [];
-  const offset = new THREE.Quaternion();
-  const animated = new THREE.Quaternion();
-  for (const namePart of boneNames) {
-    const bone = bones.get(namePart);
-    if (!bone) continue;
-    const rest = bone.quaternion.clone();
-    const values = [];
-    for (const time of times) {
-      const angles = poseAt(namePart, time / duration);
-      offset.setFromEuler(new THREE.Euler(angles[0], angles[1], angles[2], 'XYZ'));
-      animated.copy(rest).multiply(offset).normalize();
-      values.push(animated.x, animated.y, animated.z, animated.w);
-    }
-    tracks.push(new THREE.QuaternionKeyframeTrack(
-      bone.name + '.quaternion', times, values
-    ));
-  }
-  return new THREE.AnimationClip(name, duration, tracks);
-}
-
-function createSoldierRunClip(root) {
-  return createRigClip(root, 'Historical_Run', 0.76, (part, phase) => {
-    const cycle = phase * Math.PI * 2;
-    const left = Math.sin(cycle);
-    const right = -left;
-    const bounce = Math.cos(cycle * 2);
-    const pitch = {
-      Hips: [0.035 * bounce, 0.055 * left, 0.045 * left],
-      Spine: [0.075, -0.06 * left, -0.035 * left],
-      Spine1: [0.035, -0.04 * left, 0],
-      LeftUpLeg: [0.53 * left, 0, 0.025],
-      RightUpLeg: [0.53 * right, 0, -0.025],
-      LeftLeg: [0.20 + 0.60 * Math.max(0, -left), 0, 0],
-      RightLeg: [0.20 + 0.60 * Math.max(0, -right), 0, 0],
-      LeftFoot: [-0.12 - 0.16 * left, 0, 0],
-      RightFoot: [-0.12 - 0.16 * right, 0, 0],
-      LeftArm: [-0.38 * right - 0.13, 0, -0.10],
-      RightArm: [-0.38 * left - 0.13, 0, 0.10],
-      LeftForeArm: [-0.50 - 0.15 * Math.max(0, right), 0, 0],
-      RightForeArm: [-0.50 - 0.15 * Math.max(0, left), 0, 0]
-    };
-    return pitch[part] || [0, 0, 0];
-  });
-}
-
-function createSoldierIdleClip(root) {
-  return createRigClip(root, 'Historical_Idle', 2, (part, phase) => {
-    const breathe = Math.sin(phase * Math.PI * 2);
-    if (part === 'LeftArm') return [-0.18, 0, -0.12];
-    if (part === 'RightArm') return [-0.18, 0, 0.12];
-    if (part === 'LeftForeArm' || part === 'RightForeArm') return [-0.25, 0, 0];
-    if (part === 'Spine') return [0.025 * breathe, 0, 0];
-    return [0, 0, 0];
-  });
-}
-
-const loader = new GLTFLoader();
-
-loader.load(
-  './models/ww2_panzergrenadier_2k_cc0-optimized.glb',
-  (gltf) => {
-    const soldier = gltf.scene;
-
-    // Il GLB guarda gia verso -Z: non ruotarlo verso la telecamera.
-    soldier.rotation.y = Math.PI;
-
-    soldier.traverse((object) => {
-      if (!object.isMesh) return;
-      object.castShadow = true;
-      object.receiveShadow = true;
-      // Mantieni i materiali PBR originali del GLB, senza appiattirli.
-      const materials = Array.isArray(object.material) ? object.material : [object.material];
-      for (const material of materials) {
-        if (!material) continue;
-        if (material.isMeshStandardMaterial || material.isMeshPhysicalMaterial) {
-          // Preserva le texture e i colori PBR originali dell'asset.
-          // Non moltiplicare i colori: i materiali del GLB sono già calibrati.
-          material.envMapIntensity = 1.0;
-          material.needsUpdate = true;
-        }
-      }
-      if (object.isSkinnedMesh) {
-        object.frustumCulled = false;
-      }
-    });
-
-    player.add(soldier);
-
-    // Dimensioni e centratura: calcolo prima dello scaling, poi verifica.
-    soldier.updateMatrixWorld(true);
-    const originalBounds = new THREE.Box3().setFromObject(soldier);
-    const originalHeight = originalBounds.max.y - originalBounds.min.y;
-    if (originalHeight > 0.001) {
-      soldier.scale.setScalar(1.9 / originalHeight);
-      soldier.updateMatrixWorld(true);
-      const scaledBounds = new THREE.Box3().setFromObject(soldier);
-      soldier.position.y -= scaledBounds.min.y;
-      soldier.position.x -= (scaledBounds.min.x + scaledBounds.max.x) / 2;
-      soldier.position.z -= (scaledBounds.min.z + scaledBounds.max.z) / 2;
-    }
-
-    soldierMixer = new THREE.AnimationMixer(soldier);
-
-    const clips = [...gltf.animations];
-    if (!clips.some(clip => /run|walk/i.test(clip.name))) {
-      const generatedRun = createSoldierRunClip(soldier);
-      if (generatedRun) clips.push(generatedRun);
-    }
-    if (!clips.some(clip => /idle/i.test(clip.name))) {
-      const generatedIdle = createSoldierIdleClip(soldier);
-      if (generatedIdle) clips.push(generatedIdle);
-    }
-    if (!clips.length) {
-      console.warn('Panzergrenadier GLB has no animation clips; rigged running animation must be supplied separately.');
-    }
-    const runClip = clips.find((clip) =>
-      /run|walk/i.test(clip.name)
-    );
-    const idleClip = clips.find((clip) =>
-      /idle|t-pose|tpose/i.test(clip.name)
-    );
-    const jumpClip = clips.find((clip) =>
-      /jump|vault|hop/i.test(clip.name)
-    );
-
-    // Rimuove la traslazione verticale del nodo radice dalla corsa:
-    // il personaggio resta appoggiato al terreno, mentre le ossa si animano.
-    const groundedRunClip = runClip ? runClip.clone() : null;
-    if (groundedRunClip) {
-      groundedRunClip.tracks = groundedRunClip.tracks.filter((track) => {
-        if (!track.name.endsWith('.position')) return true;
-        const node = track.name.slice(0, -'.position'.length).toLowerCase();
-        return !/^(root|armature|hips|pelvis|mixamorig:hips)$/.test(node);
-      });
-      soldierRun = soldierMixer.clipAction(groundedRunClip);
-    }
-
-    if (jumpClip) {
-      soldierJump = soldierMixer.clipAction(jumpClip);
-      soldierJump.setLoop(THREE.LoopOnce, 1);
-      soldierJump.clampWhenFinished = true;
-    }
-
-    if (idleClip) {
-      soldierIdle = soldierMixer.clipAction(idleClip);
-    } else if (clips.length && !soldierRun) {
-      soldierIdle = soldierMixer.clipAction(clips[0]);
-    }
-
-    console.log(
-      'Soldato caricato. Animazioni:',
-      clips.map((clip) => clip.name)
-    );
-  },
-  undefined,
-  (error) => {
-    console.error('Errore caricamento Panzergrenadier:', error);
-    message.textContent = 'ERRORE NEL CARICAMENTO DEL SOLDATO';
-  }
-);
-
-
-// Il modello Panzergrenadier storico sostituisce il vecchio soldato costruito con cubi.
-
-// Materiale tela dei sacchi con dettaglio superficiale procedurale.
-// Un futuro set PBR locale potrà sostituirlo senza cambiare la geometria.
-// Ostacoli
-const obstacles = [];
-const lanes = [-2.5, 0, 2.5];
-
-// Casse militari in legno con assi e rinforzi: materiali condivisi.
-const crateWood = weatheredWood(0xc5a98a);
-const crateTrim = weatheredWood(0x786450);
-function createSupplyCrate(parent, x, y, z, size = 1) {
-  const g = new THREE.Group();
-  g.position.set(x, y, z);
-  g.scale.setScalar(size);
-  addBox(g, [1, 0.95, 1], crateWood, [0, 0.48, 0]);
-  for (const side of [-1, 1]) {
-    for (const offset of [-0.39, 0.39]) {
-      addBox(g, [0.09, 0.98, 0.09], crateTrim, [offset, 0.48, side*0.52]);
-      addBox(g, [0.09, 0.98, 0.09], crateTrim, [side*0.52, 0.48, offset]);
-    }
-    const brace = addBox(g, [0.08, 1.17, 0.08], crateTrim, [0, 0.48, side*0.53]);
-    brace.rotation.z = 0.72;
-  }
-  addBox(g, [1.09, 0.1, 1.09], crateTrim, [0, 0.99, 0]);
-  parent.add(g);
-  return g;
-}
-
-function createObstacle(z) {
-  const lane = lanes[Math.floor(Math.random() * lanes.length)];
-  const type = Math.random();
-  const group = new THREE.Group();
-
-  if (type < 0.38) {
-    // Sacchi di sabbia
-    for (let row = 0; row < 3; row++) {
-      for (let col = 0; col < 3; col++) {
-        const sack = new THREE.Mesh(sackGeometry, sackMat);
-        sack.position.set((col - 1) * 0.39 + (row % 2) * 0.06, 0.23 + row * 0.28, 0);
-        sack.scale.set(1.3, 0.75, 0.9);
-        sack.rotation.z = (Math.random() - 0.5) * 0.15;
-        sack.castShadow = true;
-        sack.receiveShadow = true;
-        group.add(sack);
-      }
-    }
-  } else if (type < 0.62) {
-    // Tronco caduto
-    const log = addCylinder(
-      group, 0.22, 0.25, 2.25,
-      barkMat, [0, 0.32, 0], 10
-    );
-
-    log.rotation.z = Math.PI / 2;
-  } else if (type < 0.82) {
-    // Cassa di rifornimenti, ostacolo leggibile e coerente con la scena.
-    createSupplyCrate(group, 0, 0, 0, 1.05);
-  } else {
-    // Barriera militare
-    addBox(
-      group, [1.15, 0.95, 0.32],
-      uniformDarkMat, [0, 0.48, 0]
-    );
-
-    addBox(
-      group, [1.35, 0.12, 0.38],
-      metalMat, [0, 1.0, 0]
-    );
-
-    for (const x of [-0.38, 0.38]) {
-      addBox(
-        group, [0.16, 0.32, 0.4],
-        stripeMat, [x, 0.72, 0.2], false
-      );
-    }
-  }
-
-  group.position.set(lane, 0, z);
-  scene.add(group);
-
-  obstacles.push({
-    mesh: group,
-    passed: false
-  });
-}
-
-for (let z = -18; z > -130; z -= 12 + Math.random() * 7) {
-  createObstacle(z);
-      }
-
-let running = false;
-let ended = false;
-let distance = 0;
-let lane = 1;
-let jumpVelocity = 0;
-let jumping = false;
-const speed = 0.25;
-let score = 0;
-let health = 3;
-let lastTime = 0;
-
-function start() {
-  if (ended) {
-    window.location.reload();
+function backdrop() {
+  if (images.background) {
+    const img = images.background;
+    const scale = Math.max(W / img.width, H / img.height);
+    const w = img.width * scale, h = img.height * scale;
+    ctx.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
     return;
   }
-
-  running = true;
-  message.textContent = 'EVITA GLI OSTACOLI';
-}
-
-function move(direction) {
-  if (!running) start();
-
-  lane = Math.max(0, Math.min(2, lane + direction));
-}
-
-function jump() {
-  if (!running) start();
-
-  if (!jumping) {
-    jumping = true;
-    jumpVelocity = 0.19;
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, '#62727b'); sky.addColorStop(0.39, '#b3ada0'); sky.addColorStop(1, '#4c4d39');
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+  // Distant forest layers with atmospheric desaturation.
+  for (let layer = 0; layer < 3; layer++) {
+    const base = horizon() + layer * 13;
+    ctx.fillStyle = ['#778276', '#536451', '#354b3d'][layer];
+    for (let i = -2; i < 30; i++) {
+      const x = i * W / 25 + (rand(i + layer * 77) - 0.5) * 24;
+      const size = 22 + layer * 13 + rand(i * 4 + layer) * 30;
+      ctx.beginPath(); ctx.moveTo(x, base - size); ctx.lineTo(x - size * 0.4, base + 8);
+      ctx.lineTo(x + size * 0.4, base + 8); ctx.fill();
+    }
   }
 }
-
-leftButton.onclick = () => move(-1);
-rightButton.onclick = () => move(1);
-jumpButton.onclick = jump;
-
-// The end-of-run overlay tells players to tap to restart. Allow that tap
-// to reach start(), which already handles the ended state by reloading.
-canvas.addEventListener('pointerdown', () => {
-  if (!running) start();
+function road() {
+  const hy = horizon(), bottom = H + 50;
+  const far = W * 0.047, near = W * 0.64;
+  ctx.beginPath(); ctx.moveTo(W / 2 - far, hy); ctx.lineTo(W / 2 + far, hy);
+  ctx.lineTo(W / 2 + near, bottom); ctx.lineTo(W / 2 - near, bottom); ctx.closePath();
+  ctx.save(); ctx.clip();
+  if (images.road) {
+    const pattern = ctx.createPattern(images.road, 'repeat');
+    if (pattern) { ctx.fillStyle = pattern; ctx.fillRect(0, hy, W, bottom - hy); }
+  } else {
+    const dirt = ctx.createLinearGradient(0, hy, 0, bottom);
+    dirt.addColorStop(0, '#5b5140'); dirt.addColorStop(1, '#8b7557');
+    ctx.fillStyle = dirt; ctx.fillRect(0, hy, W, bottom - hy);
+    // Irregular grain, depth-scaled to avoid repetitive flat colors.
+    for (let i = 0; i < 460; i++) {
+      const y = hy + rand(i + 12) * (bottom - hy);
+      const ratio = (y - hy) / (bottom - hy);
+      const half = far + (near - far) * ratio;
+      const x = W / 2 + (rand(i + 220) * 2 - 1) * half;
+      ctx.fillStyle = i % 3 ? 'rgba(38,33,25,.09)' : 'rgba(217,190,145,.09)';
+      ctx.fillRect(x, y, 1 + ratio * 5, 1 + ratio * 3);
+    }
+  }
+  // Subtle parallel wheel ruts, not tire-stamp graphics.
+  for (const sign of [-1, 1]) {
+    ctx.strokeStyle = 'rgba(38,31,23,.27)';
+    ctx.lineWidth = Math.max(2, W * 0.012);
+    ctx.beginPath(); ctx.moveTo(W / 2 + sign * far * 0.42, hy);
+    ctx.lineTo(W / 2 + sign * near * 0.42, bottom); ctx.stroke();
+  }
+  ctx.restore();
+  // Dark forest verge blends the road into the environment.
+  ctx.strokeStyle = 'rgba(25,31,22,.35)'; ctx.lineWidth = 3;
+  for (const sign of [-1, 1]) {
+    ctx.beginPath(); ctx.moveTo(W / 2 + sign * far, hy);
+    ctx.lineTo(W / 2 + sign * near, bottom); ctx.stroke();
+  }
+}
+function fallbackTree(x, y, width, height, seed) {
+  ctx.save(); ctx.translate(x, y);
+  ctx.fillStyle = '#332b20'; ctx.fillRect(-width * 0.045, -height * 0.7, width * 0.09, height * 0.7);
+  for (let k = 0; k < 10; k++) {
+    const t = k / 10, cy = -height * (0.95 - t * 0.72);
+    const reach = width * (0.11 + t * 0.43);
+    ctx.fillStyle = ['#263d31','#304734','#1f352b','#40533a'][(k + seed) % 4];
+    ctx.beginPath(); ctx.moveTo((rand(seed + k) - 0.5) * width * 0.08, cy - height * 0.1);
+    ctx.lineTo(-reach, cy + height * 0.13); ctx.lineTo(reach, cy + height * 0.13);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+function fallbackCrate(x, y, size) {
+  ctx.fillStyle = '#4a3323'; ctx.fillRect(x - size / 2, y - size, size, size);
+  ctx.strokeStyle = '#aa8255'; ctx.lineWidth = Math.max(1, size * 0.07);
+  ctx.strokeRect(x - size / 2 + 2, y - size + 2, size - 4, size - 4);
+  ctx.beginPath(); ctx.moveTo(x - size / 2, y - size); ctx.lineTo(x + size / 2, y); ctx.stroke();
+}
+function scenery() {
+  const visible = objects.map(o => ({...o, z: (o.depth - worldShift % 1760 + 1760) % 1760})).filter(o => o.z < 430);
+  visible.sort((a,b) => b.z - a.z);
+  for (const o of visible) {
+    const p = projection(o.z);
+    const x = W / 2 + o.side * (p.roadHalf + W * (0.018 + p.t * 0.11));
+    const h = H * (0.11 + p.t * 0.66) * (0.82 + rand(o.seed) * 0.35);
+    const w = h * (o.type === 'tree' ? 0.62 : 1.15);
+    ctx.fillStyle = 'rgba(18,22,15,.20)';
+    ctx.beginPath(); ctx.ellipse(x, p.y, w * 0.35, Math.max(2,h * 0.028), 0, 0, Math.PI * 2); ctx.fill();
+    if (o.type === 'tree') {
+      if (!drawImageContain(images.tree, x, p.y, w, h)) fallbackTree(x,p.y,w,h,o.seed);
+    } else if (!drawImageContain(images.sandbags,x,p.y,w,h*0.43)) {
+      ctx.fillStyle='#6b6247';
+      for(let j=0;j<3;j++)for(let k=0;k<4;k++){
+        ctx.beginPath();ctx.ellipse(x+(k-1.5)*w*.22,p.y-j*h*.11,w*.12,h*.07,0,0,Math.PI*2);ctx.fill();
+      }
+    }
+  }
+}
+function drawObstacles() {
+  const visible = obstacles.filter(o => !o.hit).map(o => ({...o,z:o.depth-worldShift})).filter(o=>o.z>-10&&o.z<430).sort((a,b)=>b.z-a.z);
+  for(const o of visible) {
+    const p=projection(Math.max(0,o.z)), size=H*(0.02+p.t*.14);
+    const x=roadX(o.lane,o.z);
+    if(!drawImageContain(images.crate,x,p.y,size,size)) fallbackCrate(x,p.y,size);
+  }
+}
+function soldier() {
+  const x=roadX(lane,0), ground=H*.90;
+  const lift=jumping ? Math.sin(jumpTime*Math.PI)*H*.14 : 0;
+  const height=Math.min(H*.26,W*.49), width=height*.58;
+  ctx.fillStyle='rgba(20,19,15,.32)';
+  ctx.beginPath();ctx.ellipse(x,ground,width*.37*(1-lift/H),height*.065,0,0,Math.PI*2);ctx.fill();
+  if(drawImageContain(images.soldier,x,ground-lift,width,height))return;
+  // Readable rear-view fallback, not a T-pose.
+  ctx.save();ctx.translate(x,ground-lift);
+  const sway=running?Math.sin(worldShift*.13)*height*.018:0;
+  ctx.fillStyle='#353c31';ctx.strokeStyle='#272d25';ctx.lineWidth=height*.09;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(-width*.13,-height*.39);ctx.lineTo(-width*.16+sway,-height*.06);
+  ctx.moveTo(width*.13,-height*.39);ctx.lineTo(width*.16-sway,-height*.06);ctx.stroke();
+  ctx.fillStyle='#4d5141';ctx.beginPath();ctx.moveTo(-width*.25,-height*.75);
+  ctx.lineTo(width*.25,-height*.75);ctx.lineTo(width*.19,-height*.34);
+  ctx.lineTo(-width*.19,-height*.34);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#414538';ctx.lineWidth=height*.075;ctx.beginPath();
+  ctx.moveTo(-width*.23,-height*.69);ctx.lineTo(-width*.33,-height*.44+sway);
+  ctx.moveTo(width*.23,-height*.69);ctx.lineTo(width*.33,-height*.44-sway);ctx.stroke();
+  ctx.fillStyle='#444c3d';ctx.beginPath();ctx.arc(0,-height*.84,width*.18,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#303c30';ctx.beginPath();ctx.ellipse(0,-height*.91,width*.25,height*.055,0,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
+function update(dt) {
+  if(!running)return;
+  worldShift+=dt*16;distance+=dt*16;
+  if(jumping){jumpTime+=dt*2.4;if(jumpTime>=1){jumping=false;jumpTime=0;}}
+  for(const o of obstacles){
+    if(!o.hit&&o.depth-worldShift<9&&o.depth-worldShift>-12){
+      o.hit=true;
+      if(o.lane===lane&&!jumping){health=Math.max(0,health-1);if(health===0){running=false;message.textContent='PARTITA TERMINATA — TOCCA PER RIPROVARE';message.style.display='block';}}
+      else score+=20;
+    }
+  }
+  stats.textContent='❤️ '+ '♥'.repeat(health)+' | PUNTI: '+score+' | TRAGUARDO: '+Math.max(0,1000-Math.floor(distance))+' m';
+  if(distance>=1000){running=false;message.textContent='MISSIONE COMPLETATA — TOCCA PER RIPROVARE';message.style.display='block';}
+}
+function frame(now) {
+  const dt=Math.min((now-last)/1000||0,.05);last=now;
+  update(dt);backdrop();road();scenery();drawObstacles();soldier();
+  requestAnimationFrame(frame);
+}
+function start(){
+  if(running)return;
+  lane=1;distance=0;worldShift=0;score=0;health=3;jumping=false;jumpTime=0;
+  obstacles.forEach(o=>o.hit=false);
+  running=true;message.style.display='none';
+}
+function move(delta){if(!running){start();return;}lane=Math.max(0,Math.min(2,lane+delta));}
+function jump(){if(!running){start();return;}if(!jumping){jumping=true;jumpTime=0;}}
+document.getElementById('left').addEventListener('pointerdown',e=>{e.preventDefault();move(-1);});
+document.getElementById('right').addEventListener('pointerdown',e=>{e.preventDefault();move(1);});
+document.getElementById('jump').addEventListener('pointerdown',e=>{e.preventDefault();jump();});
+message.addEventListener('pointerdown',start);
+canvas.addEventListener('pointerdown',()=>{if(!running)start();});
+window.addEventListener('keydown',e=>{
+  if(e.key==='ArrowLeft'||e.key.toLowerCase()==='a')move(-1);
+  if(e.key==='ArrowRight'||e.key.toLowerCase()==='d')move(1);
+  if(e.key===' '||e.key==='ArrowUp')jump();
 });
-
-window.addEventListener('keydown', event => {
-  if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') {
-    move(-1);
-  }
-
-  if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') {
-    move(1);
-  }
-
-  if (event.key === ' ' || event.key === 'ArrowUp') {
-    jump();
-  }
-});
-
-const targetCamera = new THREE.Vector3();
-
-function animate(time) {
-  requestAnimationFrame(animate);
-
-  const dt = Math.min(((time - lastTime) / 16.67) || 1, 2);
-  lastTime = time;
-
-  if (running) {
-    distance += speed * dt;
-    stats.textContent = `❤️ ${'♥'.repeat(health)}  |  PUNTI: ${score}  |  TRAGUARDO: ${Math.max(0, 1000 - Math.floor(distance * 2))} m`;
-
-    // Movimento laterale
-    player.position.x = THREE.MathUtils.damp(
-      player.position.x,
-      lanes[lane],
-      0.16,
-      dt
-    );
-
-    player.rotation.z = THREE.MathUtils.damp(
-      player.rotation.z,
-      (player.position.x - lanes[lane]) * 0.08,
-      0.15,
-      dt
-    );
-
-    // Salto
-    if (jumping) {
-      player.position.y += jumpVelocity * dt;
-      jumpVelocity -= 0.012 * dt;
-
-      if (player.position.y <= 0) {
-        player.position.y = 0;
-        jumping = false;
-        jumpVelocity = 0;
-      }
-    }
-
-    // Animazione del soldato 3D
-if (soldierMixer) {
-  const desiredAction =
-    jumping && soldierJump
-      ? soldierJump
-      : running
-        ? soldierRun || soldierIdle
-        : soldierIdle || soldierRun;
-
-  if (desiredAction && desiredAction !== soldierActiveAction) {
-    if (soldierActiveAction) {
-      soldierActiveAction.fadeOut(0.18);
-    }
-
-    desiredAction.reset().fadeIn(0.18).play();
-    soldierActiveAction = desiredAction;
-  }
-
-  soldierMixer.update(soldierClock.getDelta());
-}
-
-    // Il portale si avvicina solo nell'ultimo tratto del livello.
-    if (distance >= 400) {
-      finishGate.visible = true;
-      // Ferma il portale prima che oltrepassi il personaggio o la camera.
-      finishGate.position.z = -97 + Math.min(distance - 400, 100) * 0.90;
-    }
-
-    // Strada in movimento
-    for (const dash of dashes) {
-      dash.position.z += speed * dt;
-
-      if (dash.position.z > 12) {
-        dash.position.z -= 168;
-      }
-    }
-
-    // Riciclo delle pozze insieme alla strada, senza creare nuove mesh.
-    for (const p of puddles) {
-      p.rim.position.z += speed * dt;
-      p.water.position.z += speed * dt;
-      if (p.water.position.z > 16) {
-        p.rim.position.z -= 165;
-        p.water.position.z -= 165;
-      }
-    }
-
-    // Riciclo degli elementi del paesaggio
-    for (const tree of forest) {
-      tree.position.z += speed * dt;
-
-      if (tree.position.z > 15) {
-        tree.position.z -= 160;
-      }
-    }
-
-    for (const tuft of grassPositions) {
-      tuft.z += speed * dt;
-      if (tuft.z > 15) tuft.z -= 155;
-    }
-    // Aggiorna le matrici GPU a frame alterni per ridurre il carico CPU.
-    if ((grassUpdateFrame++ & 1) === 0) updateGrass();
-
-    for (const bush of bushes) {
-      bush.position.z += speed * dt;
-
-      if (bush.position.z > 15) {
-        bush.position.z -= 160;
-      }
-    }
-
-    for (const item of scenery) {
-      item.position.z += speed * dt;
-      if (item.position.z > 17) item.position.z -= 152;
-    }
-
-    for (const rock of rocks) {
-      rock.position.z += speed * dt;
-
-      if (rock.position.z > 15) {
-        rock.position.z -= 160;
-      }
-    }
-
-    // Collisioni con gli ostacoli
-    for (const obstacle of obstacles) {
-      obstacle.mesh.position.z += speed * dt;
-
-      if (!obstacle.passed && obstacle.mesh.position.z > 3.1) {
-        obstacle.passed = true;
-        score += 10;
-
-        if (
-          Math.abs(obstacle.mesh.position.x - player.position.x) < 1.15 &&
-          player.position.y < 0.65
-        ) {
-          running = false;
-          ended = true;
-          message.textContent =
-            'SEI STATO FERMATO — TOCCA PER RIPROVARE';
-        }
-      }
-
-      if (obstacle.mesh.position.z > 14) {
-        obstacle.mesh.position.z = -125 - Math.random() * 15;
-        obstacle.mesh.position.x =
-          lanes[Math.floor(Math.random() * lanes.length)];
-        obstacle.passed = false;
-      }
-    }
-
-    if (distance >= 500) {
-      finishGate.position.z = -7;
-      running = false;
-      ended = true;
-      message.textContent =
-        'TRAGUARDO RAGGIUNTO — TOCCA PER RIGIOCARE';
-    }
-  }
-
-  // Camera ravvicinata dietro al soldato
-  targetCamera.set(
-    player.position.x * 0.25,
-    3.35 + player.position.y * 0.22,
-    7.1
-  );
-
-  camera.position.lerp(targetCamera, 0.04);
-
-  camera.lookAt(
-    player.position.x * 0.18,
-    1.55 + player.position.y * 0.25,
-    -5
-  );
-
-  // Shadow remains on the road during jumps; fades with altitude.
-  soldierContactShadow.position.x = player.position.x;
-  soldierContactShadow.position.z = player.position.z;
-  soldierContactShadow.material.opacity = 0.75 / (1 + Math.max(0, player.position.y) * 1.3);
-  soldierContactShadow.scale.setScalar(1 + Math.max(0, player.position.y) * 0.18);
-  skyDome.position.copy(camera.position);
-  renderer.render(scene, camera);
-}
-
-requestAnimationFrame(animate);
-
-window.addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight;
-  camera.updateProjectionMatrix();
-
-  renderer.setSize(innerWidth, innerHeight);
-  renderer.setPixelRatio(
-    Math.min(window.devicePixelRatio || 1, 1.6)
-  );
-});
+requestAnimationFrame(frame);
