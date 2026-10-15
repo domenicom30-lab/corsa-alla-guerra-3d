@@ -139,3 +139,41 @@ export function drawArcadeStorm(ctx,W,H,seconds,active=true){
  if(lightning>.985){ctx.fillStyle='rgba(222,232,255,.16)';ctx.fillRect(0,0,W,H)}
  ctx.restore();
 }
+
+
+// War-torn city backdrop: opaque sky hides the old sunny hills and forests.
+export function drawRuinedCity(ctx,W,H,scroll,ground,phase){
+ ctx.save();ctx.imageSmoothingEnabled=false;
+ const sky=ctx.createLinearGradient(0,0,0,ground);
+ sky.addColorStop(0,'#151b25');sky.addColorStop(.58,'#4b3937');sky.addColorStop(1,'#987055');
+ ctx.fillStyle=sky;ctx.fillRect(0,0,W,ground);
+ ctx.fillStyle='#bb7650';ctx.globalAlpha=.26;
+ ctx.beginPath();ctx.arc(W*.77,H*.26,H*.105,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+ for(let layer=0;layer<2;layer++){
+  const scale=layer===0?.28:.53,unit=H*(layer===0?.085:.125);
+  const shift=scroll*scale,first=Math.floor(shift/unit)-2,last=Math.ceil((shift+W)/unit)+2;
+  for(let i=first;i<=last;i++){
+   const x=Math.floor(i*unit-shift),seed=Math.abs(Math.sin(i*12.9898+layer*78.2));
+   const floors=2+Math.floor(seed*4),width=unit*(.76+seed*.45),height=floors*unit*.66;
+   const y=ground-height+(layer===0?H*.07:0);
+   ctx.fillStyle=layer===0?'#292d32':'#292b2a';ctx.fillRect(x,y,width,height);
+   ctx.fillStyle=layer===0?'#42403d':'#55473e';
+   ctx.fillRect(x+width*.08,y-H*.018,width*.26,H*.018);
+   for(let floor=0;floor<floors;floor++)for(let col=0;col<3;col++){
+    const wx=x+width*(.13+col*.27),wy=y+unit*(.12+floor*.63);
+    if(wy>ground-H*.035)continue;
+    ctx.fillStyle=(i+col+floor)%7===0?'#aa6446':'#141b20';
+    ctx.fillRect(wx,wy,width*.12,unit*.18);
+   }
+   if(i%4===0){ctx.fillStyle='#171e22';ctx.fillRect(x+width*.65,y-H*.13,width*.11,H*.13)}
+   if(i%5===0){ctx.fillStyle='#1d2225';ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+width*.38,y-H*.06);ctx.lineTo(x+width*.6,y);ctx.fill()}
+  }
+ }
+ ctx.fillStyle='#3c332f';ctx.fillRect(0,ground-H*.012,W,H*.02);
+ for(let i=0;i<24;i++){
+  const x=((i*187-scroll*.8)%(W+H*.2)+(W+H*.2))%(W+H*.2)-H*.1;
+  ctx.fillStyle=i%3===0?'#655346':'#332f2d';
+  ctx.fillRect(x,ground-H*(.012+(i%4)*.008),H*(.025+i%3*.014),H*.014);
+ }
+ ctx.restore();
+}
