@@ -10,3 +10,11 @@
 .control-group .shoot-button{border-color:#f1b15c;background:radial-gradient(circle at 50% 20%,#8b4927cc,#271b19e8)}
 .control-group .shoot-button:active{background:#c87938}
 @media(max-width:760px){.control-group{gap:8px}.control-group button{width:clamp(50px,10vw,100px);height:clamp(50px,10vw,100px)}}
+
+/* Arcade rebuild: less intrusive touch overlay; readable scene and accessible targets. */
+#controls{bottom:max(3.5%,env(safe-area-inset-bottom));left:2%;right:2%;}
+.control-group{gap:clamp(8px,1.7vw,24px)}
+.control-group button{width:clamp(60px,8.2vw,116px);height:clamp(60px,8.2vw,116px);background:radial-gradient(circle at 50% 25%,#2630387d,#090d13a6);border:2px solid #b5bfc9b0;box-shadow:inset 0 2px 5px #ffffff21,0 2px 9px #0008;padding:12%;}
+.control-group button small{bottom:-10%;font-size:clamp(8px,1.05vw,13px);background:#111a21df}
+.control-group .shoot-button{background:radial-gradient(circle at 50% 20%,#9d4327bf,#291212c4)}
+@media(max-height:450px){#controls{bottom:5%}.control-group button{width:clamp(58px,8vw,94px);height:clamp(58px,8vw,94px)}}
