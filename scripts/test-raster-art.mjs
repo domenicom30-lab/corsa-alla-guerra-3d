@@ -50,7 +50,7 @@ assert.equal(created,specs.length);
 assert.equal(spritePackStatus().count,specs.length);
 let drawArgs=[],smooth=false;
 const ctx={imageSmoothingEnabled:true,drawImage(...args){drawArgs.push(args)},
- save(){},restore(){}};
+ save(){},restore(){},fillRect(){}};
 assert.equal(drawRaster(ctx,'hero','run',7,15,25,110,105),true);
 assert.equal(drawArgs[0][1],7*manifest.frameSizes.hero[0]);
 assert.equal(drawArgs[0][3],manifest.frameSizes.hero[0]);
