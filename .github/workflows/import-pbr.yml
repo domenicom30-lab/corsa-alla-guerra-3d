@@ -1,30 +1,48 @@
 name: Import CC0 PBR textures
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/import-pbr.yml'
   workflow_dispatch:
     inputs:
       road_asset:
-        description: "Verified ambientCG road/dirt asset ID (e.g. Ground###)"
-        required: true
+        description: "ambientCG muddy road material ID"
+        required: false
+        default: Ground054
         type: string
       forest_asset:
-        description: "Verified ambientCG forest ground asset ID"
-        required: true
+        description: "ambientCG woodland soil material ID"
+        required: false
+        default: Ground037
         type: string
 permissions:
   contents: write
+concurrency:
+  group: import-pbr-main
+  cancel-in-progress: false
 jobs:
   import:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Download and validate CC0 texture maps
-        run: python scripts/download_pbr.py "${{ inputs.road_asset }}" "${{ inputs.forest_asset }}"
-      - name: Commit imported texture assets
+      - name: Download verified CC0 photogrammetry materials
+        env:
+          ROAD_ASSET: ${{ inputs.road_asset || 'Ground054' }}
+          FOREST_ASSET: ${{ inputs.forest_asset || 'Ground037' }}
+        run: python scripts/download_pbr.py "$ROAD_ASSET" "$FOREST_ASSET"
+      - name: Commit PBR maps to main
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add public/assets/textures/
-          git diff --cached --quiet || (git commit -m "Import ambientCG CC0 PBR texture maps" && git push origin HEAD:main)
+          if ! git diff --cached --quiet; then
+            git commit -m "Import CC0 photogrammetry PBR road and woodland maps"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
