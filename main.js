@@ -545,15 +545,39 @@ for (const x of [-1.45, 1.45]) {
 
 // Pozzanghere e fango umido lungo i margini della carreggiata.
 // Geometria condivisa e materiale senza ombre: effetto leggero per Android.
-const puddleGeometry = new THREE.CircleGeometry(1, 18);
+// Organic wet patches: irregular silhouettes and feathered edges instead of
+// opaque circular discs. One shared texture/geometry for all mobile instances.
+function createWetPatchTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  const image = ctx.createImageData(128, 128);
+  for (let y = 0; y < 128; y++) for (let x = 0; x < 128; x++) {
+    const dx = (x - 64) / 64, dy = (y - 64) / 64;
+    const angle = Math.atan2(dy, dx);
+    const radius = Math.hypot(dx, dy);
+    const edge = 0.73 + 0.09 * Math.sin(angle * 5 + 1.2) + 0.07 * Math.sin(angle * 9 - 0.8);
+    const fade = THREE.MathUtils.clamp((edge - radius) * 11, 0, 1);
+    const grain = 0.86 + 0.14 * Math.sin(x * 0.48 + y * 0.27) * Math.sin(y * 0.33);
+    const i = (y * 128 + x) * 4;
+    image.data[i] = 79; image.data[i + 1] = 72; image.data[i + 2] = 60;
+    image.data[i + 3] = Math.round(255 * fade * grain);
+  }
+  ctx.putImageData(image, 0, 0);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+const wetPatchTexture = createWetPatchTexture();
+const puddleGeometry = new THREE.PlaneGeometry(2, 2);
 const puddleMaterial = new THREE.MeshStandardMaterial({
-  color: 0x77776a, roughness: 0.32, metalness: 0.0,
-  transparent: true, opacity: 0.24, depthWrite: false,
+  map: wetPatchTexture, color: 0xb5b0a4, roughness: 0.4, metalness: 0.0,
+  transparent: true, opacity: 0.44, depthWrite: false,
   polygonOffset: true, polygonOffsetFactor: -2,
   side: THREE.DoubleSide
 });
 const mudRimMaterial = new THREE.MeshStandardMaterial({
-  color: 0x342e25, roughness: 1, transparent: true,
+  map: wetPatchTexture, color: 0x514737, roughness: 1, transparent: true,
   opacity: 0.23, depthWrite: false, side: THREE.DoubleSide
 });
 const puddles = [];
