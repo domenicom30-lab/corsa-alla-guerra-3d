@@ -38,6 +38,7 @@ const checks = [
  ['Fiammata pixel art stratificata',()=>{for(const token of ["ctx.fillStyle='#fff6c8'","ctx.fillStyle='#ffc34e'","ctx.fillStyle='#f08b27'",'for(let i=0;i<3;i++){const sparkX=mx+flash'])assert.ok(main.includes(token),token)}],
  ['Scie luminose proiettili',()=>{for(const token of ["b.kind==='heavy'?'#245e7b':'#8c4b2c'","b.kind==='heavy'?'#e7ffff':'#fff8d1'",'tail=b.x-dir*len*.9'])assert.ok(main.includes(token),token)}],
  ['Dissolvenza particelle impatto',()=>{for(const token of ['H*.007*Math.min(1,p.life/.2)','ctx.globalAlpha=Math.min(1,Math.max(0,p.life/.18))','ctx.globalAlpha=1}'])assert.ok(main.includes(token),token)}],
+ ['Polvere passi pixel art stratificata',()=>{for(const token of ["ctx.fillStyle='#d7c6a2'",'Math.round(p.y-p.size*.25)','Math.max(2,p.size*.45)'])assert.ok(main.includes(token),token)}],
  ['Prestazioni mobile',()=>{assert.ok(main.includes('devicePixelRatio'));assert.ok(main.includes('requestAnimationFrame(frame)'))}],
  ['Build configurata',()=>assert.ok(pkg.scripts.build)]
 ];
