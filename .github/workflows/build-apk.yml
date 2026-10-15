@@ -43,6 +43,23 @@ jobs:
       - name: Import 2D artwork from ZIP packages
         run: python3 scripts/import_2d_assets.py
 
+      - name: Fetch CC0 animated soldier sprite sheet
+        shell: bash
+        run: |
+          mkdir -p public/assets/arcade
+          curl --fail --location --retry 4 --retry-delay 3 --connect-timeout 15 --max-time 90 \
+            'https://opengameart.org/sites/default/files/all_sprites.png' \
+            -o public/assets/arcade/space-soldier-cc0.png
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct
+          p=Path('public/assets/arcade/space-soldier-cc0.png')
+          data=p.read_bytes()
+          assert data[:8]==b'\\x89PNG\\r\\n\\x1a\\n', 'Asset is not a PNG'
+          w,h=struct.unpack('>II',data[16:24]);assert w>=256 and h>=192,(w,h)
+          print('CC0 soldier integrated:',w,h,len(data),'bytes')
+          PY
+
       - name: Validate pure 2D gameplay
         run: npm run check
 
