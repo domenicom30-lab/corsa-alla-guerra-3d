@@ -12,6 +12,7 @@ let jumping = false, jumpTime = 0, ducking = false, paused = false, last = 0, wo
 let W = 0, H = 0, dpr = 1;
 const ASSETS = {
   background: './assets/2d/forest-background.webp',
+  reference: './assets/2d/reference-scene.webp',
   soldier: './assets/2d/soldier-back.png',
   tree: './assets/2d/spruce.webp',
   sandbags: './assets/2d/sandbags.png',
@@ -214,7 +215,16 @@ function update(dt) {
 }
 function frame(now) {
   const dt=Math.min((now-last)/1000||0,.05);last=now;
-  update(dt);backdrop();road();scenery();drawObstacles();soldier();
+  update(dt);
+  if(!running && !paused && images.reference){
+    const img=images.reference,scale=Math.min(W/img.width,H/img.height);
+    ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
+    ctx.drawImage(img,(W-img.width*scale)/2,(H-img.height*scale)/2,img.width*scale,img.height*scale);
+    document.getElementById('hud').classList.add('reference-preview');
+  } else {
+    document.getElementById('hud').classList.remove('reference-preview');
+    backdrop();road();scenery();drawObstacles();soldier();
+  }
   requestAnimationFrame(frame);
 }
 function start(){
@@ -222,6 +232,7 @@ function start(){
   lane=1;distance=0;worldShift=0;score=0;health=3;jumping=false;jumpTime=0;ducking=false;paused=false;
   obstacles.forEach(o=>o.hit=false);
   running=true;message.style.display='none';
+  document.getElementById('hud').classList.remove('reference-preview');
 }
 function move(delta){if(!running){start();return;}lane=Math.max(0,Math.min(2,lane+delta));}
 function jump(){if(!running){start();return;}if(!jumping){jumping=true;jumpTime=0;}}
