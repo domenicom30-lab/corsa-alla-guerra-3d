@@ -4,7 +4,7 @@ const main = readFileSync('main.js', 'utf8');
 const html = readFileSync('index.html', 'utf8');
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 const checks = [
- ['Canvas e controlli',()=>{for(const id of ['game','message','stats','left','right','jump'])assert.ok(html.includes('id="'+id+'"'),id)}],
+ ['Canvas e controlli',()=>{for(const id of ['game','message','stats','left','right','jump','duck','pause','points','hearts'])assert.ok(html.includes('id="'+id+'"'),id)}],
  ['Backup 3D documentato',()=>assert.ok(existsSync('docs/2-5d-assets.md'))],
  ['Prospettiva 2.5D',()=>{for(const token of ['function projection(', 'function road(', 'function scenery(', 'function soldier('])assert.ok(main.includes(token),token)}],
  ['Tre corsie e movimento',()=>{assert.ok(main.includes('const lanes = [-1, 0, 1]'));assert.ok(main.includes('function move('));assert.ok(main.includes('function jump('))}],
