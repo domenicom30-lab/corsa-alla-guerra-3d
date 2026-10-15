@@ -22,6 +22,14 @@ export function prepareEnemyFrames(){
   b(34,15+lift,8,9,'#3b1d20');
   b(36,16+lift,5,5,'#b64c37');
   b(39,17+lift,2,2,'#fff2b2');
+  // Eight distinct gait poses add original shell facets, moving highlights and antennae.
+  const gait=[0,2,4,2,0,-2,-4,-2][i];
+  b(17+gait,13+lift,10,2,'#e28b60');
+  b(23-gait,23+lift,7,2,'#632127');
+  b(30+gait,14+lift,5,2,'#d96649');
+  b(38+gait,7+lift,2,7,'#58252a');
+  b(38+gait,6+lift,3,2,'#dc7651');
+  b(39,22+lift,4,2,'#e2a270');
   b(5,17+lift,7,3,'#8b3030');
   b(7,10+lift,3,8,'#442126');
   b(36,8+lift,3,7,'#442126');
