@@ -15,6 +15,7 @@ const bullets=[];
 const particles=[];
 const ticks=Array.from({length:25},(_,i)=>({x:1050+i*520,y:0,alive:true,phase:i*.7}));
 const SPEED=250,GRAVITY=1900;
+const MAX_PARTICLES=180;
 function resize(){W=innerWidth;H=innerHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0)}
 addEventListener('resize',resize);resize();
 function ground(){return H*.78}
@@ -57,11 +58,11 @@ function drawTicks(){
  if(x<-w||x>W+w)continue;ctx.imageSmoothingEnabled=false;const sheet=arcadeArt.tick;const frame=Math.floor(phase*.9+t.phase)%4;if(sheet){const fw=sheet.width/4;ctx.drawImage(sheet,frame*fw,0,fw,sheet.height,x-w*.5,y-h*.5,w,h)}else ctx.drawImage(sprites.tick[frame],x-w*.5,y-h*.5,w,h);
  }
 }
-function drawBullets(){for(const b of bullets){ctx.fillStyle='#ffeeb0';ctx.fillRect(b.x,b.y,Math.max(12,H*.032)*Math.sign(b.vx),Math.max(3,H*.006));ctx.fillStyle='#e87d28';ctx.fillRect(b.x-5,b.y+1,Math.max(5,H*.012)*Math.sign(b.vx),Math.max(2,H*.004))}}
-function burst(x,y){for(let i=0;i<13;i++){const angle=i*Math.PI*2/13;particles.push({x,y,vx:Math.cos(angle)*(80+i*9),vy:Math.sin(angle)*(80+i*7)-60,life:.38+i*.012,color:i%3===0?'#ffdc6b':i%3===1?'#ee5828':'#aa181b'})}}
+function drawBullets(){for(const b of bullets){const dir=Math.sign(b.vx)||1;const len=Math.max(12,H*.032);ctx.fillStyle=b.kind==='heavy'?'#a9e9ff':'#ffeeb0';ctx.fillRect(b.x-(dir<0?len:0),b.y,len,Math.max(3,H*.006));ctx.fillStyle='#e87d28';ctx.fillRect(b.x-dir*5-(dir<0?len*.45:0),b.y+1,Math.max(5,H*.012),Math.max(2,H*.004))}}
+function burst(x,y){for(let i=0;i<13;i++){const angle=i*Math.PI*2/13;if(particles.length>=MAX_PARTICLES)particles.shift();particles.push({x,y,vx:Math.cos(angle)*(80+i*9),vy:Math.sin(angle)*(80+i*7)-60,life:.38+i*.012,color:i%3===0?'#ffdc6b':i%3===1?'#ee5828':'#aa181b'})}}
 function drawParticles(){for(const p of particles){ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,Math.max(3,H*.007),Math.max(3,H*.007))}}
-function shoot(){if(!running){start();return}if(paused||shotCooldown>0)return;shotCooldown=arcade.weapon==='heavy'?.09:.17;muzzleFlash=.07;bullets.push(...arcade.fire(playerX()+facing*H*.12,ground()-jumpY-H*(duckTime>0?.12:.21),facing,Math.max(550,W*.8)))}
-function grenade(){if(!running){start();return}if(!paused)arcade.throwGrenade(playerX()+facing*H*.08,ground()-jumpY-H*.2,facing,H)}
+function shoot(){if(!running){start()}if(paused||shotCooldown>0)return;shotCooldown=arcade.weapon==='heavy'?.09:.17;muzzleFlash=.07;bullets.push(...arcade.fire(playerX()+facing*H*.12,ground()-jumpY-H*(duckTime>0?.12:.21),facing,Math.max(550,W*.8)))}
+function grenade(){if(!running){start()}if(!paused)arcade.throwGrenade(playerX()+facing*H*.08,ground()-jumpY-H*.2,facing,H)}
 function damage(){if(invulnerable>0||!running)return;health--;invulnerable=1.25;if(health<=0){running=false;message.textContent='PARTITA TERMINATA — TOCCA PER RIPROVARE';message.style.display='block'}}
 function explosion(x,y,radius){burst(x,y);for(const t of ticks){if(t.alive&&Math.abs(t.x-scroll-x)<radius){t.alive=false;score+=arcade.kill()}}if(arcade.boss.active&&!arcade.boss.defeated&&Math.abs(arcade.boss.x-scroll-x)<radius+H*.2){arcade.boss.hp-=5;if(arcade.boss.hp<=0){arcade.boss.defeated=true;score+=3000}}}
 function hud(){document.getElementById('points').textContent='PUNTI: '+score;document.getElementById('hearts').innerHTML=Array.from({length:3},(_,i)=>'<span class="heart '+(i>=health?'heart-lost':'')+'">♥</span>').join('');stats.textContent='TRAGUARDO: '+Math.max(0,200-Math.floor(distance))+' m · '+arcade.weapon.toUpperCase()+' · BOMBE '+arcade.grenadeCount}
@@ -79,13 +80,13 @@ function update(dt){
  if(duckTime>0)duckTime=Math.max(0,duckTime-dt);
  if(invulnerable>0)invulnerable=Math.max(0,invulnerable-dt);
  if(jumpY>0||vy>0){jumpY+=vy*dt;vy-=GRAVITY*dt;if(jumpY<=0){jumpY=0;vy=0}}
- for(const o of obstacles){const x=o.x-scroll,w=H*.13;if(!o.hit&&x<playerX()+H*.05&&x+w>playerX()-H*.05){o.hit=true;if(jumpY<H*.12&&invulnerable===0){damage()}else score+=20}}
+ for(const o of obstacles){const x=o.x-scroll,w=H*.13;if(!o.hit&&x<playerX()+H*.05&&x+w>playerX()-H*.05){o.hit=true;if(jumpY<H*.12&&invulnerable===0){damage()}else if(jumpY>=H*.12)score+=20}}
  if(distance>=200&&arcade.boss.defeated){running=false;message.textContent='MISSIONE COMPLETATA — TOCCA PER RIPROVARE';message.style.display='block'}hud();
 }
-function frame(t){const dt=Math.min((t-last)/1000||0,.05);last=t;update(dt);background();drawObstacles();drawTicks();arcade.draw(ctx,scroll,ground(),H,phase);drawPlayer();drawBullets();drawParticles();requestAnimationFrame(frame)}
+function frame(t){const dt=Math.min((t-last)/1000||0,.05);last=t;update(dt);ctx.save();if(arcade.screenShake>0){const shake=arcade.screenShake;ctx.translate(Math.sin(phase*3.1)*shake*.5,Math.cos(phase*4.3)*shake*.35)}background();drawObstacles();drawTicks();arcade.draw(ctx,scroll,ground(),H,phase);drawPlayer();drawBullets();drawParticles();ctx.restore();requestAnimationFrame(frame)}
 function start(){running=true;paused=false;score=0;health=3;distance=0;scroll=0;facing=1;arcade.reset();vy=0;jumpY=0;duckTime=0;phase=0;invulnerable=0;shotCooldown=0;muzzleFlash=0;fireHeld=false;bullets.length=0;particles.length=0;ticks.forEach(t=>t.alive=true);obstacles.forEach(o=>o.hit=false);movement.left=false;movement.right=false;message.style.display='none';hud()}
-function jump(){if(!running){start();return}if(!paused&&jumpY===0){vy=H*1.13;duckTime=0}}
-function duck(){if(!running){start();return}if(!paused)duckTime=.7}
+function jump(){if(!running){start()}if(!paused&&jumpY===0){vy=Math.sqrt(2*GRAVITY*H*.23);duckTime=0}}
+function duck(){if(!running){start()}if(!paused)duckTime=.7}
 function pause(){if(!running)return;paused=!paused;message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display=paused?'block':'none'}
 for(const [id,fn] of [['jump',jump],['duck',duck],['grenade',grenade],['pause',pause]])document.getElementById(id).addEventListener('pointerdown',e=>{e.preventDefault();fn()});
 for(const id of ['left','right']){const el=document.getElementById(id);el.addEventListener('pointerdown',e=>{e.preventDefault();el.setPointerCapture(e.pointerId);if(!running)start();movement[id]=true});for(const type of ['pointerup','pointercancel','lostpointercapture'])el.addEventListener(type,()=>movement[id]=false)}
