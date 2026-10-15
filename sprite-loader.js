@@ -1,6 +1,6 @@
 // Mandatory pre-rendered PNG sprite atlases, verified by CI and loaded once.
 // Source originals are generated offline; runtime only blits raster image rectangles.
-import manifest from './sprite-manifest.json';
+import manifest from './sprite-manifest.json' with { type: 'json' };
 const SHEET_ROOT='./assets/sprites/';
 let state='idle',failure=null,loadPromise=null;
 const images=new Map();
