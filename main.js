@@ -778,7 +778,7 @@ loader.load(
     const soldier = gltf.scene;
 
     // Il GLB guarda gia verso -Z: non ruotarlo verso la telecamera.
-    soldier.rotation.y = 0;
+    soldier.rotation.y = Math.PI;
 
     soldier.traverse((object) => {
       if (!object.isMesh) return;
@@ -818,6 +818,9 @@ loader.load(
     soldierMixer = new THREE.AnimationMixer(soldier);
 
     const clips = gltf.animations;
+    if (!clips.length) {
+      console.warn('Panzergrenadier GLB has no animation clips; rigged running animation must be supplied separately.');
+    }
     const runClip = clips.find((clip) =>
       /run|walk/i.test(clip.name)
     );
