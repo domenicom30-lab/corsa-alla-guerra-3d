@@ -100,10 +100,22 @@ jobs:
       - name: Verify every raster sprite actually shipped inside Android APK
         run: python3 scripts/verify_apk_assets.py
 
+      - name: Verify Android APK package and cryptographic signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT}}"
+          TOOLS=$(find "$SDK/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          "$TOOLS/apksigner" verify --verbose "$APK"
+          "$TOOLS/aapt" dump badging "$APK" | tee /tmp/cag-apk-badging.txt
+          grep -q "name='com.corsaguerra.arcadeprova'" /tmp/cag-apk-badging.txt
+          echo "PASS: brand-new Android application ID, signed installable APK."
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Corsa-alla-Guerra-2D-Finale-APK
+          name: Corsa-alla-Guerra-2D-Installazione-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30

@@ -77,3 +77,10 @@ La versione finale **da provare** comprende una schermata missione originale, un
 I test Node convalidano menu e impostazioni, progressione simulata di tutta la campagna, riavvio, armi, prigionieri e boss, oltre a tutti gli atlas obbligatori. Prima di distribuire l'APK, lo script Python controlla anche le 27 risorse PNG e le sei immagini importate dall'utente **dentro l'APK effettivo**.
 
 **Limite dichiarato:** questa è una build completa per prova funzionale, ma la qualità artistica è basata su sprite PNG originali generati offline e non è equivalente alla pittura manuale di un gioco arcade commerciale. FPS, proporzioni sul Samsung e leggibilità dei comandi richiedono una prova sul dispositivo.
+
+
+## Versione 2.0.1 — APK installazione pulita Samsung
+
+Per evitare il conflitto tra firme debug generate in workflow GitHub diversi, l'app di prova usa un nuovo identificativo Android `com.corsaguerra.arcadeprova` e nome visibile **Corsa alla Guerra 2D Prova**. Può essere installata accanto a vecchie APK del progetto, senza disinstallarle e senza cancellarne i dati. Questa modifica evita solo conflitti di pacchetto/aggiornamento; non bypassa le protezioni Android/Samsung (Installazione app sconosciute e Blocco automatico). I nuovi aggiornamenti vanno pubblicati con una chiave di firma stabile prima di distribuzione continuativa.
+
+La build controlla l'identificativo all'interno del manifest Android e la firma APK mediante gli strumenti ufficiali Android `aapt` e `apksigner`, oltre ai test grafici e di campagna.
