@@ -54,6 +54,48 @@ export function createArcadeSystems(){
    ctx.fillStyle=Math.floor(phase*.7)%2===0?'#f6bd65':'#ad4838';ctx.fillRect(13*unit,-40*unit,4*unit,3*unit);
    ctx.fillStyle='#151b1b';ctx.fillRect(-25*unit,-52*unit,50*unit,3*unit);
    ctx.fillStyle='#d95236';ctx.fillRect(-24*unit,-51*unit,48*unit*Math.max(0,boss.hp/boss.maxHp),2*unit);
+   // Destruction stages: animated armor scars, exhaust smoke, sparks and ricochets.
+   const damage=1-Math.max(0,boss.hp)/boss.maxHp;
+   const t=phase*.21;
+   if(damage>.18){
+    const scars=Math.ceil(damage*11);
+    for(let i=0;i<scars;i++){
+     const sx=(-17+(i*17)%38)*unit,sy=(-30+(i*7)%19)*unit;
+     ctx.fillStyle=i%2?'#1b2522':'#252e27';ctx.fillRect(sx,sy,(3+i%3)*unit,(2+i%2)*unit);
+     ctx.fillStyle='#b58c55';ctx.fillRect(sx+unit,sy,unit,unit);
+    }
+   }
+   if(damage>.4){
+    for(let i=0;i<5;i++){
+     const drift=(t*11+i*9)%33;
+     const smokeX=(12+i*2)*unit+Math.sin(t+i)*5*unit;
+     const smokeY=(-45-drift)*unit;
+     ctx.globalAlpha=Math.max(.08,.55-drift/60);
+     ctx.fillStyle=i%2?'#363a34':'#575950';
+     ctx.fillRect(smokeX,smokeY,(6+i%3*3)*unit,(5+i%2*4)*unit);
+    }
+    ctx.globalAlpha=1;
+   }
+   if(damage>.72){
+    for(let i=0;i<8;i++){
+     const sparkTime=(t*4+i*.37)%1;
+     const px=(-9+(i*11)%29)*unit+sparkTime*(i%2?9:-8)*unit;
+     const py=(-27+(i*5)%17)*unit-sparkTime*18*unit;
+     ctx.fillStyle=i%3?'#ff9b3d':'#fff2a5';
+     ctx.fillRect(px,py,(1+i%2)*unit,2*unit);
+    }
+    ctx.fillStyle=Math.floor(t*9)%2?'#f1b36d':'#9b392b';
+    ctx.fillRect(-11*unit,-31*unit,6*unit,3*unit);
+   }
+   // Animated metal panel rivets and articulated armor for a denser silhouette.
+   ctx.fillStyle='#1b2523';
+   for(const [px,py] of [[-20,-32],[-12,-32],[10,-32],[20,-23],[-19,-23],[6,-23]]){
+    ctx.fillRect(px*unit,py*unit,2*unit,2*unit);
+    ctx.fillStyle='#c5b995';ctx.fillRect(px*unit,py*unit,unit,unit);
+    ctx.fillStyle='#1b2523';
+   }
+   ctx.fillStyle='#202a27';ctx.fillRect(-13*unit,-42*unit,8*unit,4*unit);
+   ctx.fillStyle='#a3ae96';ctx.fillRect(-12*unit,-42*unit,5*unit,unit);
    ctx.restore();
   }
  };
