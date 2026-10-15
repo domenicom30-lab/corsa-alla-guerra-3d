@@ -2,7 +2,7 @@
 // The files are independent PNG/WebP images, never a flattened screenshot.
 export const arcadeArt={};
 const files={
- soldier:'soldier-run.svg',tick:'red-tick.svg',crate:'crate.png',
+ soldier:'soldier-run.svg',soldier_idle:'soldier-idle.svg',soldier_run:'soldier-run.svg',soldier_jump:'soldier-jump.svg',soldier_fire:'soldier-fire.svg',soldier_duck:'soldier-duck.svg',tick:'red-tick.svg',crate:'crate.png',
  sandbags:'sandbags.png',tower:'watchtower.png',
  sky:'sky.svg',mountains:'mountains.svg',forest:'forest.svg',foreground:'foreground.svg'
 };
