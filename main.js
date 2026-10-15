@@ -14,7 +14,6 @@ const message=document.getElementById('message'),stats=document.getElementById('
 let W=0,H=0,dpr=1,last=0,running=false,paused=false,score=0,health=3,distance=0;
 let scroll=0,vy=0,jumpY=0,duckTime=0,phase=0,invulnerable=0,shotCooldown=0,muzzleFlash=0,fireHeld=false;
 const movement={left:false,right:false};
-const gamepadState={left:false,right:false,jump:false,fire:false,grenade:false,mount:false,start:false};
 let arcadeHighScore=0;
 try{arcadeHighScore=Math.max(0,Number(localStorage.getItem('corsa_alla_guerra_hi')||0)||0)}catch(_){}
 function saveArcadeHighScore(){
@@ -22,23 +21,6 @@ function saveArcadeHighScore(){
  arcadeHighScore=score;
  try{localStorage.setItem('corsa_alla_guerra_hi',String(arcadeHighScore))}catch(_){}
 }
-function pollArcadeGamepad(){
- let pad=null;
- try{pad=navigator.getGamepads?.().find(p=>p&&p.connected)||null}catch(_){}
- const axis=(pad?.axes?.[0]||0),up=(pad?.axes?.[1]||0)<-.45;
- const pressed=i=>!!pad?.buttons?.[i]?.pressed;
- const next={left:axis<-.3||pressed(14),right:axis>.3||pressed(15),jump:pressed(0),fire:pressed(2)||pressed(7),grenade:pressed(1),mount:pressed(3),start:pressed(9)};
- if(next.jump&&!gamepadState.jump)jump();
- if(next.grenade&&!gamepadState.grenade)grenade();
- if(next.mount&&!gamepadState.mount)toggleRide();
- if(next.start&&!gamepadState.start){if(!running)start();else if(paused)pause()}
- if(next.fire&&running&&!paused)shoot();
- Object.assign(gamepadState,next);
- movement.left=!!(keyboardMovement.left||touchMovement.left||next.left);
- movement.right=!!(keyboardMovement.right||touchMovement.right||next.right);
-}
-const keyboardMovement={left:false,right:false},touchMovement={left:false,right:false};
-
 let facing=1;
 let bossVictoryAwarded=false;
 let bossDeathTime=-1;
@@ -207,20 +189,20 @@ function update(dt){
  if(distance>=200&&arcade.boss.defeated){victoryRestartAt=performance.now()+VICTORY_RESTART_DELAY_MS;running=false;fireHeld=false;clearTouchMovement();movement.left=false;movement.right=false;shotCooldown=0;last=0;message.textContent='HAI SCONFITTO LE ZECCHE ROSSE!\nTOCCA PER RIPROVARE';message.classList.add('victory-message');message.style.display='block';document.getElementById('victory-credit').style.display='block'}hud();
 }
 function drawBossHealthBar(){if(!arcade.boss.active||arcade.boss.defeated)return;const width=Math.min(W*.52,360),height=Math.max(10,H*.023),x=(W-width)/2,y=Math.max(14,H*.075),ratio=Math.max(0,Math.min(1,arcade.boss.hp/arcade.boss.maxHp));ctx.save();ctx.fillStyle='#171b1b';ctx.fillRect(x-5,y-5,width+10,height+10);ctx.fillStyle='#483a32';ctx.fillRect(x,y,width,height);ctx.fillStyle=ratio>.35?'#d94d35':'#f0a33e';ctx.fillRect(x,y,width*ratio,height);ctx.fillStyle='#f7e8b9';ctx.fillRect(x,y,width*ratio,Math.max(2,height*.22));ctx.strokeStyle='#f4d7a0';ctx.lineWidth=2;ctx.strokeRect(x,y,width,height);ctx.restore()}
-function frame(t){pollArcadeGamepad();if(!visible){last=t;requestAnimationFrame(frame);return}if(last&&t-last<1000/65){requestAnimationFrame(frame);return}const dt=Math.min(last?(t-last)/1000:0,.05);last=t;update(dt);ctx.save();if(arcade.screenShake>0){const shake=arcade.screenShake;ctx.translate(Math.sin(phase*3.1)*shake*.5,Math.cos(phase*4.3)*shake*.35)}background();drawBattleAtmosphere(ctx,W,H,scroll,phase,ground());drawTicks();arcade.draw(ctx,scroll,ground(),H,phase);drawDust();drawRide();if(!ride.occupied)drawPlayer();drawBullets();drawCasings();drawBlastEffects();drawEnemyDebris();drawParticles();drawArcadeForeground(ctx,W,H,scroll,ground(),phase);if(bossDeathTime>=0)drawBossDeathCinematic(ctx,W,H,ground(),bossDeathTime,bossDeathX);ctx.restore();drawArcadeFlash();drawBossHealthBar();requestAnimationFrame(frame)}
+function frame(t){if(!visible){last=t;requestAnimationFrame(frame);return}if(last&&t-last<1000/65){requestAnimationFrame(frame);return}const dt=Math.min(last?(t-last)/1000:0,.05);last=t;update(dt);ctx.save();if(arcade.screenShake>0){const shake=arcade.screenShake;ctx.translate(Math.sin(phase*3.1)*shake*.5,Math.cos(phase*4.3)*shake*.35)}background();drawBattleAtmosphere(ctx,W,H,scroll,phase,ground());drawTicks();arcade.draw(ctx,scroll,ground(),H,phase);drawDust();drawRide();if(!ride.occupied)drawPlayer();drawBullets();drawCasings();drawBlastEffects();drawEnemyDebris();drawParticles();drawArcadeForeground(ctx,W,H,scroll,ground(),phase);if(bossDeathTime>=0)drawBossDeathCinematic(ctx,W,H,ground(),bossDeathTime,bossDeathX);ctx.restore();drawArcadeFlash();drawBossHealthBar();requestAnimationFrame(frame)}
 function start(){if(victoryRestartAt&&performance.now()<victoryRestartAt)return;victoryRestartAt=0;document.getElementById('victory-credit').style.display='none';message.classList.remove('victory-message');running=true;paused=false;score=0;health=3;distance=0;scroll=0;facing=1;bossVictoryAwarded=false;bossDeathTime=-1;bossDeathX=0;arcade.reset();Object.assign(ride,{x:750,hp:100,occupied:false,cooldown:0,flash:0});vy=0;jumpY=0;horizontalSpeed=0;jumpHeld=false;duckTime=0;phase=0;runCycle=0;invulnerable=0;shotCooldown=0;muzzleFlash=0;recoil=0;fireHeld=false;bullets.length=0;casings.length=0;hitFlash=0;particles.length=0;blastEffects.length=0;dustPuffs.length=0;enemyDebris.length=0;ticks.forEach(t=>t.alive=true);clearTouchMovement();movement.left=false;movement.right=false;last=0;message.style.display='none';hud()}
 function jump(){if(!running){start()}if(!paused&&!ride.occupied&&jumpY===0){vy=Math.sqrt(2*GRAVITY*H*.23);jumpHeld=true;duckTime=0}}
 function duck(){if(!running){start()}if(!paused)duckTime=.7}
 function pause(){if(!running)return;paused=!paused;last=0;if(paused){fireHeld=false;clearTouchMovement();movement.left=false;movement.right=false}message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display=paused?'block':'none'}
 for(const [id,fn] of [['jump',jump],['duck',duck],['grenade',grenade],['pause',pause]])document.getElementById(id).addEventListener('pointerdown',e=>{e.preventDefault();fn()});
 const activeMovementPointers={left:new Set(),right:new Set()};
-function clearTouchMovement(){activeMovementPointers.left.clear();activeMovementPointers.right.clear();touchMovement.left=false;touchMovement.right=false;movement.left=keyboardMovement.left||gamepadState.left;movement.right=keyboardMovement.right||gamepadState.right}
-for(const id of ['left','right']){const el=document.getElementById(id);const pointers=activeMovementPointers[id];el.addEventListener('pointerdown',e=>{e.preventDefault();if(!running)start();el.setPointerCapture(e.pointerId);pointers.add(e.pointerId);touchMovement[id]=true;movement[id]=true});for(const type of ['pointerup','pointercancel','lostpointercapture'])el.addEventListener(type,e=>{pointers.delete(e.pointerId);touchMovement[id]=pointers.size>0;movement[id]=touchMovement[id]||keyboardMovement[id]||gamepadState[id]})}
+function clearTouchMovement(){activeMovementPointers.left.clear();activeMovementPointers.right.clear();movement.left=false;movement.right=false}
+for(const id of ['left','right']){const el=document.getElementById(id);const pointers=activeMovementPointers[id];el.addEventListener('pointerdown',e=>{e.preventDefault();if(!running)start();el.setPointerCapture(e.pointerId);pointers.add(e.pointerId);movement[id]=true});for(const type of ['pointerup','pointercancel','lostpointercapture'])el.addEventListener(type,e=>{pointers.delete(e.pointerId);movement[id]=pointers.size>0})}
 const fireButton=document.getElementById('shoot');fireButton.addEventListener('pointerdown',e=>{e.preventDefault();if(!running)start();fireHeld=true;fireButton.setPointerCapture(e.pointerId);shoot()});for(const event of ['pointerup','pointercancel','lostpointercapture'])fireButton.addEventListener(event,()=>fireHeld=false);
 addEventListener('blur',()=>{clearTouchMovement();movement.left=false;movement.right=false;fireHeld=false;if(running&&!paused){paused=true;message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display='block'}});
 message.addEventListener('pointerdown',()=>{if(paused)pause();else start()});canvas.addEventListener('pointerdown',()=>{if(!running)start()});
-addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.repeat){if(!running)start();else if(paused)pause()}if(e.key==='ArrowLeft'||e.key==='a'){if(!running)start();keyboardMovement.left=true;movement.left=true;}if(e.key==='ArrowRight'||e.key==='d'){if(!running)start();keyboardMovement.right=true;movement.right=true;}if(e.key==='ArrowUp'||e.key===' '){e.preventDefault();jumpHeld=true;if(!e.repeat)jump();}if(e.key==='ArrowDown')duck();if((e.key==='e'||e.key==='E')&&!e.repeat)toggleRide();if(e.key==='Escape')pause();if((e.key==='f'||e.key==='j'||e.key==='J'||e.key==='Control')&&!e.repeat)shoot();if((e.key==='g'||e.key==='k'||e.key==='K')&&!e.repeat)grenade()});
-addEventListener('keyup',e=>{if(e.key==='ArrowUp'||e.key===' ')jumpHeld=false;if(e.key==='ArrowLeft'||e.key==='a'){keyboardMovement.left=false;movement.left=touchMovement.left||gamepadState.left}if(e.key==='ArrowRight'||e.key==='d'){keyboardMovement.right=false;movement.right=touchMovement.right||gamepadState.right}});
+addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.repeat){if(!running)start();else if(paused)pause()}if(e.key==='ArrowLeft'||e.key==='a'){if(!running)start();movement.left=true;}if(e.key==='ArrowRight'||e.key==='d'){if(!running)start();movement.right=true;}if(e.key==='ArrowUp'||e.key===' '){e.preventDefault();jumpHeld=true;if(!e.repeat)jump();}if(e.key==='ArrowDown')duck();if((e.key==='e'||e.key==='E')&&!e.repeat)toggleRide();if(e.key==='Escape')pause();if((e.key==='f'||e.key==='j'||e.key==='J'||e.key==='Control')&&!e.repeat)shoot();if((e.key==='g'||e.key==='k'||e.key==='K')&&!e.repeat)grenade()});
+addEventListener('keyup',e=>{if(e.key==='ArrowUp'||e.key===' ')jumpHeld=false;if(e.key==='ArrowLeft'||e.key==='a'){movement.left=false}if(e.key==='ArrowRight'||e.key==='d'){movement.right=false}});
 for(const [selector,sprite] of [['.portrait-player',sprites.soldier[0]],['.portrait-target',sprites.tick[0]]]){const el=document.querySelector(selector);if(el){el.style.backgroundImage='url('+sprite.toDataURL()+')';el.style.backgroundSize='contain';el.style.backgroundPosition='center';el.style.imageRendering='pixelated'}}
 requestAnimationFrame(frame);
 
