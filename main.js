@@ -203,7 +203,9 @@ function update(dt) {
       else score+=20;
     }
   }
-  stats.textContent='TRAGUARDO: '+Math.max(0,200-Math.floor(distance/5))+' m';\n  document.getElementById('points').textContent='PUNTI: '+score;\n  document.getElementById('hearts').textContent='❤️'.repeat(health)+'🖤'.repeat(3-health);
+  stats.textContent='TRAGUARDO: '+Math.max(0,200-Math.floor(distance/5))+' m';
+  document.getElementById('points').textContent='PUNTI: '+score;
+  document.getElementById('hearts').textContent='❤️'.repeat(health)+'🖤'.repeat(3-health);
   if(distance>=1000){running=false;message.textContent='MISSIONE COMPLETATA — TOCCA PER RIPROVARE';message.style.display='block';}
 }
 function frame(now) {
@@ -218,15 +220,21 @@ function start(){
   running=true;message.style.display='none';
 }
 function move(delta){if(!running){start();return;}lane=Math.max(0,Math.min(2,lane+delta));}
-function jump(){if(!running){start();return;}if(!jumping){jumping=true;jumpTime=0;}}\nfunction duck(){if(!running){start();return;}ducking=true;setTimeout(()=>{ducking=false},650);}\nfunction togglePause(){if(!running)return;paused=!paused;message.textContent=paused?'IN PAUSA — TOCCA PER RIPRENDERE':'';message.style.display=paused?'block':'none';}
+function jump(){if(!running){start();return;}if(!jumping){jumping=true;jumpTime=0;}}
+function duck(){if(!running){start();return;}ducking=true;setTimeout(()=>{ducking=false},650);}
+function togglePause(){if(!running)return;paused=!paused;message.textContent=paused?'IN PAUSA — TOCCA PER RIPRENDERE':'';message.style.display=paused?'block':'none';}
 document.getElementById('left').addEventListener('pointerdown',e=>{e.preventDefault();move(-1);});
 document.getElementById('right').addEventListener('pointerdown',e=>{e.preventDefault();move(1);});
-document.getElementById('jump').addEventListener('pointerdown',e=>{e.preventDefault();jump();});\ndocument.getElementById('duck').addEventListener('pointerdown',e=>{e.preventDefault();duck();});\ndocument.getElementById('pause').addEventListener('pointerdown',e=>{e.preventDefault();togglePause();});
+document.getElementById('jump').addEventListener('pointerdown',e=>{e.preventDefault();jump();});
+document.getElementById('duck').addEventListener('pointerdown',e=>{e.preventDefault();duck();});
+document.getElementById('pause').addEventListener('pointerdown',e=>{e.preventDefault();togglePause();});
 message.addEventListener('pointerdown',()=>{if(paused)togglePause();else start();});
 canvas.addEventListener('pointerdown',()=>{if(!running)start();});
 window.addEventListener('keydown',e=>{
   if(e.key==='ArrowLeft'||e.key.toLowerCase()==='a')move(-1);
   if(e.key==='ArrowRight'||e.key.toLowerCase()==='d')move(1);
-  if(e.key===' '||e.key==='ArrowUp')jump();\n  if(e.key==='ArrowDown')duck();\n  if(e.key==='Escape')togglePause();
+  if(e.key===' '||e.key==='ArrowUp')jump();
+  if(e.key==='ArrowDown')duck();
+  if(e.key==='Escape')togglePause();
 });
 requestAnimationFrame(frame);
