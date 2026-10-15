@@ -22,7 +22,7 @@ function background(){
 function drawObstacles(){
  for(const o of obstacles){if(o.hit)continue;const x=o.x-scroll,y=laneY(o.lane),h=H*.14,w=h*1.1;if(x< -w||x>W+w)continue;
  ctx.fillStyle='#14130f55';ctx.beginPath();ctx.ellipse(x,y,w*.42,6,0,0,Math.PI*2);ctx.fill();
- if(!drawSprite(images[o.type],x,y,w,h)){ctx.fillStyle='#4e3829';ctx.fillRect(x-w/2,y-h,w,h);ctx.strokeStyle='#b98a59';ctx.lineWidth=4;ctx.strokeRect(x-w/2,y-h,w,h);}
+ if(!drawSprite(o.type==='crate'||o.type==='barrier'?images.sandbags:images[o.type],x,y,w,h)){ctx.fillStyle='#4e3829';ctx.fillRect(x-w/2,y-h,w,h);ctx.strokeStyle='#b98a59';ctx.lineWidth=4;ctx.strokeRect(x-w/2,y-h,w,h);}
  }
 }
 function drawSoldier(){
