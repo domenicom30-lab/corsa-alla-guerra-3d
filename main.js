@@ -1,3 +1,4 @@
+import {sprites,pixelBackdrop} from './pixel-art.js';
 import './style.css';
 // Side-scrolling 2D platform runner: fixed-size sprites, horizontal world, no depth projection.
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d',{alpha:false});
@@ -7,72 +8,40 @@ let scroll=0,vy=0,jumpY=0,duckTime=0,phase=0,invulnerable=0,shotCooldown=0,muzzl
 const bullets=[];
 const ticks=Array.from({length:25},(_,i)=>({x:1050+i*520,y:0,alive:true,phase:i*.7}));
 const SPEED=250,GRAVITY=1900;
-const paths={forest:'./assets/2d/forest-background.webp',sandbags:'./assets/2d/sandbags.png'};
-const images={};
-for(const [key,url] of Object.entries(paths)){const img=new Image();img.onload=()=>images[key]=img;img.src=url;}
 function resize(){W=innerWidth;H=innerHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0)}
 addEventListener('resize',resize);resize();
 function ground(){return H*.78}
 function playerX(){return W*.22}
 const obstacles=Array.from({length:32},(_,i)=>({x:750+i*420+(i%3)*100,type:i%3,hit:false}));
 function rect(x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(x,y,w,h)}
+const backdrop=document.createElement('canvas');backdrop.width=480;backdrop.height=270;const bg=backdrop.getContext('2d');
 function background(){
- const sky=ctx.createLinearGradient(0,0,0,ground());sky.addColorStop(0,'#788e99');sky.addColorStop(.6,'#b8b5a0');sky.addColorStop(1,'#858d7a');rect(0,0,W,H,sky);
- for(let layer=0;layer<3;layer++){
- const rate=[.08,.21,.42][layer],step=[310,210,125][layer],shift=scroll*rate;
- const base=ground()-H*[.38,.23,.08][layer];
- for(let i=Math.floor(shift/step)-2;i<Math.ceil((shift+W)/step)+2;i++){
- const x=i*step-shift,seed=Math.abs(Math.sin(i*17.31+layer*9));
- const trunkW=H*(layer===2?.034:.018),trunkH=H*(.12+seed*.16);
- ctx.fillStyle=['#748477','#4b6254','#34483c'][layer];
- rect(x-trunkW/2,base-trunkH,trunkW,trunkH+ground()-base);
- for(let j=0;j<3;j++){ctx.beginPath();ctx.ellipse(x+(j-1)*trunkW*2,base-trunkH*(.83+j*.1),H*(.055+layer*.015),H*(.085+layer*.019),0,0,Math.PI*2);ctx.fill()}
- }
- }
- rect(0,ground(),W,H-ground(),'#544b3b');rect(0,ground(),W,H*.018,'#81906b');
- for(let i=Math.floor(scroll/64)-1;i<Math.ceil((scroll+W)/64)+1;i++){
- const x=i*64-scroll,seed=Math.abs(Math.sin(i*13.17));
- rect(x,ground()+H*(.06+seed*.12),20+seed*31,3,'#726651');
- rect(x+12,ground()+H*.013,16,3,'#9aa27d');
+ bg.imageSmoothingEnabled=false;pixelBackdrop(bg,480,270,scroll*480/Math.max(W,1));
+ ctx.imageSmoothingEnabled=false;ctx.drawImage(backdrop,0,0,W,H);
+ // Detailed modular scenery, on the same horizontal plane.
+ for(let i=0;i<14;i++){const x=420+i*670-scroll;if(x<-240||x>W+240)continue;
+ const type=i%3;if(type===0)ctx.drawImage(sprites.tower,x,ground()-H*.49,H*.27,H*.49);
+ else if(type===1){ctx.drawImage(sprites.sandbags,x,ground()-H*.12,H*.22,H*.12);ctx.drawImage(sprites.crate,x+H*.17,ground()-H*.16,H*.16,H*.16)}
+ else {ctx.drawImage(sprites.crate,x,ground()-H*.15,H*.15,H*.15);ctx.drawImage(sprites.crate,x+H*.12,ground()-H*.15,H*.15,H*.15)}
  }
 }
 function drawPlayer(){
- const x=playerX(),floor=ground()-jumpY,bob=running&&!paused&&jumpY===0?Math.abs(Math.sin(phase))*3:0;
- const height=H*(duckTime>0?.20:.34),width=height*.44;
- ctx.save();ctx.translate(x,floor-bob);if(invulnerable>0&&Math.floor(invulnerable*12)%2===0)ctx.globalAlpha=.35;
- const stride=jumpY>0?0:Math.sin(phase)*height*.12;
- // Side profile, animated separate limbs, equipment and helmet.
- ctx.strokeStyle='#1b2521';ctx.lineWidth=width*.18;ctx.lineCap='round';
- ctx.beginPath();ctx.moveTo(-width*.10,-height*.34);ctx.lineTo(-width*.19+stride,0);ctx.moveTo(width*.08,-height*.34);ctx.lineTo(width*.13-stride,0);ctx.stroke();
- ctx.fillStyle='#303b32';ctx.fillRect(-width*.28,-height*.78,width*.56,height*.48);
- ctx.fillStyle='#202b26';ctx.fillRect(-width*.42,-height*.67,width*.2,height*.29);
- ctx.strokeStyle='#26342b';ctx.lineWidth=width*.13;ctx.beginPath();ctx.moveTo(width*.17,-height*.69);ctx.lineTo(width*.40+stride*.25,-height*.46);ctx.stroke();
- ctx.fillStyle='#a18d73';ctx.fillRect(width*.03,-height*.95,width*.25,height*.18);
- ctx.fillStyle='#28362d';ctx.beginPath();ctx.ellipse(width*.09,-height*.97,width*.32,height*.12,0,Math.PI,Math.PI*2);ctx.fill();
- ctx.fillStyle='#202a24';ctx.fillRect(-width*.33,-height*.58,width*.18,height*.22);
- // Side-view rifle held in front of the soldier.
- ctx.fillStyle='#292b27';ctx.fillRect(width*.22,-height*.64,width*.78,height*.075);
- ctx.fillStyle='#a08355';ctx.fillRect(width*.18,-height*.60,width*.28,height*.11);
- ctx.fillStyle='#181e1c';ctx.fillRect(width*.94,-height*.655,width*.18,height*.045);
- if(muzzleFlash>0){ctx.fillStyle='#ffd56d';ctx.beginPath();ctx.moveTo(width*1.15,-height*.62);ctx.lineTo(width*1.46,-height*.75);ctx.lineTo(width*1.39,-height*.62);ctx.lineTo(width*1.5,-height*.53);ctx.closePath();ctx.fill()}
+ const h=H*(duckTime>0?.19:.32),w=h*72/88,runFrame=jumpY>0?1:Math.floor(phase*1.1)%6;
+ const x=playerX()-w*.5,y=ground()-jumpY-h;
+ ctx.save();ctx.imageSmoothingEnabled=false;
+ if(invulnerable>0&&Math.floor(invulnerable*12)%2===0)ctx.globalAlpha=.35;
+ ctx.drawImage(sprites.soldier[runFrame],x,y,w,h);
+ if(muzzleFlash>0){ctx.fillStyle='#ffe27a';const mx=x+w*.95,my=y+h*.48;ctx.beginPath();ctx.moveTo(mx,my);ctx.lineTo(mx+H*.042,my-H*.019);ctx.lineTo(mx+H*.025,my);ctx.lineTo(mx+H*.042,my+H*.02);ctx.fill()}
  ctx.restore();
 }
 function drawObstacles(){
  for(const o of obstacles){const x=o.x-scroll,w=H*.13,h=H*.14;if(x<-w||x>W+w)continue;
- if(o.type===0&&images.sandbags){ctx.drawImage(images.sandbags,x,ground()-h,w,h)}else{
- rect(x,ground()-h,w,h,o.type===1?'#5e4833':'#6c6550');
- ctx.strokeStyle='#ac8d64';ctx.lineWidth=4;ctx.strokeRect(x,ground()-h,w,h);
- ctx.beginPath();ctx.moveTo(x,ground()-h);ctx.lineTo(x+w,ground());ctx.moveTo(x+w,ground()-h);ctx.lineTo(x,ground());ctx.stroke();
- }
+ const sprite=o.type===0?sprites.sandbags:sprites.crate;ctx.drawImage(sprite,x,ground()-h,w,h);
  }
 }
 function drawTicks(){
- for(const t of ticks){if(!t.alive)continue;const x=t.x-scroll,y=ground()-H*.055+Math.sin(phase*1.7+t.phase)*H*.006,r=H*.045;if(x<-r||x>W+r)continue;
- ctx.save();ctx.translate(x,y);ctx.strokeStyle='#3d1114';ctx.lineWidth=Math.max(2,r*.13);ctx.lineCap='round';
- for(let i=0;i<4;i++){const yy=(i-1.5)*r*.32;ctx.beginPath();ctx.moveTo(-r*.4,yy);ctx.lineTo(-r*.85,yy-r*.3);ctx.moveTo(r*.4,yy);ctx.lineTo(r*.85,yy-r*.3);ctx.stroke()}
- ctx.fillStyle='#9f151c';ctx.beginPath();ctx.ellipse(0,0,r*.52,r*.7,0,0,Math.PI*2);ctx.fill();
- ctx.fillStyle='#dc3633';ctx.beginPath();ctx.ellipse(-r*.14,-r*.19,r*.23,r*.33,-.4,0,Math.PI*2);ctx.fill();
- ctx.fillStyle='#f7c9a7';ctx.beginPath();ctx.arc(-r*.18,-r*.43,r*.09,0,Math.PI*2);ctx.arc(r*.18,-r*.43,r*.09,0,Math.PI*2);ctx.fill();ctx.restore();
+ for(const t of ticks){if(!t.alive)continue;const x=t.x-scroll,y=ground()-H*.065+Math.sin(phase*1.7+t.phase)*H*.006,w=H*.095,h=H*.078;
+ if(x<-w||x>W+w)continue;ctx.imageSmoothingEnabled=false;ctx.drawImage(sprites.tick[Math.floor(phase*.9+t.phase)%4],x-w*.5,y-h*.5,w,h);
  }
 }
 function drawBullets(){ctx.fillStyle='#ffdf75';for(const b of bullets){ctx.fillRect(b.x,b.y,Math.max(10,H*.022),Math.max(3,H*.006))}}
