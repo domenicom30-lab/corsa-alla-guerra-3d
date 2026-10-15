@@ -4,7 +4,7 @@ export const arcadeArt={};
 const files={
  soldier:'soldier-run.png',tick:'red-tick.png',crate:'crate.png',
  sandbags:'sandbags.png',tower:'watchtower.png',
- sky:'sky.webp',mountains:'mountains.webp',forest:'forest.webp',foreground:'foreground.webp'
+ sky:'sky.svg',mountains:'mountains.svg',forest:'forest.svg',foreground:'foreground.svg'
 };
 export async function loadArcadeArt(){
  const jobs=Object.entries(files).map(([key,name])=>new Promise(resolve=>{
