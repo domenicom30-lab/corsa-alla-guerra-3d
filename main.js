@@ -58,7 +58,9 @@ sun.shadow.camera.left = -11;
 sun.shadow.camera.right = 11;
 sun.shadow.camera.top = 15;
 sun.shadow.camera.bottom = -10;
-sun.shadow.normalBias = 0.035;
+sun.shadow.normalBias = 0.025;
+sun.shadow.bias = -0.00012;
+sun.shadow.radius = 2;
 scene.add(sun);
 
 const fillLight = new THREE.DirectionalLight(0xaac4d2, 0.65);
@@ -107,9 +109,9 @@ function weatheredWood(color = 0xffffff) {
   return new THREE.MeshStandardMaterial({map: woodTexture, color, roughness: 0.98});
 }
 
-const dirtMat = mat(0x514634);
-const roadMat = mat(0x53504a);
-const vergeMat = mat(0x897b61);
+const dirtMat = mat(0xffffff, 0.96);
+const roadMat = mat(0xffffff, 0.94);
+const vergeMat = mat(0xffffff, 0.95);
 const stripeMat = mat(0xc9c2aa);
 const barkMat = weatheredWood(0x8e806c);
 const darkMat = mat(0x282c28);
@@ -264,9 +266,56 @@ dirtMat.normalMap.repeat.set(2, 25);
 dirtMat.normalMap.needsUpdate = true;
 dirtMat.normalScale = new THREE.Vector2(0.6, 0.6);
 
+// Seeded multi-scale earth coloration: dark damp patches, mineral flecks,
+// and broken gravel, with no network dependency in the Android APK.
+function createEarthAlbedo(road = false) {
+  const size = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const image = ctx.createImageData(size, size);
+  let seed = road ? 61823 : 71291;
+  const random = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+  const coarse = Array.from({length: 16 * 16}, random);
+  const medium = Array.from({length: 64 * 64}, random);
+  const sample = (grid, count, x, y) => {
+    const gx = x * count / size, gy = y * count / size;
+    const ix = Math.floor(gx), iy = Math.floor(gy);
+    const tx = gx - ix, ty = gy - iy;
+    const a = grid[(iy % count) * count + (ix % count)];
+    const b = grid[(iy % count) * count + ((ix + 1) % count)];
+    const c = grid[((iy + 1) % count) * count + (ix % count)];
+    const d = grid[((iy + 1) % count) * count + ((ix + 1) % count)];
+    const fx = tx * tx * (3 - 2 * tx), fy = ty * ty * (3 - 2 * ty);
+    return THREE.MathUtils.lerp(THREE.MathUtils.lerp(a,b,fx),THREE.MathUtils.lerp(c,d,fx),fy);
+  };
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const wet = sample(coarse, 16, x, y);
+      const grains = sample(medium, 64, x, y);
+      const grit = random();
+      const variation = (wet - 0.5) * 55 + (grains - 0.5) * 38 + (grit - 0.5) * 28;
+      const i = (y * size + x) * 4;
+      const base = road ? [113, 98, 78] : [99, 89, 65];
+      const stone = grit > 0.96 ? 32 : 0;
+      image.data[i] = Math.max(0, Math.min(255, base[0] + variation + stone));
+      image.data[i+1] = Math.max(0, Math.min(255, base[1] + variation * .86 + stone));
+      image.data[i+2] = Math.max(0, Math.min(255, base[2] + variation * .72 + stone));
+      image.data[i+3] = 255;
+    }
+  }
+  ctx.putImageData(image, 0, 0);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(2, road ? 30 : 25);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  return texture;
+}
+
 const dirtTexture = createDirtTexture();
-dirtMat.map = dirtTexture;
-roadMat.map = createSurfaceTexture('road');
+dirtMat.map = createEarthAlbedo(false);
+roadMat.map = createEarthAlbedo(true);
 // Preferisce mappe PBR locali quando presenti; mantiene le texture generate come fallback.
 const pbrLoader = new THREE.TextureLoader();
 function installPBR(material, basePath, repeatX, repeatY) {
@@ -296,7 +345,7 @@ function installPBR(material, basePath, repeatX, repeatY) {
 installPBR(roadMat, './assets/textures/road', 2, 30);
 installPBR(dirtMat, './assets/textures/forest', 2, 25);
 
-vergeMat.map = createSurfaceTexture('dirt');
+vergeMat.map = createEarthAlbedo(false);
 
 // Funzioni per creare oggetti 3D
 function addBox(parent, size, material, pos, cast = true) {
