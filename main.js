@@ -92,7 +92,7 @@ scene.add(
 const sun = new THREE.DirectionalLight(0xffe5c4, 2.15);
 sun.position.set(-7, 13, 5);
 sun.castShadow = true;
-sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.left = -11;
 sun.shadow.camera.right = 11;
 sun.shadow.camera.top = 15;
@@ -628,21 +628,46 @@ function makePineFoliage() {
     side:THREE.DoubleSide, depthWrite:true, roughness:1});
 }
 const pineFoliageMat = makePineFoliage();
+// Layered spruce canopy: silhouette cards are supplemented by real 3D boughs.
+// Shared geometry and materials keep memory bounded on mobile GPUs.
 const pineFoliageGeo = new THREE.PlaneGeometry(3.5, 5.2);
-const pineTrunkGeo = new THREE.CylinderGeometry(0.10, 0.22, 4.8, 6);
+const pineTrunkGeo = new THREE.CylinderGeometry(0.10, 0.22, 4.8, 8);
+const pineBranchGeo = new THREE.ConeGeometry(1, 1, 7, 1);
+pineBranchGeo.translate(0, 0.5, 0);
+const pineBranchMats = [
+  new THREE.MeshStandardMaterial({color:0x263e2b, roughness:1, flatShading:false}),
+  new THREE.MeshStandardMaterial({color:0x324b32, roughness:1, flatShading:false}),
+  new THREE.MeshStandardMaterial({color:0x3b5235, roughness:1, flatShading:false})
+];
 function createTree(x, z, scale = 1) {
   const group = new THREE.Group();
   group.position.set(x, 0, z);
-  group.scale.setScalar(scale);
+  const variation = Math.abs(Math.sin(x * 12.9898 + z * 78.233));
+  group.scale.set(scale * (0.91 + variation * 0.19), scale * (0.94 + variation * 0.18), scale);
+  group.rotation.y = variation * Math.PI * 2;
   const trunk = new THREE.Mesh(pineTrunkGeo, barkMat);
   trunk.position.y = 2.4;
   trunk.castShadow = true;
+  trunk.receiveShadow = true;
   group.add(trunk);
+  // Irregular overlapping cones give branches volume and real light response.
+  // Five shared low-poly meshes per tree avoid expensive alpha overdraw.
+  for (let tier = 0; tier < 5; tier++) {
+    const bough = new THREE.Mesh(pineBranchGeo, pineBranchMats[(tier + Math.floor(variation * 3)) % 3]);
+    const taper = 1 - tier / 6;
+    bough.scale.set((1.75 + variation * 0.2) * taper, 1.65 - tier * 0.12, (1.62 + variation * 0.17) * taper);
+    bough.position.y = 1.15 + tier * 0.74;
+    bough.rotation.y = tier * 1.17 + variation;
+    bough.castShadow = tier < 3;
+    bough.receiveShadow = true;
+    group.add(bough);
+  }
+  // Fine needles on crossed cards break up the otherwise geometric silhouette.
   for (let i = 0; i < 3; i++) {
     const foliage = new THREE.Mesh(pineFoliageGeo, pineFoliageMat);
     foliage.position.y = 2.9;
     foliage.rotation.y = i * Math.PI / 3 + 0.17;
-    foliage.castShadow = i === 0;
+    foliage.castShadow = false;
     foliage.receiveShadow = false;
     group.add(foliage);
   }
