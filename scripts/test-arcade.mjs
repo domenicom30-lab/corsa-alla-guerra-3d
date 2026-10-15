@@ -36,4 +36,5 @@ assert.equal(a.throwGrenade(100,100,1,500),true);
 a.step(.01,25,100,400,500,()=>{},()=>{},25);
 assert.ok(a.grenades[0].x<100,'Grenade must shift with camera');
 a.reset();
+assert.equal(typeof a.draw,'function','Boss and pickup renderer must exist');
 console.log('PASS: arcade combat, grenades, pickups, weapons, combo, reset and boss');
