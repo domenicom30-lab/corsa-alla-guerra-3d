@@ -25,18 +25,18 @@ const renderer = new THREE.WebGLRenderer({
 });
 
 // Limita i pixel elaborati sui display Android ad alta densità.
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.15));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.2;
+renderer.toneMappingExposure = 1.13;
 renderer.shadowMap.autoUpdate = true;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xa8b6b5);
-scene.fog = new THREE.FogExp2(0xa8b6b5, 0.010);
+scene.background = new THREE.Color(0x9dbbd1);
+scene.fog = new THREE.FogExp2(0x9dbbd1, 0.0055);
 
 const camera = new THREE.PerspectiveCamera(
   62, innerWidth / innerHeight, 0.1, 180
@@ -50,7 +50,7 @@ scene.add(
   new THREE.HemisphereLight(0xdce8e8, 0x35372b, 1.9)
 );
 
-const sun = new THREE.DirectionalLight(0xffdfb8, 2.8);
+const sun = new THREE.DirectionalLight(0xffe5c4, 3.0);
 sun.position.set(-7, 13, 5);
 sun.castShadow = true;
 sun.shadow.mapSize.set(1024, 1024);
@@ -1291,6 +1291,6 @@ window.addEventListener('resize', () => {
 
   renderer.setSize(innerWidth, innerHeight);
   renderer.setPixelRatio(
-    Math.min(window.devicePixelRatio || 1, 1.15)
+    Math.min(window.devicePixelRatio || 1, 1.6)
   );
 });
