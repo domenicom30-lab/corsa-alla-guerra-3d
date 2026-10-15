@@ -5,7 +5,7 @@ const requested=p.get('mode')==='2d'?'2d':'3d';
 let webgl=true;
 try{
  const test=document.createElement('canvas');
- webgl=!!(test.getContext('webgl2')||test.getContext('webgl'));
+ webgl=!!(test.getContext('webgl2'));
 }catch(_){webgl=false}
 const mode=requested==='3d'&&webgl?'3d':'2d';
 const swap=document.createElement('button');
