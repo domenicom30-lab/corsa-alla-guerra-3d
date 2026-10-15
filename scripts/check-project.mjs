@@ -5,7 +5,7 @@ const html = readFileSync('index.html', 'utf8');
 const art = readFileSync('pixel-art.js','utf8');
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 const checks = [
- ['Canvas e controlli',()=>{for(const id of ['game','message','stats','left','right','jump','duck','pause','points','hearts','shoot'])assert.ok(html.includes('id="'+id+'"'),id)}],
+ ['Canvas e controlli',()=>{for(const id of ['game','message','stats','left','right','jump','duck','pause','points','hearts','shoot','grenade'])assert.ok(html.includes('id="'+id+'"'),id)}],
  ['Backup 3D documentato',()=>assert.ok(existsSync('docs/2-5d-assets.md'))],
  ['Motore 2D laterale senza prospettiva',()=>{for(const token of ['function ground(', 'function drawPlayer(', 'function drawObstacles('])assert.ok(main.includes(token),token);assert.ok(!main.includes('function projection('))}],
  ['Movimento platform laterale',()=>{assert.ok(main.includes('function ground('));assert.ok(main.includes('const direction=Number(movement.right)-Number(movement.left)'));assert.ok(main.includes('function jump('))}],
@@ -14,6 +14,7 @@ const checks = [
  ['Traguardo e punteggio',()=>{assert.ok(main.includes('distance>=200'));assert.ok(main.includes('score+=arcade.kill()'))}],
  ['Fucile e nemici rossi',()=>{for(const token of ['function shoot(','function drawTicks(','function drawBullets(','shotCooldown','bullets.push(','score+=arcade.kill()'])assert.ok(main.includes(token),token)}],
  ['Meccaniche arcade',()=>{const combat=readFileSync('arcade-mechanics.js','utf8');for(const token of ['throwGrenade','enemyShots','boss','pickups','spread','heavy','combo'])assert.ok(combat.includes(token),token);assert.ok(main.includes('arcade.step('));assert.ok(main.includes('arcade.fire('))}],
+ ['Controlli granata e fine partita',()=>{assert.ok(main.includes("['grenade',grenade]"));assert.ok(main.includes('distance=scroll/50'));assert.ok(main.includes('movement.left=false;movement.right=false'))}],
  ['Prestazioni mobile',()=>{assert.ok(main.includes('devicePixelRatio'));assert.ok(main.includes('requestAnimationFrame(frame)'))}],
  ['Build configurata',()=>assert.ok(pkg.scripts.build)]
 ];
