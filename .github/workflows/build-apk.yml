@@ -9,6 +9,7 @@ on:
   push:
     branches:
       - main
+      - rebuild-arcade-final
 
 permissions:
   contents: read
