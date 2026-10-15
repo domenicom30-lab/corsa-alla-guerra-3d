@@ -7,6 +7,7 @@ const canvas=document.getElementById('game'),ctx=canvas.getContext('2d',{alpha:f
 const message=document.getElementById('message'),stats=document.getElementById('stats');
 let W=0,H=0,dpr=1,last=0,running=false,paused=false,score=0,health=3,distance=0;
 let scroll=0,vy=0,jumpY=0,duckTime=0,phase=0,invulnerable=0,shotCooldown=0,muzzleFlash=0,fireHeld=false;
+const movement={left:false,right:false};
 const bullets=[];
 const particles=[];
 const ticks=Array.from({length:25},(_,i)=>({x:1050+i*520,y:0,alive:true,phase:i*.7}));
@@ -32,7 +33,8 @@ function drawPlayer(){
  const h=H*(duckTime>0?.19:.32),w=h*72/88,runFrame=jumpY>0?1:Math.floor(phase*1.1)%6;
  const x=playerX()-w*.5,y=ground()-jumpY-h;
  ctx.save();ctx.imageSmoothingEnabled=false;
- if(invulnerable>0&&Math.floor(invulnerable*12)%2===0)ctx.globalAlpha=.35;
+ // Keep character readable while invulnerable: use a subtle outline, not transparency.
+ if(invulnerable>0&&Math.floor(invulnerable*12)%2===0){ctx.shadowColor='#f8e2a1';ctx.shadowBlur=H*.014;}
  const sheet=arcadeArt.soldier; if(sheet){const frameW=sheet.width/6;ctx.drawImage(sheet,runFrame*frameW,0,frameW,sheet.height,x,y,w,h)}else ctx.drawImage(sprites.soldier[runFrame],x,y,w,h);
  if(muzzleFlash>0){ctx.fillStyle='#ffe27a';const mx=x+w*.95,my=y+h*.48;ctx.beginPath();ctx.moveTo(mx,my);ctx.lineTo(mx+H*.042,my-H*.019);ctx.lineTo(mx+H*.025,my);ctx.lineTo(mx+H*.042,my+H*.02);ctx.fill()}
  ctx.restore();
@@ -54,7 +56,9 @@ function shoot(){if(!running){start();return}if(paused||shotCooldown>0)return;sh
 function hud(){document.getElementById('points').textContent='PUNTI: '+score;document.getElementById('hearts').innerHTML=Array.from({length:3},(_,i)=>'<span class="heart '+(i>=health?'heart-lost':'')+'">♥</span>').join('');stats.textContent='TRAGUARDO: '+Math.max(0,200-Math.floor(distance))+' m'}
 function update(dt){
  if(!running||paused)return;
- scroll+=SPEED*dt;distance+=dt*5;phase+=dt*15;
+ const direction=Number(movement.right)-Number(movement.left);
+ const advance=SPEED*dt*(direction===0?1:direction);
+ scroll=Math.max(0,scroll+advance);distance=Math.max(0,distance+advance/50);phase+=dt*15;
  shotCooldown=Math.max(0,shotCooldown-dt);muzzleFlash=Math.max(0,muzzleFlash-dt);if(fireHeld&&shotCooldown===0)shoot();
  for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=400*dt;p.life-=dt;if(p.life<=0)particles.splice(i,1)}
  for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];b.x+=b.speed*dt;let hit=false;for(const t of ticks){const x=t.x-scroll;if(t.alive&&Math.abs(b.x-x)<H*.055&&Math.abs(b.y-(ground()-H*.055))<H*.145){t.alive=false;score+=100;burst(x,ground()-H*.07);hit=true;break}}if(hit||b.x>W+40)bullets.splice(i,1)}
@@ -66,14 +70,16 @@ function update(dt){
  if(distance>=200){running=false;message.textContent='MISSIONE COMPLETATA — TOCCA PER RIPROVARE';message.style.display='block'}hud();
 }
 function frame(t){const dt=Math.min((t-last)/1000||0,.05);last=t;update(dt);background();drawObstacles();drawTicks();drawPlayer();drawBullets();drawParticles();requestAnimationFrame(frame)}
-function start(){running=true;paused=false;score=0;health=3;distance=0;scroll=0;vy=0;jumpY=0;duckTime=0;phase=0;invulnerable=0;shotCooldown=0;muzzleFlash=0;fireHeld=false;bullets.length=0;particles.length=0;ticks.forEach(t=>t.alive=true);obstacles.forEach(o=>o.hit=false);message.style.display='none';hud()}
+function start(){running=true;paused=false;score=0;health=3;distance=0;scroll=0;vy=0;jumpY=0;duckTime=0;phase=0;invulnerable=0;shotCooldown=0;muzzleFlash=0;fireHeld=false;bullets.length=0;particles.length=0;ticks.forEach(t=>t.alive=true);obstacles.forEach(o=>o.hit=false);movement.left=false;movement.right=false;message.style.display='none';hud()}
 function jump(){if(!running){start();return}if(!paused&&jumpY===0){vy=H*1.13;duckTime=0}}
 function duck(){if(!running){start();return}if(!paused)duckTime=.7}
-function move(direction){if(!running){start();return}if(!paused){scroll=Math.max(0,scroll+direction*H*.17);distance=Math.max(0,distance+direction*.4)}}
+function move(direction){if(!running)start();if(!paused){scroll=Math.max(0,scroll+direction*H*.035);distance=Math.max(0,distance+direction*.08)}}
 function pause(){if(!running)return;paused=!paused;message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display=paused?'block':'none'}
-for(const [id,fn] of [['left',()=>move(-1)],['right',()=>move(1)],['jump',jump],['duck',duck],['pause',pause]])document.getElementById(id).addEventListener('pointerdown',e=>{e.preventDefault();fn()});
+for(const [id,fn] of [['jump',jump],['duck',duck],['pause',pause]])document.getElementById(id).addEventListener('pointerdown',e=>{e.preventDefault();fn()});
+for(const id of ['left','right']){const el=document.getElementById(id);el.addEventListener('pointerdown',e=>{e.preventDefault();el.setPointerCapture(e.pointerId);if(!running)start();movement[id]=true});for(const type of ['pointerup','pointercancel','lostpointercapture'])el.addEventListener(type,()=>movement[id]=false)}
 const fireButton=document.getElementById('shoot');fireButton.addEventListener('pointerdown',e=>{e.preventDefault();fireHeld=true;shoot()});for(const event of ['pointerup','pointercancel','pointerleave'])fireButton.addEventListener(event,()=>fireHeld=false);
 message.addEventListener('pointerdown',()=>{if(paused)pause();else start()});canvas.addEventListener('pointerdown',()=>{if(!running)start()});
-addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='a')move(-1);if(e.key==='ArrowRight'||e.key==='d')move(1);if(e.key==='ArrowUp'||e.key===' ')jump();if(e.key==='ArrowDown')duck();if(e.key==='Escape')pause();if(e.key==='f'||e.key==='Control')shoot()});
+addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='a')movement.left=true;if(e.key==='ArrowRight'||e.key==='d')movement.right=true;if(e.key==='ArrowUp'||e.key===' ')jump();if(e.key==='ArrowDown')duck();if(e.key==='Escape')pause();if(e.key==='f'||e.key==='Control')shoot()});
+addEventListener('keyup',e=>{if(e.key==='ArrowLeft'||e.key==='a')movement.left=false;if(e.key==='ArrowRight'||e.key==='d')movement.right=false});
 for(const [selector,sprite] of [['.portrait-player',sprites.soldier[0]],['.portrait-target',sprites.tick[0]]]){const el=document.querySelector(selector);if(el){el.style.backgroundImage='url('+sprite.toDataURL()+')';el.style.backgroundSize='contain';el.style.backgroundPosition='center';el.style.imageRendering='pixelated'}}
 requestAnimationFrame(frame);
