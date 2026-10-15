@@ -7,6 +7,7 @@ const html = readFileSync('index.html', 'utf8');
 const art = readFileSync('pixel-art.js','utf8');
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 const checks = [
+ ['Cache frame soldato',()=>{const source=readFileSync('soldier-frames.js','utf8');assert.ok(source.includes('if(soldierFrames[pose]?.length===count)continue'),'evita di ricreare i frame già caricati')}],
  ['Canvas e controlli',()=>{for(const id of ['game','message','stats','left','right','jump','duck','pause','points','hearts','shoot','grenade'])assert.ok(html.includes('id="'+id+'"'),id)}],
  ['Backup 3D documentato',()=>assert.ok(existsSync('docs/2-5d-assets.md'))],
  ['Motore 2D laterale senza prospettiva',()=>{for(const token of ['function ground(', 'function drawPlayer(', 'function drawTicks('])assert.ok(main.includes(token),token);assert.ok(!main.includes('function projection('))}],
