@@ -1,7 +1,7 @@
 // Original arcade run-and-gun systems: weapon pickups, grenades, enemy volleys, boss.
 import {drawRocketPickup} from './arcade-arsenal.js';
 export function createArcadeSystems(){
- const pickups=Array.from({length:12},(_,i)=>({x:1050+i*745,type:['spread','heavy','rocket','health'][i%4],taken:false}));
+ const pickups=Array.from({length:12},(_,i)=>({x:1400+i*715,type:['spread','heavy','rocket','health'][i%4],taken:false}));
  const grenades=[],enemyShots=[],airBombs=[],airDrops=[];
  const plane={x:-200,active:false,timer:10,dropTimer:0,passes:0};
  const covers=[2350,5750,8850].map(x=>({x,hp:100}));
