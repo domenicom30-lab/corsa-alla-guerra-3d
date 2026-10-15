@@ -114,3 +114,17 @@ export function drawTroop(ctx,e,scroll,H,ground,phase){
  ctx.restore();
  return true;
 }
+
+
+// A cached standing sprite rotates into a side-on 2D fall rather than disappearing.
+export function drawFallenTroop(ctx,fall,H){
+ const frames=sheets.get(fall.type);if(!frames)return false;
+ const w=H*(fall.type==='heavy'?.23:.185),h=H*(fall.type==='heavy'?.28:.245);
+ ctx.save();ctx.globalAlpha=fall.fade;
+ ctx.translate(fall.x,fall.y);ctx.rotate(fall.angle);
+ ctx.scale(fall.dir||1,1);
+ ctx.imageSmoothingEnabled=false;
+ ctx.drawImage(frames[fall.type==='heavy'?4:0],-w*.5,-h*.54,w,h);
+ ctx.restore();
+ return true;
+}

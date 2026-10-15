@@ -14,8 +14,8 @@ function paintSky(ctx,W,H,ground,night){
  if(night===2){g.addColorStop(0,'#1c2834');g.addColorStop(.63,'#596267');g.addColorStop(1,'#aa835b')}
  if(night===3){g.addColorStop(0,'#0f192b');g.addColorStop(.6,'#293745');g.addColorStop(1,'#685445')}
  ctx.fillStyle=g;ctx.fillRect(0,0,W,ground);
- ctx.fillStyle=night===3?'#c6d3c6':'#e9a36c';ctx.globalAlpha=night===3?.5:.3;
- ctx.beginPath();ctx.arc(W*.8,H*.19,H*(night===3?.05:.09),0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+ ctx.save();ctx.fillStyle=night===3?'#c6d3c6':'#e9a36c';ctx.globalAlpha*=night===3?.5:.3;
+ ctx.beginPath();ctx.arc(W*.8,H*.19,H*(night===3?.05:.09),0,Math.PI*2);ctx.fill();ctx.restore();
 }
 function village(ctx,W,H,scroll,ground,phase){
  paintSky(ctx,W,H,ground,1);
@@ -61,10 +61,9 @@ function factory(ctx,W,H,scroll,ground,phase){
    ctx.fillStyle='#5f6261';ctx.fillRect(bx-H*.004,ground-h-bh,H*.043,H*.008);
    const smoke=H*(.04+noise(i+j)*.025),drift=(phase*.23+i*13+j*7)%36;
    for(let k=0;k<3;k++){
-    ctx.globalAlpha=.09+noise(i+j+k)*.07;ctx.fillStyle='#c2bbae';
-    ctx.beginPath();ctx.arc(bx+Math.sin(phase*.03+k)*H*.024,ground-h-bh-smoke-(drift+k*12)*H*.009,H*(.03+k*.02),0,Math.PI*2);ctx.fill()
+    ctx.save();ctx.globalAlpha*=.09+noise(i+j+k)*.07;ctx.fillStyle='#c2bbae';
+    ctx.beginPath();ctx.arc(bx+Math.sin(phase*.03+k)*H*.024,ground-h-bh-smoke-(drift+k*12)*H*.009,H*(.03+k*.02),0,Math.PI*2);ctx.fill();ctx.restore()
    }
-   ctx.globalAlpha=1;
   }
   ctx.fillStyle='#97724c';
   for(let p=0;p<6;p++)ctx.fillRect(x+H*(.03+p*.05),ground-h+H*.03,H*.024,H*.037);

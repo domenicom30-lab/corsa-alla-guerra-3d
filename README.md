@@ -39,3 +39,13 @@ La somiglianza con i classici run-and-gun e l'esperienza sul Samsung vanno valut
 - Test automatici dedicati a munizioni, gittata, splash damage, segnale di mira e interruzione dei colpi.
 
 Il progetto è interamente 2D. Le verifiche automatiche non sostituiscono la prova sul dispositivo Android.
+
+## Versione 1.4 — Impatto arcade, animazioni di caduta e zone differenziate
+
+- Quando un soldato viene sconfitto, lo sprite originale animato cade e ruota fisicamente, con elmetto, detriti e polvere separati; tutte le animazioni sono leggere, a durata limitata e con pool a capacità fissa.
+- Le ferite senza eliminazione producono scintille e microdetriti; le cadute sono collegate a corpo a corpo, proiettili e detonazioni.
+- Le ambientazioni successive vengono disegnate sopra la vecchia parallasse della foresta; il passaggio tra villaggio, fabbrica e fortezza sfrutta una dissolvenza corretta.
+- **Abbassamento tenuto premuto** su touchscreen e tastiera: la posa e la collisione restano coerenti per tutta la pressione. Il rilascio del pulsante o l'uscita dall'app ripristinano lo stato.
+- I test specifici controllano animazioni, movimento della telecamera, reset, numero massimo di effetti, rispetto del livello di trasparenza e sicurezza degli input.
+
+**Nota:** la riuscita della build dimostra che l'APK compila; non certifica la stessa qualità artistica di Metal Slug né sostituisce una prova visiva sul telefono.
