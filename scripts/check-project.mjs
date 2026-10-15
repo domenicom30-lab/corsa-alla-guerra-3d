@@ -47,6 +47,7 @@ const checks = [
  ['Nuova partita azzera movimento e tempo',()=>{assert.ok(main.includes("obstacles.forEach(o=>o.hit=false);clearTouchMovement();movement.left=false;movement.right=false;last=0;message.style.display='none';hud()"))}],
  ['Salute boss visibile durante lo scontro',()=>{for(const token of ["arcade.boss.active&&!arcade.boss.defeated?' · BOSS '",'Math.ceil(arcade.boss.hp/arcade.boss.maxHp*100)'])assert.ok(main.includes(token),token)}],
  ['Barra vita boss in pixel art',()=>{for(const token of ['function drawBossHealthBar()','if(!arcade.boss.active||arcade.boss.defeated)return','ctx.fillRect(x,y,width*ratio,height)','ctx.restore();drawBossHealthBar();requestAnimationFrame(frame)'])assert.ok(main.includes(token),token)}],
+ ['Distruzione scenografica boss',()=>{for(const token of ['for(let i=0;i<5;i++){burst(bossScreenX','for(let i=0;i<4;i++){shatterEnemy(bossScreenX','arcade.screenShake=Math.max(arcade.screenShake,18)'])assert.ok(main.includes(token),token)}],
  ['Prestazioni mobile',()=>{assert.ok(main.includes('devicePixelRatio'));assert.ok(main.includes('requestAnimationFrame(frame)'))}],
  ['Build configurata',()=>assert.ok(pkg.scripts.build)]
 ];
