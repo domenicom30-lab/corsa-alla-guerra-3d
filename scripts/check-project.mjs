@@ -24,7 +24,7 @@ const checks = [
  ['Feedback arcade visivo',()=>{for(const token of ['function drawBlastEffects(', 'blastEffects.length=0','COMBO x'])assert.ok(main.includes(token),token)}],
  ['Animazione soldato sincronizzata',()=>{for(const token of ['let runCycle=0','runCycle+=Math.abs(scroll-previousScroll)','Math.floor(runCycle)%8','footstepBob'])assert.ok(main.includes(token),token)}],
  ['Rinculo e ombra del soldato',()=>{for(const token of ['let recoil=0','recoil=1;','recoil=Math.max(0,recoil-dt*12)','ctx.ellipse(playerX()'])assert.ok(main.includes(token),token)}],
- ['Sprite animati fotogramma per fotogramma',()=>{for(const token of ["from './soldier-frames.js'",'loadSoldierFrames();','drawSoldierFrame(ctx,pose,frame','Math.floor(runCycle)%8'])assert.ok(main.includes(token),token)}],
+ ['Sprite animati fotogramma per fotogramma',()=>{for(const token of ["from './soldier-frames.js'",'loadSoldierFrames();',"drawRaster(ctx,'hero',pose,frame",'Math.floor(runCycle)%8'])assert.ok(main.includes(token),token)}],
  ['Polvere dei passi sincronizzata',()=>{for(const token of ['const dustPuffs=[]','function drawDust()','dustPuffs.push({','dustPuffs.length=0'])assert.ok(main.includes(token),token)}],
  ['Nemici animati in otto fotogrammi',()=>{const enemy=readFileSync('enemy-frames.js','utf8');for(const token of ['prepareEnemyFrames','drawEnemyFrame','i<8'])assert.ok(enemy.includes(token),token);for(const token of ["from './enemy-frames.js'",'prepareEnemyFrames();','drawEnemyFrame(ctx,'])assert.ok(main.includes(token),token)}],
  ['Otto frame nemici differenti e disegnabili',()=>{
