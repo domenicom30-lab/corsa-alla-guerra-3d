@@ -18,3 +18,8 @@
 .control-group button small{bottom:-10%;font-size:clamp(8px,1.05vw,13px);background:#111a21df}
 .control-group .shoot-button{background:radial-gradient(circle at 50% 20%,#9d4327bf,#291212c4)}
 @media(max-height:450px){#controls{bottom:5%}.control-group button{width:clamp(58px,8vw,94px);height:clamp(58px,8vw,94px)}}
+
+/* Dedicated grenade control: distinguish from fire, fit five mobile buttons. */
+.control-group .grenade-button{border-color:#d7ba70;background:radial-gradient(circle at 50% 20%,#596542c8,#1a241ddc)}
+.control-group .grenade-button:active{background:#788748}
+@media(max-width:850px){.control-group{gap:clamp(4px,1vw,10px)}.control-group button{width:clamp(48px,7.6vw,88px);height:clamp(48px,7.6vw,88px);padding:8%}}
