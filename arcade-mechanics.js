@@ -2,9 +2,9 @@
 export function createArcadeSystems(){
  const pickups=Array.from({length:8},(_,i)=>({x:1400+i*2100,type:i%3===0?'spread':i%3===1?'heavy':'health',taken:false}));
  const grenades=[],enemyShots=[];
- const boss={x:9600,hp:28,maxHp:28,active:false,defeated:false,cooldown:1.3};
+ const boss={x:9600,hp:28,maxHp:28,active:false,defeated:false,cooldown:1.3,velocity:0,turretAngle:0,recoil:0,treadDistance:0};
  let weapon='normal',ammo=Infinity,grenadeCount=8,combo=0,comboTimer=0,screenShake=0;
- const reset=()=>{weapon='normal';ammo=Infinity;grenadeCount=8;combo=0;comboTimer=0;screenShake=0;grenades.length=0;enemyShots.length=0;pickups.forEach(p=>p.taken=false);Object.assign(boss,{hp:28,active:false,defeated:false,cooldown:1.3})};
+ const reset=()=>{weapon='normal';ammo=Infinity;grenadeCount=8;combo=0;comboTimer=0;screenShake=0;grenades.length=0;enemyShots.length=0;pickups.forEach(p=>p.taken=false);Object.assign(boss,{hp:28,active:false,defeated:false,cooldown:1.3,velocity:0,turretAngle:0,recoil:0,treadDistance:0})};
  const collect=(worldX,jump,ground,H)=>{let reward=null;for(const p of pickups){if(p.taken||Math.abs(p.x-worldX)>H*.12||jump>H*.18)continue;p.taken=true;reward=p.type;if(p.type==='health'){}else{weapon=p.type;ammo=p.type==='spread'?100:160}}return reward};
  const fire=(x,y,direction,speed)=>{if(ammo<=0){weapon='normal';ammo=Infinity}const pattern=weapon==='spread'?[-.14,0,.14]:[0];const shots=pattern.map(a=>({x,y,vx:direction*speed,vy:a*speed,damage:weapon==='heavy'?2:1,life:1.8,kind:weapon}));if(Number.isFinite(ammo)){ammo--;if(ammo<=0){weapon='normal';ammo=Infinity}}return shots};
  const throwGrenade=(x,y,direction,H)=>{if(grenadeCount<=0)return false;grenadeCount--;grenades.push({x,y,vx:direction*H*1.2,vy:-H*.9,fuse:.9,life:1.5});return true};
@@ -12,7 +12,29 @@ export function createArcadeSystems(){
  const step=(dt,scroll,playerX,ground,H,onDamage,onExplosion,cameraDelta=0)=>{
   comboTimer-=dt;if(comboTimer<=0)combo=0;screenShake=Math.max(0,screenShake-dt*28);
   if(!boss.defeated&&scroll+playerX>boss.x-H*1.6)boss.active=true;
-  if(boss.active&&!boss.defeated){boss.cooldown-=dt;if(boss.cooldown<=0){boss.cooldown=1.1;const bossScreenX=boss.x-scroll;if(Math.abs(bossScreenX-playerX)<H*2.5&&enemyShots.length<=21){for(let i=-1;i<=1;i++)enemyShots.push({x:bossScreenX-H*.14,y:ground-H*.23,vx:-H*(.65+i*.1),vy:i*H*.23,life:3})}}}
+  if(boss.active&&!boss.defeated){
+   // Heavy tracked vehicle: slow approach, braking distance and damped recoil.
+   const targetWorldX=scroll+playerX,dx=targetWorldX-boss.x;
+   const stopDistance=H*.85,maxSpeed=H*.28;
+   const desiredVelocity=Math.abs(dx)>stopDistance?Math.sign(dx)*maxSpeed:0;
+   const acceleration=H*.55,braking=H*.9;
+   const delta=desiredVelocity-boss.velocity;
+   boss.velocity+=Math.sign(delta)*Math.min(Math.abs(delta),(desiredVelocity?acceleration:braking)*dt);
+   boss.x+=boss.velocity*dt;boss.treadDistance+=Math.abs(boss.velocity)*dt;
+   const turretY=ground-H*.41,aimY=ground-H*.18;
+   const desiredAngle=Math.atan2(aimY-turretY,targetWorldX-boss.x);
+   let diff=Math.atan2(Math.sin(desiredAngle-boss.turretAngle),Math.cos(desiredAngle-boss.turretAngle));
+   const turnStep=Math.PI/4*dt;
+   boss.turretAngle+=Math.sign(diff)*Math.min(Math.abs(diff),turnStep);
+   boss.recoil=Math.max(0,boss.recoil-dt*3.5);
+   boss.cooldown-=dt;
+   if(boss.cooldown<=0&&Math.abs(dx)<H*2.5&&enemyShots.length<=21){
+    boss.cooldown=3;boss.recoil=1;screenShake=Math.min(12,screenShake+6);
+    const dirX=Math.cos(boss.turretAngle),dirY=Math.sin(boss.turretAngle);
+    enemyShots.push({x:boss.x-scroll+dirX*H*.43,y:turretY+dirY*H*.43,vx:dirX*H*.85,vy:dirY*H*.85,life:3});
+    boss.velocity-=dirX*H*.045;
+   }
+  }
   for(let i=enemyShots.length-1;i>=0;i--){const b=enemyShots[i];b.x+=b.vx*dt-cameraDelta;b.y+=b.vy*dt;b.life-=dt;if(Math.abs(b.x-playerX)<H*.065&&Math.abs(b.y-(ground-H*.18))<H*.16){onDamage();enemyShots.splice(i,1)}else if(b.life<=0)enemyShots.splice(i,1)}
   for(let i=grenades.length-1;i>=0;i--){const g=grenades[i];g.x+=g.vx*dt-cameraDelta;g.y+=g.vy*dt;g.vy+=H*2.4*dt;g.fuse-=dt;if(g.y>ground-H*.02){g.y=ground-H*.02;g.vy*=-.35;g.vx*=.8}if(g.fuse<=0){onExplosion(g.x,g.y,H*.35);screenShake=14;grenades.splice(i,1)}}
  };
@@ -24,7 +46,7 @@ export function createArcadeSystems(){
    const x=boss.x-scroll,unit=H*.01;
    const viewportWidth=ctx.canvas?.clientWidth||ctx.canvas?.width||Infinity;
    if(x<-H*.55||x>viewportWidth+H*.55)return;
-   const treadFrame=Math.floor(phase*.55)%4;
+   const treadFrame=Math.floor(boss.treadDistance/Math.max(1,H*.035))%4;
    ctx.save();ctx.translate(x,ground);
    // Original armored crawler: layered pixel-like hull, track links and turret.
    ctx.fillStyle='#161c1b';ctx.fillRect(-29*unit,-17*unit,58*unit,15*unit);
@@ -47,9 +69,12 @@ export function createArcadeSystems(){
    ctx.fillStyle='#1d2927';ctx.fillRect(-9*unit,-42*unit,30*unit,12*unit);
    ctx.fillStyle='#77816c';ctx.fillRect(-6*unit,-45*unit,22*unit,7*unit);
    ctx.fillStyle='#adb092';ctx.fillRect(-4*unit,-44*unit,15*unit,2*unit);
-   ctx.fillStyle='#303b32';ctx.fillRect(-38*unit,-37*unit,31*unit,6*unit);
-   ctx.fillStyle='#8a8f7a';ctx.fillRect(-38*unit,-36*unit,29*unit,2*unit);
-   ctx.fillStyle='#111a18';ctx.fillRect(-41*unit,-39*unit,5*unit,10*unit);
+   // Mechanically aimed cannon with a visible recoil stroke.
+   ctx.save();ctx.translate(-5*unit,-41*unit);ctx.rotate(boss.turretAngle);
+   ctx.fillStyle='#303b32';ctx.fillRect(0,-3*unit,(39-boss.recoil*6)*unit,6*unit);
+   ctx.fillStyle='#8a8f7a';ctx.fillRect(0,-2*unit,(37-boss.recoil*6)*unit,2*unit);
+   ctx.fillStyle='#111a18';ctx.fillRect((35-boss.recoil*6)*unit,-5*unit,5*unit,10*unit);
+   ctx.restore();
    ctx.fillStyle='#e2bd6a';ctx.fillRect(17*unit,-28*unit,4*unit,4*unit);
    ctx.fillStyle=Math.floor(phase*.7)%2===0?'#f6bd65':'#ad4838';ctx.fillRect(13*unit,-40*unit,4*unit,3*unit);
    ctx.fillStyle='#151b1b';ctx.fillRect(-25*unit,-52*unit,50*unit,3*unit);
