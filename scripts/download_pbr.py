@@ -23,13 +23,21 @@ def fetch(asset_id, prefix):
     if len(payload) > 35 * 1024 * 1024:
         raise ValueError("Texture archive exceeds 35 MB")
     OUT.mkdir(parents=True, exist_ok=True)
+    # Validate the entire material before publishing any files to the APK.
     with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+        selected = {}
         for channel, suffix in CHANNELS.items():
-            candidates = [n for n in archive.namelist() if n.endswith(f"_{channel}.jpg")]
+            candidates = [n for n in archive.namelist()
+                          if n.endswith(f"_{channel}.jpg") and not n.startswith("__MACOSX/")]
             if not candidates:
                 raise ValueError(f"Missing {channel} map in {asset_id}")
+            data = archive.read(candidates[0])
+            if len(data) < 1024 or data[:3] != b"\\xff\\xd8\\xff":
+                raise ValueError(f"Invalid JPEG {channel} in {asset_id}")
+            selected[suffix] = data
+        for suffix, data in selected.items():
             dest = OUT / f"{prefix}_{suffix}.jpg"
-            dest.write_bytes(archive.read(candidates[0]))
+            dest.write_bytes(data)
             print(dest, dest.stat().st_size, "bytes")
 
 if __name__ == "__main__":
