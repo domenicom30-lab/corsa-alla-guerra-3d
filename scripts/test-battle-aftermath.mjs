@@ -21,7 +21,7 @@ const noop=()=>{};
 const brush=new Proxy({
  save(){saves++},restore(){restores++},
  fillRect(){paints++},
- beginPath:noop,ellipse:noop,fill:noop,translate:noop,rotate:noop,drawImage(){paints++}
+ beginPath:noop,ellipse:noop,fill(){paints++},translate:noop,rotate:noop,drawImage(){paints++}
 },{get(target,key){return key in target?target[key]:noop},set(target,key,value){target[key]=value;return true}});
 b.draw(brush,880,H,ground,(_ctx,fall)=>{corpses++;assert.ok(fall.life>0)});
 assert.ok(paints>0&&corpses===1);
