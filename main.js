@@ -21,6 +21,8 @@ let bossDeathX=0;
 const VICTORY_RESTART_DELAY_MS=6000;
 let victoryRestartAt=0;
 let runCycle=0;
+let horizontalSpeed=0;
+let jumpHeld=false;
 let recoil=0;
 const arcade=createArcadeSystems();
 const bullets=[];
@@ -30,6 +32,8 @@ const dustPuffs=[];
 const enemyDebris=[];
 const ticks=Array.from({length:25},(_,i)=>({x:1050+i*520,y:0,alive:true,phase:i*.7}));
 const SPEED=250,GRAVITY=1900;
+const MOVE_ACCELERATION=1050,MOVE_DECELERATION=1450;
+const FALL_MULTIPLIER=2.5,LOW_JUMP_MULTIPLIER=2;
 const MAX_PARTICLES=180;
 let frameClock=0;
 let visible=true;
@@ -55,7 +59,7 @@ function drawPlayer(){
  const h=H*(duckTime>0?.145:.255),w=h*72/88,runFrame=jumpY>0?1:Math.floor(runCycle)%8;
  const x=playerX()-w*.5,y=ground()-jumpY-h;
  ctx.save();ctx.globalAlpha=.24*Math.max(.3,1-jumpY/H);ctx.fillStyle='#17150e';ctx.beginPath();ctx.ellipse(playerX(),ground()+H*.006,w*.4,H*.012,0,0,Math.PI*2);ctx.fill();ctx.restore();
- const moving=Math.abs(Number(movement.right)-Number(movement.left))>0;
+ const moving=Math.abs(horizontalSpeed)>SPEED*.09;
  const footstepBob=moving&&jumpY===0&&duckTime===0?Math.abs(Math.sin(runCycle*Math.PI)) * H*.006:0;
  ctx.save();ctx.imageSmoothingEnabled=false;
  if(recoil>0)ctx.translate(-facing*recoil*H*.01,0);
@@ -63,7 +67,7 @@ function drawPlayer(){
  // Keep character readable while invulnerable: use a subtle outline, not transparency.
  if(invulnerable>0&&Math.floor(invulnerable*12)%2===0){ctx.shadowColor='#f8e2a1';ctx.shadowBlur=H*.014;}
  const sheet=arcadeArt.soldier;
- const pose=jumpY>0?'jump':duckTime>0?'duck':muzzleFlash>0||fireHeld?'fire':Math.abs(Number(movement.right)-Number(movement.left))>0?'run':'idle';
+ const pose=jumpY>0?'jump':duckTime>0?'duck':muzzleFlash>0||fireHeld?'fire':Math.abs(horizontalSpeed)>SPEED*.09?'run':'idle';
  const frame=pose==='run'?runFrame:pose==='fire'?Math.floor(phase*.9)%4:pose==='idle'?Math.floor(phase*.2)%4:pose==='jump'?Math.min(2,Math.floor(Math.abs(vy)/Math.max(1,H))):Math.floor(phase*.3)%3;
  drawSoldierFrame(ctx,pose,frame,x,y-footstepBob,w,h);
  if(muzzleFlash>0){const mx=x+w*.95,my=y+h*.48,flash=H*(.032+.013*Math.min(1,muzzleFlash/.07));ctx.fillStyle='#fff6c8';ctx.fillRect(mx,my-H*.006,flash*.6,H*.012);ctx.fillStyle='#ffc34e';ctx.beginPath();ctx.moveTo(mx,my-H*.015);ctx.lineTo(mx+flash,my);ctx.lineTo(mx,my+H*.015);ctx.closePath();ctx.fill();ctx.fillStyle='#f08b27';ctx.fillRect(mx+flash*.7,my-H*.004,flash*.28,H*.008);for(let i=0;i<3;i++){const sparkX=mx+flash*(.55+i*.23),sparkY=my+(i-1)*H*.023;ctx.fillStyle=i===1?'#fff3a1':'#f5a83e';ctx.fillRect(sparkX,sparkY,Math.max(2,H*.005),Math.max(2,H*.005))}}
@@ -90,10 +94,14 @@ function hud(){document.getElementById('points').textContent='PUNTI: '+score;doc
 function update(dt){
  if(!running||paused)return;
  const direction=Number(movement.right)-Number(movement.left);
- const advance=SPEED*dt*direction;
+ const targetSpeed=SPEED*direction;
+ const changeRate=direction!==0?MOVE_ACCELERATION:MOVE_DECELERATION;
+ const deltaSpeed=targetSpeed-horizontalSpeed;
+ horizontalSpeed+=Math.sign(deltaSpeed)*Math.min(Math.abs(deltaSpeed),changeRate*dt);
+ const advance=horizontalSpeed*dt;
  const previousScroll=scroll;
  scroll=Math.max(0,Math.min(10000,scroll+advance));
- if(direction!==0){const oldStep=Math.floor(runCycle);runCycle+=Math.abs(scroll-previousScroll)/Math.max(1,H)*7;if(jumpY===0&&Math.floor(runCycle)!==oldStep&&Math.floor(runCycle)%2===0){dustPuffs.push({x:playerX()-facing*H*.045,y:ground()-H*.008,life:.34,size:H*.018,color:'#b8a47b'});if(dustPuffs.length>35)dustPuffs.shift()}}
+ if(Math.abs(horizontalSpeed)>SPEED*.09){const oldStep=Math.floor(runCycle);runCycle+=Math.abs(scroll-previousScroll)/Math.max(1,H)*7;if(jumpY===0&&Math.floor(runCycle)!==oldStep&&Math.floor(runCycle)%2===0){dustPuffs.push({x:playerX()-facing*H*.045,y:ground()-H*.008,life:.34,size:H*.018,color:'#b8a47b'});if(dustPuffs.length>35)dustPuffs.shift()}}
  const cameraDelta=scroll-previousScroll;distance=scroll/50;phase+=dt*15;if(bossDeathTime>=0){bossDeathTime+=dt;bossDeathX-=cameraDelta;if(bossDeathTime>2.6)bossDeathTime=-1;}if(direction!==0)facing=direction;
  const collected=arcade.collect(scroll+playerX(),jumpY,ground(),H);if(collected==='health')health=Math.min(3,health+1);
  arcade.step(dt,scroll,playerX(),ground(),H,damage,explosion,cameraDelta);
@@ -107,13 +115,13 @@ function update(dt){
  for(const t of ticks){const x=t.x-scroll;if(t.alive&&invulnerable===0&&Math.abs(x-playerX())<H*.075&&jumpY<H*.09){t.alive=false;damage();if(!running){hud();return}}}
  if(duckTime>0)duckTime=Math.max(0,duckTime-dt);
  if(invulnerable>0)invulnerable=Math.max(0,invulnerable-dt);
- if(jumpY>0||vy>0){jumpY+=vy*dt;vy-=GRAVITY*dt;if(jumpY<=0){jumpY=0;vy=0}}
+ if(jumpY>0||vy>0){jumpY+=vy*dt;const gravityScale=vy<0?FALL_MULTIPLIER:!jumpHeld?LOW_JUMP_MULTIPLIER:1;vy-=GRAVITY*gravityScale*dt;if(jumpY<=0){jumpY=0;vy=0}}
  if(distance>=200&&arcade.boss.defeated){victoryRestartAt=performance.now()+VICTORY_RESTART_DELAY_MS;running=false;fireHeld=false;clearTouchMovement();movement.left=false;movement.right=false;shotCooldown=0;last=0;message.textContent='HAI SCONFITTO LE ZECCHE ROSSE!\nTOCCA PER RIPROVARE';message.classList.add('victory-message');message.style.display='block';document.getElementById('victory-credit').style.display='block'}hud();
 }
 function drawBossHealthBar(){if(!arcade.boss.active||arcade.boss.defeated)return;const width=Math.min(W*.52,360),height=Math.max(10,H*.023),x=(W-width)/2,y=Math.max(14,H*.075),ratio=Math.max(0,Math.min(1,arcade.boss.hp/arcade.boss.maxHp));ctx.save();ctx.fillStyle='#171b1b';ctx.fillRect(x-5,y-5,width+10,height+10);ctx.fillStyle='#483a32';ctx.fillRect(x,y,width,height);ctx.fillStyle=ratio>.35?'#d94d35':'#f0a33e';ctx.fillRect(x,y,width*ratio,height);ctx.fillStyle='#f7e8b9';ctx.fillRect(x,y,width*ratio,Math.max(2,height*.22));ctx.strokeStyle='#f4d7a0';ctx.lineWidth=2;ctx.strokeRect(x,y,width,height);ctx.restore()}
 function frame(t){if(!visible){last=t;requestAnimationFrame(frame);return}if(last&&t-last<1000/65){requestAnimationFrame(frame);return}const dt=Math.min(last?(t-last)/1000:0,.05);last=t;update(dt);ctx.save();if(arcade.screenShake>0){const shake=arcade.screenShake;ctx.translate(Math.sin(phase*3.1)*shake*.5,Math.cos(phase*4.3)*shake*.35)}background();drawBattleAtmosphere(ctx,W,H,scroll,phase,ground());drawTicks();arcade.draw(ctx,scroll,ground(),H,phase);drawDust();drawPlayer();drawBullets();drawBlastEffects();drawEnemyDebris();drawParticles();drawArcadeForeground(ctx,W,H,scroll,ground(),phase);if(bossDeathTime>=0)drawBossDeathCinematic(ctx,W,H,ground(),bossDeathTime,bossDeathX);ctx.restore();drawBossHealthBar();requestAnimationFrame(frame)}
-function start(){if(victoryRestartAt&&performance.now()<victoryRestartAt)return;victoryRestartAt=0;document.getElementById('victory-credit').style.display='none';message.classList.remove('victory-message');running=true;paused=false;score=0;health=3;distance=0;scroll=0;facing=1;bossVictoryAwarded=false;bossDeathTime=-1;bossDeathX=0;arcade.reset();vy=0;jumpY=0;duckTime=0;phase=0;runCycle=0;invulnerable=0;shotCooldown=0;muzzleFlash=0;recoil=0;fireHeld=false;bullets.length=0;particles.length=0;blastEffects.length=0;dustPuffs.length=0;enemyDebris.length=0;ticks.forEach(t=>t.alive=true);clearTouchMovement();movement.left=false;movement.right=false;last=0;message.style.display='none';hud()}
-function jump(){if(!running){start()}if(!paused&&jumpY===0){vy=Math.sqrt(2*GRAVITY*H*.23);duckTime=0}}
+function start(){if(victoryRestartAt&&performance.now()<victoryRestartAt)return;victoryRestartAt=0;document.getElementById('victory-credit').style.display='none';message.classList.remove('victory-message');running=true;paused=false;score=0;health=3;distance=0;scroll=0;facing=1;bossVictoryAwarded=false;bossDeathTime=-1;bossDeathX=0;arcade.reset();vy=0;jumpY=0;horizontalSpeed=0;jumpHeld=false;duckTime=0;phase=0;runCycle=0;invulnerable=0;shotCooldown=0;muzzleFlash=0;recoil=0;fireHeld=false;bullets.length=0;particles.length=0;blastEffects.length=0;dustPuffs.length=0;enemyDebris.length=0;ticks.forEach(t=>t.alive=true);clearTouchMovement();movement.left=false;movement.right=false;last=0;message.style.display='none';hud()}
+function jump(){if(!running){start()}if(!paused&&jumpY===0){vy=Math.sqrt(2*GRAVITY*H*.23);jumpHeld=true;duckTime=0}}
 function duck(){if(!running){start()}if(!paused)duckTime=.7}
 function pause(){if(!running)return;paused=!paused;last=0;if(paused){fireHeld=false;clearTouchMovement();movement.left=false;movement.right=false}message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display=paused?'block':'none'}
 for(const [id,fn] of [['jump',jump],['duck',duck],['grenade',grenade],['pause',pause]])document.getElementById(id).addEventListener('pointerdown',e=>{e.preventDefault();fn()});
@@ -123,8 +131,8 @@ for(const id of ['left','right']){const el=document.getElementById(id);const poi
 const fireButton=document.getElementById('shoot');fireButton.addEventListener('pointerdown',e=>{e.preventDefault();if(!running)start();fireHeld=true;fireButton.setPointerCapture(e.pointerId);shoot()});for(const event of ['pointerup','pointercancel','lostpointercapture'])fireButton.addEventListener(event,()=>fireHeld=false);
 addEventListener('blur',()=>{clearTouchMovement();movement.left=false;movement.right=false;fireHeld=false;if(running&&!paused){paused=true;message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display='block'}});
 message.addEventListener('pointerdown',()=>{if(paused)pause();else start()});canvas.addEventListener('pointerdown',()=>{if(!running)start()});
-addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='a'){if(!running)start();movement.left=true;}if(e.key==='ArrowRight'||e.key==='d'){if(!running)start();movement.right=true;}if(e.key==='ArrowUp'||e.key===' '){e.preventDefault();if(!e.repeat)jump();}if(e.key==='ArrowDown')duck();if(e.key==='Escape')pause();if((e.key==='f'||e.key==='Control')&&!e.repeat)shoot();if(e.key==='g'&&!e.repeat)grenade()});
-addEventListener('keyup',e=>{if(e.key==='ArrowLeft'||e.key==='a')movement.left=false;if(e.key==='ArrowRight'||e.key==='d')movement.right=false});
+addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='a'){if(!running)start();movement.left=true;}if(e.key==='ArrowRight'||e.key==='d'){if(!running)start();movement.right=true;}if(e.key==='ArrowUp'||e.key===' '){e.preventDefault();jumpHeld=true;if(!e.repeat)jump();}if(e.key==='ArrowDown')duck();if(e.key==='Escape')pause();if((e.key==='f'||e.key==='Control')&&!e.repeat)shoot();if(e.key==='g'&&!e.repeat)grenade()});
+addEventListener('keyup',e=>{if(e.key==='ArrowUp'||e.key===' ')jumpHeld=false;if(e.key==='ArrowLeft'||e.key==='a')movement.left=false;if(e.key==='ArrowRight'||e.key==='d')movement.right=false});
 for(const [selector,sprite] of [['.portrait-player',sprites.soldier[0]],['.portrait-target',sprites.tick[0]]]){const el=document.querySelector(selector);if(el){el.style.backgroundImage='url('+sprite.toDataURL()+')';el.style.backgroundSize='contain';el.style.backgroundPosition='center';el.style.imageRendering='pixelated'}}
 requestAnimationFrame(frame);
 
