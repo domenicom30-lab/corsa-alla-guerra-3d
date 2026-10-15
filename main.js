@@ -770,6 +770,85 @@ let soldierIdle = null;
 let soldierJump = null;
 let soldierActiveAction = null;
 
+
+/**
+ * Create in-place locomotion for the Mixamo-compatible rig in the historical
+ * Panzergrenadier GLB. Tracks use each bone's imported rest quaternion, so
+ * they don't replace the bind pose with arbitrary absolute rotations.
+ */
+function createRigClip(root, name, duration, poseAt) {
+  const boneNames = [
+    'Hips', 'Spine', 'Spine1', 'LeftArm', 'RightArm',
+    'LeftForeArm', 'RightForeArm', 'LeftUpLeg', 'RightUpLeg',
+    'LeftLeg', 'RightLeg', 'LeftFoot', 'RightFoot'
+  ];
+  const bones = new Map();
+  root.traverse((node) => {
+    if (!node.isBone) return;
+    const match = node.name.match(/mixamorig:([A-Za-z0-9]+)/i);
+    if (match && boneNames.includes(match[1])) bones.set(match[1], node);
+  });
+  if (!bones.has('LeftUpLeg') || !bones.has('RightUpLeg')) return null;
+
+  const samples = 17;
+  const times = Array.from({ length: samples }, (_, i) => duration * i / (samples - 1));
+  const tracks = [];
+  const offset = new THREE.Quaternion();
+  const animated = new THREE.Quaternion();
+  for (const namePart of boneNames) {
+    const bone = bones.get(namePart);
+    if (!bone) continue;
+    const rest = bone.quaternion.clone();
+    const values = [];
+    for (const time of times) {
+      const angles = poseAt(namePart, time / duration);
+      offset.setFromEuler(new THREE.Euler(angles[0], angles[1], angles[2], 'XYZ'));
+      animated.copy(rest).multiply(offset).normalize();
+      values.push(animated.x, animated.y, animated.z, animated.w);
+    }
+    tracks.push(new THREE.QuaternionKeyframeTrack(
+      bone.name + '.quaternion', times, values
+    ));
+  }
+  return new THREE.AnimationClip(name, duration, tracks);
+}
+
+function createSoldierRunClip(root) {
+  return createRigClip(root, 'Historical_Run', 0.76, (part, phase) => {
+    const cycle = phase * Math.PI * 2;
+    const left = Math.sin(cycle);
+    const right = -left;
+    const bounce = Math.cos(cycle * 2);
+    const pitch = {
+      Hips: [0.035 * bounce, 0.055 * left, 0.045 * left],
+      Spine: [0.075, -0.06 * left, -0.035 * left],
+      Spine1: [0.035, -0.04 * left, 0],
+      LeftUpLeg: [0.53 * left, 0, 0.025],
+      RightUpLeg: [0.53 * right, 0, -0.025],
+      LeftLeg: [0.20 + 0.60 * Math.max(0, -left), 0, 0],
+      RightLeg: [0.20 + 0.60 * Math.max(0, -right), 0, 0],
+      LeftFoot: [-0.12 - 0.16 * left, 0, 0],
+      RightFoot: [-0.12 - 0.16 * right, 0, 0],
+      LeftArm: [-0.38 * right - 0.13, 0, -0.10],
+      RightArm: [-0.38 * left - 0.13, 0, 0.10],
+      LeftForeArm: [-0.50 - 0.15 * Math.max(0, right), 0, 0],
+      RightForeArm: [-0.50 - 0.15 * Math.max(0, left), 0, 0]
+    };
+    return pitch[part] || [0, 0, 0];
+  });
+}
+
+function createSoldierIdleClip(root) {
+  return createRigClip(root, 'Historical_Idle', 2, (part, phase) => {
+    const breathe = Math.sin(phase * Math.PI * 2);
+    if (part === 'LeftArm') return [-0.18, 0, -0.12];
+    if (part === 'RightArm') return [-0.18, 0, 0.12];
+    if (part === 'LeftForeArm' || part === 'RightForeArm') return [-0.25, 0, 0];
+    if (part === 'Spine') return [0.025 * breathe, 0, 0];
+    return [0, 0, 0];
+  });
+}
+
 const loader = new GLTFLoader();
 
 loader.load(
@@ -817,7 +896,15 @@ loader.load(
 
     soldierMixer = new THREE.AnimationMixer(soldier);
 
-    const clips = gltf.animations;
+    const clips = [...gltf.animations];
+    if (!clips.some(clip => /run|walk/i.test(clip.name))) {
+      const generatedRun = createSoldierRunClip(soldier);
+      if (generatedRun) clips.push(generatedRun);
+    }
+    if (!clips.some(clip => /idle/i.test(clip.name))) {
+      const generatedIdle = createSoldierIdleClip(soldier);
+      if (generatedIdle) clips.push(generatedIdle);
+    }
     if (!clips.length) {
       console.warn('Panzergrenadier GLB has no animation clips; rigged running animation must be supplied separately.');
     }
