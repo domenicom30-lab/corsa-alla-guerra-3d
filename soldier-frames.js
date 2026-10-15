@@ -142,5 +142,5 @@ function makeFrame(pose,index){
  g.imageSmoothingEnabled=false;return c;
 }
 export const soldierFrames={};
-export function loadSoldierFrames(){for(const [pose,count] of Object.entries(frameCounts))soldierFrames[pose]=Array.from({length:count},(_,i)=>makeFrame(pose,i))}
+export function loadSoldierFrames(){for(const [pose,count] of Object.entries(frameCounts)){if(soldierFrames[pose]?.length===count)continue;soldierFrames[pose]=Array.from({length:count},(_,i)=>makeFrame(pose,i))}}
 export function drawSoldierFrame(ctx,pose,frame,x,y,w,h){const frames=soldierFrames[pose]||soldierFrames.idle;if(!frames)return false;ctx.imageSmoothingEnabled=false;ctx.drawImage(frames[Math.abs(Math.floor(frame))%frames.length],x,y,w,h);return true}
