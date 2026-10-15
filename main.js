@@ -104,6 +104,7 @@ function update(dt){
  if(Math.abs(horizontalSpeed)>SPEED*.09){const oldStep=Math.floor(runCycle);runCycle+=Math.abs(scroll-previousScroll)/Math.max(1,H)*7;if(jumpY===0&&Math.floor(runCycle)!==oldStep&&Math.floor(runCycle)%2===0){dustPuffs.push({x:playerX()-facing*H*.045,y:ground()-H*.008,life:.34,size:H*.018,color:'#b8a47b'});if(dustPuffs.length>35)dustPuffs.shift()}}
  const cameraDelta=scroll-previousScroll;distance=scroll/50;phase+=dt*15;if(bossDeathTime>=0){bossDeathTime+=dt;bossDeathX-=cameraDelta;if(bossDeathTime>2.6)bossDeathTime=-1;}if(direction!==0)facing=direction;
  const collected=arcade.collect(scroll+playerX(),jumpY,ground(),H);if(collected==='health')health=Math.min(3,health+1);
+ const rescued=arcade.rescue(scroll+playerX(),jumpY,H);if(rescued){health=Math.min(3,health+rescued);score+=rescued*500;burst(playerX(),ground()-H*.18)}
  arcade.step(dt,scroll,playerX(),ground(),H,damage,explosion,cameraDelta);
  if(!running){hud();return}
  shotCooldown=Math.max(0,shotCooldown-dt);muzzleFlash=Math.max(0,muzzleFlash-dt);recoil=Math.max(0,recoil-dt*12);if(fireHeld&&shotCooldown===0)shoot();
