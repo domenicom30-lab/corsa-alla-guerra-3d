@@ -33,7 +33,7 @@ function resize(){W=innerWidth;H=innerHeight;const pixelBudget=2400000;dpr=Math.
 addEventListener('resize',resize);resize();
 function ground(){return H*.78}
 function playerX(){return W*.22}
-const obstacles=Array.from({length:32},(_,i)=>({x:750+i*420+(i%3)*100,type:i%3,hit:false}));
+
 function rect(x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(x,y,w,h)}
 const backdrop=document.createElement('canvas');backdrop.width=960;backdrop.height=540;const bg=backdrop.getContext('2d');
 function background(){
@@ -63,11 +63,6 @@ function drawPlayer(){
  drawSoldierFrame(ctx,pose,frame,x,y-footstepBob,w,h);
  if(muzzleFlash>0){const mx=x+w*.95,my=y+h*.48,flash=H*(.032+.013*Math.min(1,muzzleFlash/.07));ctx.fillStyle='#fff6c8';ctx.fillRect(mx,my-H*.006,flash*.6,H*.012);ctx.fillStyle='#ffc34e';ctx.beginPath();ctx.moveTo(mx,my-H*.015);ctx.lineTo(mx+flash,my);ctx.lineTo(mx,my+H*.015);ctx.closePath();ctx.fill();ctx.fillStyle='#f08b27';ctx.fillRect(mx+flash*.7,my-H*.004,flash*.28,H*.008);for(let i=0;i<3;i++){const sparkX=mx+flash*(.55+i*.23),sparkY=my+(i-1)*H*.023;ctx.fillStyle=i===1?'#fff3a1':'#f5a83e';ctx.fillRect(sparkX,sparkY,Math.max(2,H*.005),Math.max(2,H*.005))}}
  ctx.restore();
-}
-function drawObstacles(){
- for(const o of obstacles){const x=o.x-scroll,w=H*.13,h=H*.14;if(x<-w||x>W+w)continue;
- const sprite=o.type===0?(arcadeArt.sandbags||sprites.sandbags):(arcadeArt.crate||sprites.crate);ctx.drawImage(sprite,x,ground()-h,w,h);
- }
 }
 function drawTicks(){
  for(const t of ticks){if(!t.alive)continue;const x=t.x-scroll,y=ground()-H*.065+Math.sin(phase*1.7+t.phase)*H*.006,w=H*.095,h=H*.078;
@@ -108,12 +103,11 @@ function update(dt){
  if(duckTime>0)duckTime=Math.max(0,duckTime-dt);
  if(invulnerable>0)invulnerable=Math.max(0,invulnerable-dt);
  if(jumpY>0||vy>0){jumpY+=vy*dt;vy-=GRAVITY*dt;if(jumpY<=0){jumpY=0;vy=0}}
- for(const o of obstacles){const x=o.x-scroll,w=H*.13;if(!o.hit&&x<playerX()+H*.05&&x+w>playerX()-H*.05){o.hit=true;if(jumpY<H*.12&&invulnerable===0){damage();if(!running){hud();return}}else if(jumpY>=H*.12)score+=20}}
  if(distance>=200&&arcade.boss.defeated){running=false;fireHeld=false;clearTouchMovement();movement.left=false;movement.right=false;shotCooldown=0;last=0;message.textContent='HAI SCONFITTO LE ZECCHE ROSSE!\nTOCCA PER RIPROVARE';message.classList.add('victory-message');message.style.display='block';document.getElementById('victory-credit').style.display='block'}hud();
 }
 function drawBossHealthBar(){if(!arcade.boss.active||arcade.boss.defeated)return;const width=Math.min(W*.52,360),height=Math.max(10,H*.023),x=(W-width)/2,y=Math.max(14,H*.075),ratio=Math.max(0,Math.min(1,arcade.boss.hp/arcade.boss.maxHp));ctx.save();ctx.fillStyle='#171b1b';ctx.fillRect(x-5,y-5,width+10,height+10);ctx.fillStyle='#483a32';ctx.fillRect(x,y,width,height);ctx.fillStyle=ratio>.35?'#d94d35':'#f0a33e';ctx.fillRect(x,y,width*ratio,height);ctx.fillStyle='#f7e8b9';ctx.fillRect(x,y,width*ratio,Math.max(2,height*.22));ctx.strokeStyle='#f4d7a0';ctx.lineWidth=2;ctx.strokeRect(x,y,width,height);ctx.restore()}
-function frame(t){if(!visible){last=t;requestAnimationFrame(frame);return}if(last&&t-last<1000/65){requestAnimationFrame(frame);return}const dt=Math.min(last?(t-last)/1000:0,.05);last=t;update(dt);ctx.save();if(arcade.screenShake>0){const shake=arcade.screenShake;ctx.translate(Math.sin(phase*3.1)*shake*.5,Math.cos(phase*4.3)*shake*.35)}background();drawObstacles();drawTicks();arcade.draw(ctx,scroll,ground(),H,phase);drawDust();drawPlayer();drawBullets();drawBlastEffects();drawEnemyDebris();drawParticles();ctx.restore();drawBossHealthBar();requestAnimationFrame(frame)}
-function start(){document.getElementById('victory-credit').style.display='none';message.classList.remove('victory-message');running=true;paused=false;score=0;health=3;distance=0;scroll=0;facing=1;bossVictoryAwarded=false;arcade.reset();vy=0;jumpY=0;duckTime=0;phase=0;runCycle=0;invulnerable=0;shotCooldown=0;muzzleFlash=0;recoil=0;fireHeld=false;bullets.length=0;particles.length=0;blastEffects.length=0;dustPuffs.length=0;enemyDebris.length=0;ticks.forEach(t=>t.alive=true);obstacles.forEach(o=>o.hit=false);clearTouchMovement();movement.left=false;movement.right=false;last=0;message.style.display='none';hud()}
+function frame(t){if(!visible){last=t;requestAnimationFrame(frame);return}if(last&&t-last<1000/65){requestAnimationFrame(frame);return}const dt=Math.min(last?(t-last)/1000:0,.05);last=t;update(dt);ctx.save();if(arcade.screenShake>0){const shake=arcade.screenShake;ctx.translate(Math.sin(phase*3.1)*shake*.5,Math.cos(phase*4.3)*shake*.35)}background();drawTicks();arcade.draw(ctx,scroll,ground(),H,phase);drawDust();drawPlayer();drawBullets();drawBlastEffects();drawEnemyDebris();drawParticles();ctx.restore();drawBossHealthBar();requestAnimationFrame(frame)}
+function start(){document.getElementById('victory-credit').style.display='none';message.classList.remove('victory-message');running=true;paused=false;score=0;health=3;distance=0;scroll=0;facing=1;bossVictoryAwarded=false;arcade.reset();vy=0;jumpY=0;duckTime=0;phase=0;runCycle=0;invulnerable=0;shotCooldown=0;muzzleFlash=0;recoil=0;fireHeld=false;bullets.length=0;particles.length=0;blastEffects.length=0;dustPuffs.length=0;enemyDebris.length=0;ticks.forEach(t=>t.alive=true);clearTouchMovement();movement.left=false;movement.right=false;last=0;message.style.display='none';hud()}
 function jump(){if(!running){start()}if(!paused&&jumpY===0){vy=Math.sqrt(2*GRAVITY*H*.23);duckTime=0}}
 function duck(){if(!running){start()}if(!paused)duckTime=.7}
 function pause(){if(!running)return;paused=!paused;last=0;if(paused){fireHeld=false;clearTouchMovement();movement.left=false;movement.right=false}message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display=paused?'block':'none'}
