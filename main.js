@@ -365,21 +365,25 @@ function installPBR(material, basePath, repeatX, repeatY) {
     if (color) texture.colorSpace = THREE.SRGBColorSpace;
     return texture;
   };
-  pbrLoader.load(basePath + '_color.jpg', tex => {
-    material.map = configure(tex, true);
-    material.color.set(0xffffff);
-    material.needsUpdate = true;
-  }, undefined, () => {});
-  pbrLoader.load(basePath + '_normal.jpg', tex => {
-    material.normalMap = configure(tex);
-    material.normalScale = new THREE.Vector2(0.6, 0.6);
-    material.needsUpdate = true;
-  }, undefined, () => {});
-  pbrLoader.load(basePath + '_roughness.jpg', tex => {
-    material.roughnessMap = configure(tex);
-    material.roughness = 1;
-    material.needsUpdate = true;
-  }, undefined, () => {});
+  // Only replace the procedural fallback when a complete photographic
+  // material set has loaded. Prevents mixed/inconsistent maps in offline APKs.
+  const load = (suffix) => new Promise((resolve, reject) => {
+    pbrLoader.load(basePath + '_' + suffix + '.jpg', resolve, undefined, reject);
+  });
+  Promise.all([load('color'), load('normal'), load('roughness')])
+    .then(([color, normal, roughness]) => {
+      material.map = configure(color, true);
+      material.normalMap = configure(normal);
+      material.roughnessMap = configure(roughness);
+      material.color.set(0xffffff);
+      material.normalScale.set(0.7, 0.7);
+      material.roughness = 1;
+      material.needsUpdate = true;
+      console.info('Photographic PBR enabled:', basePath);
+    })
+    .catch(() => {
+      // Offline or absent asset pack: retain existing lightweight fallback.
+    });
 }
 installPBR(roadMat, './assets/textures/road', 2, 30);
 installPBR(dirtMat, './assets/textures/forest', 2, 25);
