@@ -31,7 +31,7 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.13;
+renderer.toneMappingExposure = 0.88;
 renderer.shadowMap.autoUpdate = true;
 
 const scene = new THREE.Scene();
@@ -86,10 +86,10 @@ camera.lookAt(0, 1.35, -5);
 
 // Illuminazione
 scene.add(
-  new THREE.HemisphereLight(0xdce8e8, 0x35372b, 1.9)
+  new THREE.HemisphereLight(0xc3cfd0, 0x302d24, 1.15)
 );
 
-const sun = new THREE.DirectionalLight(0xffe5c4, 3.0);
+const sun = new THREE.DirectionalLight(0xffe5c4, 2.15);
 sun.position.set(-7, 13, 5);
 sun.castShadow = true;
 sun.shadow.mapSize.set(1024, 1024);
@@ -102,7 +102,7 @@ sun.shadow.bias = -0.00012;
 sun.shadow.radius = 2;
 scene.add(sun);
 
-const fillLight = new THREE.DirectionalLight(0xaac4d2, 0.65);
+const fillLight = new THREE.DirectionalLight(0xaac4d2, 0.38);
 fillLight.position.set(6, 5, -8);
 scene.add(fillLight);
 
@@ -385,10 +385,12 @@ function installPBR(material, basePath, repeatX, repeatY) {
       // Offline or absent asset pack: retain existing lightweight fallback.
     });
 }
-installPBR(roadMat, './assets/textures/road', 2, 30);
-installPBR(dirtMat, './assets/textures/forest', 2, 25);
-
+installPBR(roadMat, './assets/textures/road', 2, 18);
+installPBR(dirtMat, './assets/textures/forest', 5, 13);
+// The roadside shoulders previously kept a bright procedural texture even
+// when the adjacent ground used photographic PBR. Match the same material set.
 vergeMat.map = createEarthAlbedo(false);
+installPBR(vergeMat, './assets/textures/forest', 1, 18);
 
 // Funzioni per creare oggetti 3D
 function addBox(parent, size, material, pos, cast = true) {
