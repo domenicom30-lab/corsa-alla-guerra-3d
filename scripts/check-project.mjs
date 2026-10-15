@@ -54,6 +54,7 @@ const checks = [
  ['Schermata vittoria leggibile',()=>{for(const token of ["message.classList.add('victory-message')","message.classList.remove('victory-message')"])assert.ok(main.includes(token),token)}],
  ['Dettagli sprite soldato',()=>{const soldier=readFileSync('soldier-frames.js','utf8');for(const token of ['Hand-pixelled material detail','High-contrast pixel clusters','torsoY-14','frontKnee-3'])assert.ok(soldier.includes(token),token)}],
  ['Sprite soldato con ombreggiatura stratificata',()=>{const soldier=readFileSync('soldier-frames.js','utf8');for(const token of ['const armor=(x,y,w,h,base,light,shade)=>','Layered high-resolution pixel rendering','Combat vest, belts, buckles and pouches','Rifle receiver, magazine, muzzle'])assert.ok(soldier.includes(token),token)}],
+ ['Silhouette originali non rettangolari',()=>{const soldier=readFileSync('soldier-frames.js','utf8');for(const token of ['const poly=(points,color)=>','Organic stepped combat jacket','Curved, chipped steel helmet silhouette'])assert.ok(soldier.includes(token),token)}],
  ['Prestazioni mobile',()=>{assert.ok(main.includes('devicePixelRatio'));assert.ok(main.includes('requestAnimationFrame(frame)'))}],
  ['Build configurata',()=>assert.ok(pkg.scripts.build)]
 ];
