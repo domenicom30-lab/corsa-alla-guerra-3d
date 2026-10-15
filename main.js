@@ -7,7 +7,7 @@ loadSoldierFrames();loadExternalSoldier();
 import {prepareEnemyFrames,drawEnemyFrame} from './enemy-frames.js';
 prepareEnemyFrames();
 import './style.css';
-import {drawBattleAtmosphere,drawArcadeForeground,drawBossDeathCinematic,drawWarzoneParallax} from './arcade-cinematics.js';
+import {drawBattleAtmosphere,drawArcadeForeground,drawBossDeathCinematic,drawWarzoneParallax,drawArcadeStorm} from './arcade-cinematics.js';
 // Side-scrolling 2D platform runner: fixed-size sprites, horizontal world, no depth projection.
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d',{alpha:false});
 const message=document.getElementById('message'),stats=document.getElementById('stats');
@@ -33,6 +33,30 @@ let jumpHeld=false;
 let recoil=0;
 const ride={x:750,hp:100,maxHp:100,occupied:false,cooldown:0,flash:0};
 let audioEngine=null;
+
+let musicStep=0,musicNext=0;
+const bassLine=[110,110,123.47,130.81,98,98,110,130.81];
+const melodyLine=[220,261.63,329.63,392,440,392,329.63,261.63];
+function scheduleChipNote(frequency,wave,duration,volume,time){
+ const osc=audioEngine.createOscillator(),gain=audioEngine.createGain();
+ osc.type=wave;osc.frequency.setValueAtTime(frequency,time);
+ gain.gain.setValueAtTime(volume,time);
+ gain.gain.exponentialRampToValueAtTime(.001,time+duration);
+ osc.connect(gain);gain.connect(audioEngine.destination);
+ osc.start(time);osc.stop(time+duration+.01);
+}
+function updateArcadeMusic(){
+ if(!audioEngine||audioEngine.state!=='running'||!running||paused||!visible){musicNext=0;return}
+ const now=audioEngine.currentTime;
+ if(!musicNext||musicNext<now-.4)musicNext=now+.04;
+ let count=0;
+ while(musicNext<now+.18&&count++<3){
+  scheduleChipNote(bassLine[musicStep%8],'triangle',.17,.035,musicNext);
+  if(musicStep%2===0)scheduleChipNote(melodyLine[(musicStep/2)%8],'square',.11,.022,musicNext);
+  musicStep++;musicNext+=.18;
+ }
+}
+
 function soundEffect(type){
  try{
   const C=window.AudioContext||window.webkitAudioContext;
@@ -189,8 +213,8 @@ function update(dt){
  if(distance>=200&&arcade.boss.defeated){victoryRestartAt=performance.now()+VICTORY_RESTART_DELAY_MS;running=false;fireHeld=false;clearTouchMovement();movement.left=false;movement.right=false;shotCooldown=0;last=0;message.textContent='HAI SCONFITTO LE ZECCHE ROSSE!\nTOCCA PER RIPROVARE';message.classList.add('victory-message');message.style.display='block';document.getElementById('victory-credit').style.display='block'}hud();
 }
 function drawBossHealthBar(){if(!arcade.boss.active||arcade.boss.defeated)return;const width=Math.min(W*.52,360),height=Math.max(10,H*.023),x=(W-width)/2,y=Math.max(14,H*.075),ratio=Math.max(0,Math.min(1,arcade.boss.hp/arcade.boss.maxHp));ctx.save();ctx.fillStyle='#171b1b';ctx.fillRect(x-5,y-5,width+10,height+10);ctx.fillStyle='#483a32';ctx.fillRect(x,y,width,height);ctx.fillStyle=ratio>.35?'#d94d35':'#f0a33e';ctx.fillRect(x,y,width*ratio,height);ctx.fillStyle='#f7e8b9';ctx.fillRect(x,y,width*ratio,Math.max(2,height*.22));ctx.strokeStyle='#f4d7a0';ctx.lineWidth=2;ctx.strokeRect(x,y,width,height);ctx.restore()}
-function frame(t){if(!visible){last=t;requestAnimationFrame(frame);return}if(last&&t-last<1000/65){requestAnimationFrame(frame);return}const dt=Math.min(last?(t-last)/1000:0,.05);last=t;update(dt);ctx.save();if(arcade.screenShake>0){const shake=arcade.screenShake;ctx.translate(Math.sin(phase*3.1)*shake*.5,Math.cos(phase*4.3)*shake*.35)}background();drawBattleAtmosphere(ctx,W,H,scroll,phase,ground());drawTicks();arcade.draw(ctx,scroll,ground(),H,phase);drawDust();drawRide();if(!ride.occupied)drawPlayer();drawBullets();drawCasings();drawBlastEffects();drawEnemyDebris();drawParticles();drawArcadeForeground(ctx,W,H,scroll,ground(),phase);if(bossDeathTime>=0)drawBossDeathCinematic(ctx,W,H,ground(),bossDeathTime,bossDeathX);ctx.restore();drawArcadeFlash();drawBossHealthBar();requestAnimationFrame(frame)}
-function start(){if(victoryRestartAt&&performance.now()<victoryRestartAt)return;victoryRestartAt=0;document.getElementById('victory-credit').style.display='none';message.classList.remove('victory-message');running=true;paused=false;score=0;health=3;distance=0;scroll=0;facing=1;bossVictoryAwarded=false;bossDeathTime=-1;bossDeathX=0;arcade.reset();Object.assign(ride,{x:750,hp:100,occupied:false,cooldown:0,flash:0});vy=0;jumpY=0;horizontalSpeed=0;jumpHeld=false;duckTime=0;phase=0;runCycle=0;invulnerable=0;shotCooldown=0;muzzleFlash=0;recoil=0;fireHeld=false;bullets.length=0;casings.length=0;hitFlash=0;particles.length=0;blastEffects.length=0;dustPuffs.length=0;enemyDebris.length=0;ticks.forEach(t=>t.alive=true);clearTouchMovement();movement.left=false;movement.right=false;last=0;message.style.display='none';hud()}
+function frame(t){updateArcadeMusic();if(!visible){last=t;requestAnimationFrame(frame);return}if(last&&t-last<1000/65){requestAnimationFrame(frame);return}const dt=Math.min(last?(t-last)/1000:0,.05);last=t;update(dt);ctx.save();if(arcade.screenShake>0){const shake=arcade.screenShake;ctx.translate(Math.sin(phase*3.1)*shake*.5,Math.cos(phase*4.3)*shake*.35)}background();drawBattleAtmosphere(ctx,W,H,scroll,phase,ground());drawArcadeStorm(ctx,W,H,phase*.015);drawTicks();arcade.draw(ctx,scroll,ground(),H,phase);drawDust();drawRide();if(!ride.occupied)drawPlayer();drawBullets();drawCasings();drawBlastEffects();drawEnemyDebris();drawParticles();drawArcadeForeground(ctx,W,H,scroll,ground(),phase);if(bossDeathTime>=0)drawBossDeathCinematic(ctx,W,H,ground(),bossDeathTime,bossDeathX);ctx.restore();drawArcadeFlash();drawBossHealthBar();requestAnimationFrame(frame)}
+function start(){musicStep=0;musicNext=0;if(victoryRestartAt&&performance.now()<victoryRestartAt)return;victoryRestartAt=0;document.getElementById('victory-credit').style.display='none';message.classList.remove('victory-message');running=true;paused=false;score=0;health=3;distance=0;scroll=0;facing=1;bossVictoryAwarded=false;bossDeathTime=-1;bossDeathX=0;arcade.reset();Object.assign(ride,{x:750,hp:100,occupied:false,cooldown:0,flash:0});vy=0;jumpY=0;horizontalSpeed=0;jumpHeld=false;duckTime=0;phase=0;runCycle=0;invulnerable=0;shotCooldown=0;muzzleFlash=0;recoil=0;fireHeld=false;bullets.length=0;casings.length=0;hitFlash=0;particles.length=0;blastEffects.length=0;dustPuffs.length=0;enemyDebris.length=0;ticks.forEach(t=>t.alive=true);clearTouchMovement();movement.left=false;movement.right=false;last=0;message.style.display='none';hud()}
 function jump(){if(!running){start()}if(!paused&&!ride.occupied&&jumpY===0){vy=Math.sqrt(2*GRAVITY*H*.23);jumpHeld=true;duckTime=0}}
 function duck(){if(!running){start()}if(!paused)duckTime=.7}
 function pause(){if(!running)return;paused=!paused;last=0;if(paused){fireHeld=false;clearTouchMovement();movement.left=false;movement.right=false}message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display=paused?'block':'none'}
