@@ -45,6 +45,7 @@ const checks = [
  ['Comandi reali puliti senza variabile keys inesistente',()=>{assert.ok(!main.includes('keys.left=false'));assert.ok(main.includes('if(!visible){fireHeld=false;clearTouchMovement();movement.left=false;movement.right=false;'));assert.ok(main.includes("addEventListener('blur',()=>{clearTouchMovement();movement.left=false;movement.right=false;fireHeld=false;"))}],
  ['Boss animato e rendering limitato alla viewport',()=>{const combat=readFileSync('arcade-mechanics.js','utf8');for(const t of ['const treadFrame=Math.floor(phase*.55)%4','if(x<-H*.55||x>viewportWidth+H*.55)return','treadFrame%2'])assert.ok(combat.includes(t),t)}],
  ['Nuova partita azzera movimento e tempo',()=>{assert.ok(main.includes("obstacles.forEach(o=>o.hit=false);clearTouchMovement();movement.left=false;movement.right=false;last=0;message.style.display='none';hud()"))}],
+ ['Salute boss visibile durante lo scontro',()=>{for(const token of ["arcade.boss.active&&!arcade.boss.defeated?' · BOSS '",'Math.ceil(arcade.boss.hp/arcade.boss.maxHp*100)'])assert.ok(main.includes(token),token)}],
  ['Prestazioni mobile',()=>{assert.ok(main.includes('devicePixelRatio'));assert.ok(main.includes('requestAnimationFrame(frame)'))}],
  ['Build configurata',()=>assert.ok(pkg.scripts.build)]
 ];
