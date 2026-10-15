@@ -20,7 +20,39 @@ export function createArcadeSystems(){
   for(const p of pickups){if(p.taken)continue;const x=p.x-scroll;if(x< -80||x>ctx.canvas.width+80)continue;const y=ground-H*.18+Math.sin(phase*.12)*H*.013;ctx.save();ctx.translate(x,y);ctx.fillStyle=p.type==='health'?'#c63e42':p.type==='spread'?'#d9b64e':'#6cba96';ctx.fillRect(-H*.035,-H*.035,H*.07,H*.07);ctx.strokeStyle='#fff5d4';ctx.lineWidth=2;ctx.strokeRect(-H*.035,-H*.035,H*.07,H*.07);ctx.fillStyle='#171d19';ctx.font='bold '+Math.max(11,H*.042)+'px monospace';ctx.textAlign='center';ctx.fillText(p.type==='health'?'+':p.type==='spread'?'S':'H',0,H*.015);ctx.restore()}
   for(const g of grenades){ctx.fillStyle='#313e30';ctx.beginPath();ctx.arc(g.x,g.y,H*.02,0,Math.PI*2);ctx.fill();ctx.fillStyle='#e2c06d';ctx.fillRect(g.x-2,g.y-H*.03,4,5)}
   for(const b of enemyShots){ctx.fillStyle='#ff5d3d';ctx.fillRect(b.x-5,b.y-3,10,6)}
-  if(boss.active&&!boss.defeated){const x=boss.x-scroll;ctx.save();ctx.translate(x,ground);ctx.fillStyle='#252f2d';ctx.fillRect(-H*.25,-H*.32,H*.5,H*.29);ctx.fillStyle='#5b6856';ctx.fillRect(-H*.22,-H*.39,H*.43,H*.13);ctx.fillStyle='#a39a6d';ctx.fillRect(-H*.12,-H*.46,H*.24,H*.1);ctx.fillStyle='#222';ctx.fillRect(-H*.15,-H*.12,H*.3,H*.1);for(const dx of [-.16,.14]){ctx.fillStyle='#111';ctx.beginPath();ctx.arc(H*dx,-H*.03,H*.075,0,Math.PI*2);ctx.fill()}ctx.fillStyle='#181b1b';ctx.fillRect(-H*.36,-H*.29,H*.32,H*.055);ctx.fillStyle='#541e1e';ctx.fillRect(-H*.24,-H*.55,H*.48,H*.022);ctx.fillStyle='#e54d32';ctx.fillRect(-H*.24,-H*.55,H*.48*boss.hp/boss.maxHp,H*.022);ctx.restore()}
+  if(boss.active&&!boss.defeated){
+   const x=boss.x-scroll,unit=H*.01;
+   ctx.save();ctx.translate(x,ground);
+   // Original armored crawler: layered pixel-like hull, track links and turret.
+   ctx.fillStyle='#161c1b';ctx.fillRect(-29*unit,-17*unit,58*unit,15*unit);
+   ctx.fillStyle='#394039';ctx.fillRect(-27*unit,-19*unit,54*unit,12*unit);
+   for(let i=-24;i<=24;i+=6){
+    ctx.fillStyle=i%12===0?'#737765':'#272e2a';
+    ctx.fillRect(i*unit,-9*unit,5*unit,6*unit);
+    ctx.fillStyle='#131a19';ctx.fillRect((i+1)*unit,-8*unit,3*unit,4*unit);
+   }
+   for(const dx of [-19,-9,1,11,21]){
+    ctx.fillStyle='#151b19';ctx.beginPath();ctx.arc(dx*unit,-8*unit,6*unit,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#8b8a71';ctx.beginPath();ctx.arc(dx*unit,-8*unit,3.3*unit,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#313d35';ctx.fillRect((dx-1)*unit,-9*unit,2*unit,2*unit);
+   }
+   ctx.fillStyle='#242f2b';ctx.fillRect(-24*unit,-31*unit,49*unit,17*unit);
+   ctx.fillStyle='#65725b';ctx.fillRect(-23*unit,-34*unit,46*unit,9*unit);
+   ctx.fillStyle='#849078';ctx.fillRect(-18*unit,-32*unit,28*unit,3*unit);
+   ctx.fillStyle='#4b5a4a';ctx.fillRect(-18*unit,-26*unit,38*unit,6*unit);
+   for(let i=-16;i<20;i+=9){ctx.fillStyle='#a7a58b';ctx.fillRect(i*unit,-26*unit,2*unit,2*unit)}
+   ctx.fillStyle='#1d2927';ctx.fillRect(-9*unit,-42*unit,30*unit,12*unit);
+   ctx.fillStyle='#77816c';ctx.fillRect(-6*unit,-45*unit,22*unit,7*unit);
+   ctx.fillStyle='#adb092';ctx.fillRect(-4*unit,-44*unit,15*unit,2*unit);
+   ctx.fillStyle='#303b32';ctx.fillRect(-38*unit,-37*unit,31*unit,6*unit);
+   ctx.fillStyle='#8a8f7a';ctx.fillRect(-38*unit,-36*unit,29*unit,2*unit);
+   ctx.fillStyle='#111a18';ctx.fillRect(-41*unit,-39*unit,5*unit,10*unit);
+   ctx.fillStyle='#e2bd6a';ctx.fillRect(17*unit,-28*unit,4*unit,4*unit);
+   ctx.fillStyle='#ad4838';ctx.fillRect(13*unit,-40*unit,4*unit,3*unit);
+   ctx.fillStyle='#151b1b';ctx.fillRect(-25*unit,-52*unit,50*unit,3*unit);
+   ctx.fillStyle='#d95236';ctx.fillRect(-24*unit,-51*unit,48*unit*Math.max(0,boss.hp/boss.maxHp),2*unit);
+   ctx.restore();
+  }
  };
  return {pickups,grenades,enemyShots,boss,reset,collect,fire,throwGrenade,kill,step,draw,get weapon(){return weapon},get ammo(){return ammo},get grenadeCount(){return grenadeCount},get combo(){return combo},get screenShake(){return screenShake}};
 }
