@@ -84,7 +84,7 @@ jobs:
             fi
           done
 
-          echo "Build fallita dopo 10 tentativi."
+          echo "Build fallita dopo 3 tentativi."
           exit 1
 
       - name: Upload APK
