@@ -36,6 +36,8 @@ export function prepareEnemyFrames(){
   b(38+gait,7+lift,2,7,'#58252a');
   b(38+gait,6+lift,3,2,'#dc7651');
   b(39,22+lift,4,2,'#e2a270');
+  // A migrating shell glint makes all eight authored frames visually distinct.
+  b(15+i*3,20+lift,3,2,'#f1b077');
   b(5,17+lift,7,3,'#8b3030');
   b(7,10+lift,3,8,'#442126');
   b(36,8+lift,3,7,'#442126');
