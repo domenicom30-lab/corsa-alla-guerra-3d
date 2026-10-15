@@ -34,6 +34,7 @@ const checks = [
  ['Limite proiettili per prestazioni Android',()=>assert.ok(main.includes('if(bullets.length>120)bullets.splice(0,bullets.length-120)'))],
  ['Budget pixel canvas Android',()=>{for(const token of ['const pixelBudget=2400000','Math.sqrt(pixelBudget/Math.max(1,W*H))','Math.max(1,Math.round(W*dpr))'])assert.ok(main.includes(token),token)}],
  ['Pulizia tocchi su pausa e riavvio',()=>{for(const token of ['function clearTouchMovement()','activeMovementPointers.left.clear()','activeMovementPointers.right.clear()','if(!visible){fireHeld=false;clearTouchMovement()','clearTouchMovement();message.style.display','addEventListener(\'blur\',()=>{clearTouchMovement()'])assert.ok(main.includes(token),token)}],
+ ['Limite refresh rendering Android',()=>assert.ok(main.includes('if(last&&t-last<1000/65){requestAnimationFrame(frame);return}'))],
  ['Prestazioni mobile',()=>{assert.ok(main.includes('devicePixelRatio'));assert.ok(main.includes('requestAnimationFrame(frame)'))}],
  ['Build configurata',()=>assert.ok(pkg.scripts.build)]
 ];
