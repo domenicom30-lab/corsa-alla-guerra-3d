@@ -28,7 +28,7 @@ const SPEED=250,GRAVITY=1900;
 const MAX_PARTICLES=180;
 let frameClock=0;
 let visible=true;
-document.addEventListener('visibilitychange',()=>{visible=!document.hidden;last=0;if(!visible){fireHeld=false;movement.left=false;movement.right=false;if(running&&!paused){paused=true;message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display='block'}}});
+document.addEventListener('visibilitychange',()=>{visible=!document.hidden;last=0;if(!visible){fireHeld=false;clearTouchMovement();if(running&&!paused){paused=true;message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display='block'}}});
 function resize(){W=innerWidth;H=innerHeight;const pixelBudget=2400000;dpr=Math.min(devicePixelRatio||1,2,Math.sqrt(pixelBudget/Math.max(1,W*H)));canvas.width=Math.max(1,Math.round(W*dpr));canvas.height=Math.max(1,Math.round(H*dpr));canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0)}
 addEventListener('resize',resize);resize();
 function ground(){return H*.78}
@@ -112,14 +112,16 @@ function update(dt){
  if(distance>=200&&arcade.boss.defeated){running=false;fireHeld=false;movement.left=false;movement.right=false;message.textContent='MISSIONE COMPLETATA — TOCCA PER RIPROVARE';message.style.display='block'}hud();
 }
 function frame(t){if(!visible){last=t;requestAnimationFrame(frame);return}const dt=Math.min(last?(t-last)/1000:0,.05);last=t;update(dt);ctx.save();if(arcade.screenShake>0){const shake=arcade.screenShake;ctx.translate(Math.sin(phase*3.1)*shake*.5,Math.cos(phase*4.3)*shake*.35)}background();drawObstacles();drawTicks();arcade.draw(ctx,scroll,ground(),H,phase);drawDust();drawPlayer();drawBullets();drawBlastEffects();drawEnemyDebris();drawParticles();ctx.restore();requestAnimationFrame(frame)}
-function start(){running=true;paused=false;score=0;health=3;distance=0;scroll=0;facing=1;bossVictoryAwarded=false;arcade.reset();vy=0;jumpY=0;duckTime=0;phase=0;runCycle=0;invulnerable=0;shotCooldown=0;muzzleFlash=0;recoil=0;fireHeld=false;bullets.length=0;particles.length=0;blastEffects.length=0;dustPuffs.length=0;enemyDebris.length=0;ticks.forEach(t=>t.alive=true);obstacles.forEach(o=>o.hit=false);movement.left=false;movement.right=false;message.style.display='none';hud()}
+function start(){running=true;paused=false;score=0;health=3;distance=0;scroll=0;facing=1;bossVictoryAwarded=false;arcade.reset();vy=0;jumpY=0;duckTime=0;phase=0;runCycle=0;invulnerable=0;shotCooldown=0;muzzleFlash=0;recoil=0;fireHeld=false;bullets.length=0;particles.length=0;blastEffects.length=0;dustPuffs.length=0;enemyDebris.length=0;ticks.forEach(t=>t.alive=true);obstacles.forEach(o=>o.hit=false);clearTouchMovement();message.style.display='none';hud()}
 function jump(){if(!running){start()}if(!paused&&jumpY===0){vy=Math.sqrt(2*GRAVITY*H*.23);duckTime=0}}
 function duck(){if(!running){start()}if(!paused)duckTime=.7}
 function pause(){if(!running)return;paused=!paused;message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display=paused?'block':'none'}
 for(const [id,fn] of [['jump',jump],['duck',duck],['grenade',grenade],['pause',pause]])document.getElementById(id).addEventListener('pointerdown',e=>{e.preventDefault();fn()});
-for(const id of ['left','right']){const el=document.getElementById(id);const pointers=new Set();el.addEventListener('pointerdown',e=>{e.preventDefault();if(!running)start();el.setPointerCapture(e.pointerId);pointers.add(e.pointerId);movement[id]=true});for(const type of ['pointerup','pointercancel','lostpointercapture'])el.addEventListener(type,e=>{pointers.delete(e.pointerId);movement[id]=pointers.size>0})}
+const activeMovementPointers={left:new Set(),right:new Set()};
+function clearTouchMovement(){activeMovementPointers.left.clear();activeMovementPointers.right.clear();movement.left=false;movement.right=false}
+for(const id of ['left','right']){const el=document.getElementById(id);const pointers=activeMovementPointers[id];el.addEventListener('pointerdown',e=>{e.preventDefault();if(!running)start();el.setPointerCapture(e.pointerId);pointers.add(e.pointerId);movement[id]=true});for(const type of ['pointerup','pointercancel','lostpointercapture'])el.addEventListener(type,e=>{pointers.delete(e.pointerId);movement[id]=pointers.size>0})}
 const fireButton=document.getElementById('shoot');fireButton.addEventListener('pointerdown',e=>{e.preventDefault();if(!running)start();fireHeld=true;fireButton.setPointerCapture(e.pointerId);shoot()});for(const event of ['pointerup','pointercancel','lostpointercapture'])fireButton.addEventListener(event,()=>fireHeld=false);
-addEventListener('blur',()=>{movement.left=false;movement.right=false;fireHeld=false;if(running&&!paused){paused=true;message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display='block'}});
+addEventListener('blur',()=>{clearTouchMovement();fireHeld=false;if(running&&!paused){paused=true;message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display='block'}});
 message.addEventListener('pointerdown',()=>{if(paused)pause();else start()});canvas.addEventListener('pointerdown',()=>{if(!running)start()});
 addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='a'){if(!running)start();movement.left=true;}if(e.key==='ArrowRight'||e.key==='d'){if(!running)start();movement.right=true;}if(e.key==='ArrowUp'||e.key===' '){e.preventDefault();if(!e.repeat)jump();}if(e.key==='ArrowDown')duck();if(e.key==='Escape')pause();if((e.key==='f'||e.key==='Control')&&!e.repeat)shoot();if(e.key==='g'&&!e.repeat)grenade()});
 addEventListener('keyup',e=>{if(e.key==='ArrowLeft'||e.key==='a')movement.left=false;if(e.key==='ArrowRight'||e.key==='d')movement.right=false});
