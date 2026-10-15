@@ -442,8 +442,27 @@ ground.position.set(0, -0.23, -55);
 ground.receiveShadow = true;
 scene.add(ground);
 
+// Subtle physical height variation gives grazing light real surface contours.
+// Road stays nearly flat so runner collisions and lane controls are unchanged.
+function createRoadSurfaceGeometry() {
+  const width = 8, length = 180;
+  const geometry = new THREE.PlaneGeometry(width, length, 24, 180);
+  const positions = geometry.attributes.position;
+  for (let i = 0; i < positions.count; i++) {
+    const x = positions.getX(i);
+    const y = positions.getY(i);
+    const shoulder = Math.pow(Math.abs(x) / 4, 3);
+    const ruts = Math.exp(-Math.pow((Math.abs(x) - 1.45) / 0.40, 2));
+    const ripples = Math.sin(y * 1.4 + x * 1.7) * 0.009 +
+      Math.sin(y * 3.2 - x * 2.1) * 0.004;
+    positions.setZ(i, shoulder * 0.055 - ruts * 0.026 + ripples);
+  }
+  positions.needsUpdate = true;
+  geometry.computeVertexNormals();
+  return geometry;
+}
 const road = new THREE.Mesh(
-  new THREE.PlaneGeometry(8, 180),
+  createRoadSurfaceGeometry(),
   roadMat
 );
 
@@ -647,9 +666,21 @@ function createBush(x, z, scale = 1) {
 }
 
 // Rocce
+// Irregular shared rock geometry avoids perfect low-poly dodecahedrons.
+const rockGeometry = (() => {
+  const geometry = new THREE.IcosahedronGeometry(0.43, 1);
+  const pos = geometry.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const distortion = 1 + 0.16 * Math.sin(x * 19 + y * 7) * Math.cos(z * 13 - x * 5);
+    pos.setXYZ(i, x * distortion, y * distortion, z * distortion);
+  }
+  geometry.computeVertexNormals();
+  return geometry;
+})();
 function createRock(x, z, scale = 1) {
   const rock = new THREE.Mesh(
-    new THREE.DodecahedronGeometry(0.4, 0),
+    rockGeometry,
     rockMats[(Math.random() * rockMats.length) | 0]
   );
 
