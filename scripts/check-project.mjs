@@ -21,6 +21,7 @@ const checks = [
  ['Rinculo e ombra del soldato',()=>{for(const token of ['let recoil=0','recoil=1;bullets.push','recoil=Math.max(0,recoil-dt*12)','ctx.ellipse(playerX()'])assert.ok(main.includes(token),token)}],
  ['Sprite animati fotogramma per fotogramma',()=>{for(const token of ["from './soldier-frames.js'",'loadSoldierFrames();','drawSoldierFrame(ctx,pose,frame','Math.floor(runCycle)%8'])assert.ok(main.includes(token),token)}],
  ['Polvere dei passi sincronizzata',()=>{for(const token of ['const dustPuffs=[]','function drawDust()','dustPuffs.push({','dustPuffs.length=0'])assert.ok(main.includes(token),token)}],
+ ['Nemici animati in otto fotogrammi',()=>{const enemy=readFileSync('enemy-frames.js','utf8');for(const token of ['prepareEnemyFrames','drawEnemyFrame','i<8'])assert.ok(enemy.includes(token),token);for(const token of ["from './enemy-frames.js'",'prepareEnemyFrames();','drawEnemyFrame(ctx,'])assert.ok(main.includes(token),token)}],
  ['Prestazioni mobile',()=>{assert.ok(main.includes('devicePixelRatio'));assert.ok(main.includes('requestAnimationFrame(frame)'))}],
  ['Build configurata',()=>assert.ok(pkg.scripts.build)]
 ];
