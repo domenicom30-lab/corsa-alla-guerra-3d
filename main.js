@@ -6,6 +6,7 @@ const message=document.getElementById('message'),stats=document.getElementById('
 let W=0,H=0,dpr=1,last=0,running=false,paused=false,score=0,health=3,distance=0;
 let scroll=0,vy=0,jumpY=0,duckTime=0,phase=0,invulnerable=0,shotCooldown=0,muzzleFlash=0,fireHeld=false;
 const bullets=[];
+const particles=[];
 const ticks=Array.from({length:25},(_,i)=>({x:1050+i*520,y:0,alive:true,phase:i*.7}));
 const SPEED=250,GRAVITY=1900;
 function resize(){W=innerWidth;H=innerHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0)}
@@ -45,13 +46,16 @@ function drawTicks(){
  }
 }
 function drawBullets(){ctx.fillStyle='#ffdf75';for(const b of bullets){ctx.fillRect(b.x,b.y,Math.max(10,H*.022),Math.max(3,H*.006))}}
+function burst(x,y){for(let i=0;i<13;i++){const angle=i*Math.PI*2/13;particles.push({x,y,vx:Math.cos(angle)*(80+i*9),vy:Math.sin(angle)*(80+i*7)-60,life:.38+i*.012,color:i%3===0?'#ffdc6b':i%3===1?'#ee5828':'#aa181b'})}}
+function drawParticles(){for(const p of particles){ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,Math.max(3,H*.007),Math.max(3,H*.007))}}
 function shoot(){if(!running){start();return}if(paused||shotCooldown>0)return;shotCooldown=.17;muzzleFlash=.07;bullets.push({x:playerX()+H*.12,y:ground()-jumpY-H*(duckTime>0?.12:.21),speed:Math.max(550,W*.8)})}
 function hud(){document.getElementById('points').textContent='PUNTI: '+score;document.getElementById('hearts').innerHTML=Array.from({length:3},(_,i)=>'<span class="heart '+(i>=health?'heart-lost':'')+'">♥</span>').join('');stats.textContent='TRAGUARDO: '+Math.max(0,200-Math.floor(distance))+' m'}
 function update(dt){
  if(!running||paused)return;
  scroll+=SPEED*dt;distance+=dt*5;phase+=dt*15;
  shotCooldown=Math.max(0,shotCooldown-dt);muzzleFlash=Math.max(0,muzzleFlash-dt);if(fireHeld&&shotCooldown===0)shoot();
- for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];b.x+=b.speed*dt;let hit=false;for(const t of ticks){const x=t.x-scroll;if(t.alive&&Math.abs(b.x-x)<H*.055&&Math.abs(b.y-(ground()-H*.055))<H*.145){t.alive=false;score+=100;hit=true;break}}if(hit||b.x>W+40)bullets.splice(i,1)}
+ for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=400*dt;p.life-=dt;if(p.life<=0)particles.splice(i,1)}
+ for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];b.x+=b.speed*dt;let hit=false;for(const t of ticks){const x=t.x-scroll;if(t.alive&&Math.abs(b.x-x)<H*.055&&Math.abs(b.y-(ground()-H*.055))<H*.145){t.alive=false;score+=100;burst(x,ground()-H*.07);hit=true;break}}if(hit||b.x>W+40)bullets.splice(i,1)}
  for(const t of ticks){const x=t.x-scroll;if(t.alive&&invulnerable===0&&Math.abs(x-playerX())<H*.075&&jumpY<H*.09){t.alive=false;health--;invulnerable=1.2;if(health<=0){running=false;message.textContent='PARTITA TERMINATA — TOCCA PER RIPROVARE';message.style.display='block'}}}
  if(duckTime>0)duckTime=Math.max(0,duckTime-dt);
  if(invulnerable>0)invulnerable=Math.max(0,invulnerable-dt);
@@ -59,8 +63,8 @@ function update(dt){
  for(const o of obstacles){const x=o.x-scroll,w=H*.13;if(!o.hit&&x<playerX()+H*.05&&x+w>playerX()-H*.05){o.hit=true;if(jumpY<H*.12&&invulnerable===0){health--;invulnerable=1.1;if(health<=0){running=false;message.textContent='PARTITA TERMINATA — TOCCA PER RIPROVARE';message.style.display='block'}}else score+=20}}
  if(distance>=200){running=false;message.textContent='MISSIONE COMPLETATA — TOCCA PER RIPROVARE';message.style.display='block'}hud();
 }
-function frame(t){const dt=Math.min((t-last)/1000||0,.05);last=t;update(dt);background();drawObstacles();drawTicks();drawPlayer();drawBullets();requestAnimationFrame(frame)}
-function start(){running=true;paused=false;score=0;health=3;distance=0;scroll=0;vy=0;jumpY=0;duckTime=0;phase=0;invulnerable=0;shotCooldown=0;muzzleFlash=0;fireHeld=false;bullets.length=0;ticks.forEach(t=>t.alive=true);obstacles.forEach(o=>o.hit=false);message.style.display='none';hud()}
+function frame(t){const dt=Math.min((t-last)/1000||0,.05);last=t;update(dt);background();drawObstacles();drawTicks();drawPlayer();drawBullets();drawParticles();requestAnimationFrame(frame)}
+function start(){running=true;paused=false;score=0;health=3;distance=0;scroll=0;vy=0;jumpY=0;duckTime=0;phase=0;invulnerable=0;shotCooldown=0;muzzleFlash=0;fireHeld=false;bullets.length=0;particles.length=0;ticks.forEach(t=>t.alive=true);obstacles.forEach(o=>o.hit=false);message.style.display='none';hud()}
 function jump(){if(!running){start();return}if(!paused&&jumpY===0){vy=H*1.13;duckTime=0}}
 function duck(){if(!running){start();return}if(!paused)duckTime=.7}
 function move(direction){if(!running){start();return}if(!paused){scroll=Math.max(0,scroll+direction*H*.17);distance=Math.max(0,distance+direction*.4)}}
