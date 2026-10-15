@@ -35,7 +35,11 @@ function drawPlayer(){
  ctx.save();ctx.imageSmoothingEnabled=false;
  // Keep character readable while invulnerable: use a subtle outline, not transparency.
  if(invulnerable>0&&Math.floor(invulnerable*12)%2===0){ctx.shadowColor='#f8e2a1';ctx.shadowBlur=H*.014;}
- const sheet=arcadeArt.soldier; if(sheet){const frameW=sheet.width/6;ctx.drawImage(sheet,runFrame*frameW,0,frameW,sheet.height,x,y,w,h)}else ctx.drawImage(sprites.soldier[runFrame],x,y,w,h);
+ const sheet=arcadeArt.soldier;
+ const pose=jumpY>0?'jump':duckTime>0?'duck':muzzleFlash>0||fireHeld?'fire':Math.abs(Number(movement.right)-Number(movement.left))>0?'run':'idle';
+ const poseSheet=arcadeArt['soldier_'+pose];
+ if(poseSheet){const count=pose==='run'?6:pose==='fire'?3:1;const frame=pose==='run'?runFrame:pose==='fire'?Math.floor(phase*.65)%3:0;ctx.drawImage(poseSheet,frame*poseSheet.width/count,0,poseSheet.width/count,poseSheet.height,x,y,w,h)}
+ else if(sheet){const frameW=sheet.width/6;ctx.drawImage(sheet,runFrame*frameW,0,frameW,sheet.height,x,y,w,h)}else ctx.drawImage(sprites.soldier[runFrame],x,y,w,h);
  if(muzzleFlash>0){ctx.fillStyle='#ffe27a';const mx=x+w*.95,my=y+h*.48;ctx.beginPath();ctx.moveTo(mx,my);ctx.lineTo(mx+H*.042,my-H*.019);ctx.lineTo(mx+H*.025,my);ctx.lineTo(mx+H*.042,my+H*.02);ctx.fill()}
  ctx.restore();
 }
