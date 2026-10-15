@@ -29,7 +29,7 @@ const MAX_PARTICLES=180;
 let frameClock=0;
 let visible=true;
 document.addEventListener('visibilitychange',()=>{visible=!document.hidden;last=0;if(!visible){fireHeld=false;movement.left=false;movement.right=false;if(running&&!paused){paused=true;message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display='block'}}});
-function resize(){W=innerWidth;H=innerHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0)}
+function resize(){W=innerWidth;H=innerHeight;const pixelBudget=2400000;dpr=Math.min(devicePixelRatio||1,2,Math.sqrt(pixelBudget/Math.max(1,W*H)));canvas.width=Math.max(1,Math.round(W*dpr));canvas.height=Math.max(1,Math.round(H*dpr));canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0)}
 addEventListener('resize',resize);resize();
 function ground(){return H*.78}
 function playerX(){return W*.22}
