@@ -62,7 +62,7 @@ for(const token of [
  "aftermath.step(dt,cameraDelta,ground(),H)",
  "aftermath.draw(ctx,W,H,ground(),drawFallenTroop)",
  "aftermath.reset();",
- "function isCrouching(){return duckHeld||duckTime>0}",
+ "function isCrouching(){return duckHeld||duckTime>0||combatMoves.sliding}",
  "duckButton.setPointerCapture(e.pointerId);duckHeld=true",
  "duckHeld=false;duckTime=0",
  "crouching:isCrouching()"
