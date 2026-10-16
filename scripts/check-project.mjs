@@ -40,7 +40,7 @@ const checks = [
    }finally{if(originalDocument===undefined)delete globalThis.document;else globalThis.document=originalDocument}
  }],
  ['Dettagli nemici in movimento',()=>{const enemy=readFileSync('enemy-frames.js','utf8');for(const token of ['Eight distinct gait poses','Independently animated foreleg tips','const gait=[0,2,4,2,0,-2,-4,-2][i]'])assert.ok(enemy.includes(token),token)}],
- ['Esplosione pixel a otto stadi',()=>{for(const token of ['Math.min(7,Math.floor(progress*8))','if(frame<6)','ctx.fillRect(Math.round(e.x-core*.5)'])assert.ok(main.includes(token),token)}],
+ ['Esplosione PNG compatta a dieci fotogrammi',()=>{for(const token of ["drawRaster(ctx,'fx','explosion'","Math.min(9,Math.floor(progress*10))","const width=H*(.095+.055*Math.sin(Math.PI*progress))"])assert.ok(main.includes(token),token)}],
  ['Distruzione pixel dei nemici',()=>{for(const token of ['const enemyDebris=[]','function shatterEnemy(','function drawEnemyDebris()','drawEnemyDebris();','enemyDebris.length=0'])assert.ok(main.includes(token),token)}],
  ['Autofire touch e stop dopo danno fatale',()=>{for(const token of ['if(!running)start();fireHeld=true','if(!running){hud();return}'])assert.ok(main.includes(token),token)}],
  ['Sospensione sicura su Android',()=>{for(const token of ["document.addEventListener('visibilitychange'",'if(!visible){last=t;requestAnimationFrame(frame);return}','const dt=Math.min(last?(t-last)/1000:0,.05)'])assert.ok(main.includes(token),token)}],
