@@ -12,6 +12,7 @@ from secondary_landmarks import draw_landmark
 from enemy_falling_art import draw_falling_pose
 from environment_details import paint_environment_details
 from boss_damage_art import paint_boss_damage
+from grenade_throw_art import draw_grenade_throw
 
 ROOT = Path(__file__).resolve().parent.parent
 PUBLIC = ROOT / "public" / "assets" / "sprites"
@@ -1225,6 +1226,7 @@ def write_atlas(rel,frames,fw,fh,fn,texture=True):
             if hero_pose in ('jump','jumpFire'):draw_airborne_finishing(im,hero_pose,n)
             if hero_pose=='melee':draw_melee_bayonet(im,n)
             soldier_surface(im,hero_pose,n)
+            if hero_pose=='throw':draw_grenade_throw(im,n)
         elif rel.startswith('enemies/'):
             kind=rel.split('/')[-1].replace('.png','')
             if kind.endswith('Fall'):

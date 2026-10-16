@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs';
 import {rasterAssetManifest as m,rasterAssetCount} from '../sprite-loader.js';
 import {enemyFallFrame} from '../enemy-fall-frames.js';
 const kinds=['rifleman','assault','grenadier','heavy'];
-assert.equal(rasterAssetCount,62);
+assert.equal(rasterAssetCount,63);
 for(const type of kinds){
  assert.equal(m.enemies[type+'Fall'],6,type+' needs a distinct six-frame fall atlas');
 }

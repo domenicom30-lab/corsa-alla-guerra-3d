@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {bossSpriteForPhase} from '../boss-art-state.js';
 import {rasterAssetManifest as m,rasterAssetCount} from '../sprite-loader.js';
-assert.equal(rasterAssetCount,62);
+assert.equal(rasterAssetCount,63);
 assert.deepEqual(Object.keys(m.boss),['commander','commanderDamaged','commanderCritical']);
 assert.ok(Object.values(m.boss).every(n=>n===6));
 const boss={hp:28,maxHp:28,active:true};

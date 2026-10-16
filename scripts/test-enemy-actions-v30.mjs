@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {rasterAssetManifest as manifest,rasterAssetCount} from '../sprite-loader.js';
 const kinds=['rifleman','assault','grenadier','heavy'];
-assert.equal(rasterAssetCount,62,'39 original atlases plus 12 enemy action variants and one airborne-firing atlas');
+assert.equal(rasterAssetCount,63,'39 original atlases plus 12 enemy action variants and one airborne-firing atlas');
 for(const kind of kinds){
   assert.equal(manifest.enemies[kind],8);
   assert.equal(manifest.enemies[kind+'Crouch'],4);
