@@ -15,7 +15,7 @@ export function createArcadeCombatMoves(){
   },
   step(dt){
    if(!(dt>0))return;
-   dt=Math.min(.1,dt);
+   dt=Math.min(1,dt);
    slideTime=Math.max(0,slideTime-dt);
    slideCooldown=Math.max(0,slideCooldown-dt);
    slashTime=Math.max(0,slashTime-dt);
