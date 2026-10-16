@@ -25,7 +25,7 @@ assert.ok(heavy.h*fraction/H>=.20&&heavy.h*fraction/H<=.23);
 assert.ok(tank.h*34/19/H>=.24&&tank.h*34/19/H<=.28);
 assert.ok(boss.h/H<.42);
 const html=readFileSync('index.html','utf8'),main=readFileSync('main.js','utf8'),css=readFileSync('style.css','utf8'),mechanics=readFileSync('arcade-mechanics.js','utf8');
-for(const text of ['id="vehicle-toggle"','ENTRA NEL CARRO','2D · v2.5'])assert.ok(html.includes(text),text);
+for(const text of ['id="vehicle-toggle"','ENTRA NEL CARRO','2D · v2.6'])assert.ok(html.includes(text),text);
 for(const text of ["import {vehicleInteraction} from './vehicle-controls.js'",'function currentVehicleInteraction()', 'function updateVehicleButton()',"document.getElementById('vehicle-toggle')",'updateVehicleButton();',"if(action!=='enter'&&action!=='exit')return"])assert.ok(main.includes(text),text);
 assert.ok(!main.includes("document.createElement('button');rideButton.id='vehicle-toggle'"),'Remove floating car button');
 assert.ok(css.includes('#vehicle-toggle[hidden]{display:none!important}'));
