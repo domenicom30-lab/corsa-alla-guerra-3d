@@ -172,6 +172,15 @@ def polish_enemy(im,kind,n):
             x=85+10*k
             d.rectangle((x,116+y,x+7,130+y),fill="#293b3d")
             d.line([(x,118+y),(x+6,119+y)],fill="#b1b3a0",width=2)
+        # Heavy welded ceramic/steel armor has individual worn highlights,
+        # rather than a flat teal rectangle: subdued warm rivets and patina.
+        for j in range(28):
+            x=89+(j*17)%45
+            yy=97+(j*11)%22+y
+            shade=(83+j*2,106+j,102+j//2,255)
+            d.line([(x,yy),(x+3+j%3,yy-1)],fill=shade,width=1)
+            if j%4==0:
+                d.point((x+1,yy+2),fill=(209-j,188-j//2,143+j//3,255))
     elif base=="grenadier":
         # Readable canvas bandolier, linked grenades and high strapped satchel.
         _polygon(d,[(78,84+y),(96,81+y),(132,130+y),
