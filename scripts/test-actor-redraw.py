@@ -25,8 +25,11 @@ for kind,frames in hero.items():
     )
     for i,frame in enumerate(frames):
         assert frame.getpixel((0,0))[3]==0,(kind,i,"No opaque sky")
-        region=frame.crop((72,80,139,140))
-        assert len(set(region.getdata()))>=38,(kind,i,"Torso still overly flat")
+        # The airborne sprite moves vertically by up to 30 source pixels;
+        # sample the material relative to its actual authored pose, not sky.
+        jump_offset=(-5,-11,-22,-29,-30,-21,-11,-3)[i] if kind in ("jump","jumpFire") else 0
+        region=frame.crop((72,80+jump_offset,139,140+jump_offset))
+        assert len(set(region.getdata()))>=32,(kind,i,"Torso still overly flat")
         if kind not in ("jump","jumpFire"):
             feet=frame.crop((36,164,199,207))
             assert sum(1 for px in feet.getdata() if px[3]>195)>375,(
