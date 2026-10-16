@@ -15,7 +15,7 @@ for(const marker of [
 "e.fireFlash>0||e.windup>0",
 "e.type==='grenadier'?'Throw':'Fire'",
 "enemyPose==='Fire'||enemyPose==='Throw'",
-"e.fireFlash>0?3:Math.min(2",
+"e.fireFlash>0||e.meleeFlash>0?3",
 "drawRaster(ctx,'enemies',e.type+enemyPose,enemyFrame"
 ])assert.ok(main.includes(marker),marker);
 const source=readFileSync('scripts/build_raster_art.py','utf8');
