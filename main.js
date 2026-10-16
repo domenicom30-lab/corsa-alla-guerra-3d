@@ -9,6 +9,7 @@ import {prepareHeroFrames,drawHeroFrame} from './hero-animation.js';
 import {createArcadeSpectacle} from './arcade-spectacle.js';
 import {createBattleCasualties} from './battle-aftermath.js';
 import {segmentHitsRect,rocketSplashDamage,drawRocketProjectile} from './arcade-arsenal.js';
+import {nearestRectHit} from './collision-order.js';
 import {createTroopWaves,resetTroopWaves,advanceTroopWaves,damageTroop,suppressTroop} from './enemy-director.js';
 import {prepareTroopSprites,drawTroop,drawFallenTroop} from './troop-art.js';
 import {STAGES,stageAt,drawStageBackdrop,drawStageMarker} from './stage-art.js';
@@ -428,7 +429,7 @@ function update(dt){
  const rescued=arcade.rescue(scroll+playerX(),jumpY,H);if(rescued){health=Math.min(3,health+rescued);score+=rescued*500;burst(playerX(),ground()-H*.18)}
  const troopEvents=advanceTroopWaves(sentries,dt,scroll,scroll+playerX(),playerX(),H,arcade.enemyShots);
   for(const event of troopEvents){if(event.type==='contact'&&jumpY<H*.08&&!combatMoves.sliding)damage();else if(event.type==='fire'||event.type==='heavyFire')spectacle.shot(event.x,event.y,Math.sign(playerX()-event.x),event.type==='heavyFire')}
- arcade.step(dt,scroll,playerX(),ground(),H,()=>{if(ride.occupied&&ride.hp>0){ride.hp=Math.max(0,ride.hp-15);arcade.screenShake=Math.min(12,arcade.screenShake+6);if(ride.hp===0){ride.occupied=false;soundEffect('explosion')}}else damage()},explosion,cameraDelta,{jumpY,crouching:isCrouching()});
+ arcade.step(dt,scroll,playerX(),ground(),H,()=>damage(),explosion,cameraDelta,{jumpY,crouching:isCrouching()});
  if(!running){hud();return}
  shotCooldown=Math.max(0,shotCooldown-dt);muzzleFlash=Math.max(0,muzzleFlash-dt);recoil=Math.max(0,recoil-dt*12);if(fireHeld&&shotCooldown===0)shoot();
  for(let i=enemyDebris.length-1;i>=0;i--){const p=enemyDebris[i];p.x+=p.vx*dt-cameraDelta;p.y+=p.vy*dt;p.vy+=H*1.5*dt;p.life-=dt;if(p.life<=0)enemyDebris.splice(i,1)}
@@ -439,28 +440,45 @@ function update(dt){
  for(let i=bullets.length-1;i>=0;i--){
   const b=bullets[i],oldX=b.x,oldY=b.y,rocket=b.kind==='rocket';
   b.x+=b.vx*dt-cameraDelta;b.y+=b.vy*dt;b.life-=dt;
-  const intersects=(x,y,rx,ry)=>segmentHitsRect(oldX,oldY,b.x,b.y,x,y,rx,ry);
-  let hit=false;
-  for(const c of arcade.covers){
-   if(c.hp<=0)continue;
-   if(intersects(c.x-scroll,ground()-H*.065,H*.087,H*.082)){
-    hit=arcade.hitCover(c.x,Math.max(ground()-H*.13,Math.min(ground(),b.y)),ground(),H,Math.max(10,b.damage*12));
-    if(hit)break;
-   }
-  }
-  if(!hit){
-   for(const e of sentries){
-    if(!e.alive||!intersects(e.x-scroll,ground()-H*(e.stance==='crouch'?.087:.145),H*.078,H*(e.stance==='crouch'?.070:.15)))continue;
-    if(!rocket){
-     const result=damageTroop(e,b.damage);
-     spectacle.impact(e.x-scroll,ground()-H*.16,result.killed?result.points:0);
-     if(result.killed){
-      score+=arcade.kill()+result.points;
-      aftermath.defeated(e.type,e.x-scroll,ground(),H,Math.sign(b.vx)||1,1);
-      shatterEnemy(e.x-scroll,ground()-H*.15);burst(e.x-scroll,ground()-H*.16);
-     }else{aftermath.impact(e.x-scroll,ground()-H*.16,H,e.type==='heavy');arcadeHitstop=Math.max(arcadeHitstop,1)}
-    }
-    hit=true;break;
+  // Resolve by distance along the travelled path, not by object-array order.
+  // Move previous camera-space position to the new camera before comparison.
+  const targets=[];
+  for(const c of arcade.covers)if(c.hp>0)targets.push({
+    kind:'cover',ref:c,x:c.x-scroll,y:ground()-H*.065,w:H*.087,h:H*.082
+  });
+  for(const e of sentries)if(e.alive)targets.push({
+    kind:'troop',ref:e,x:e.x-scroll,y:ground()-H*(e.stance==='crouch'?.087:.145),
+    w:H*.078,h:H*(e.stance==='crouch'?.070:.15)
+  });
+  for(const t of ticks)if(t.alive)targets.push({
+    kind:'obstacle',ref:t,x:t.x-scroll,y:ground()-H*.055,w:H*.055,h:H*.09
+  });
+  if(arcade.boss.active&&!arcade.boss.defeated)targets.push({
+    kind:'boss',ref:arcade.boss,x:arcade.boss.x-scroll,y:ground()-H*.30,w:H*.27,h:H*.25
+  });
+  const contact=nearestRectHit(oldX-cameraDelta,oldY,b.x,b.y,targets);
+  let hit=!!contact;
+  if(hit){
+   b.x=contact.x;b.y=contact.y;
+   const target=contact.item.ref;
+   if(contact.item.kind==='cover'){
+    if(!rocket)arcade.hitCover(target.x,Math.max(ground()-H*.13,Math.min(ground(),b.y)),ground(),H,Math.max(10,b.damage*12));
+    spectacle.impact(b.x,b.y,0);
+   }else if(contact.item.kind==='troop'&&!rocket){
+    const result=damageTroop(target,b.damage);
+    spectacle.impact(target.x-scroll,ground()-H*.16,result.killed?result.points:0);
+    if(result.killed){
+     score+=arcade.kill()+result.points;
+     aftermath.defeated(target.type,target.x-scroll,ground(),H,Math.sign(b.vx)||1,1);
+     shatterEnemy(target.x-scroll,ground()-H*.15);burst(target.x-scroll,ground()-H*.16);
+    }else{aftermath.impact(target.x-scroll,ground()-H*.16,H,target.type==='heavy');arcadeHitstop=Math.max(arcadeHitstop,1)}
+   }else if(contact.item.kind==='obstacle'&&!rocket){
+    target.alive=false;score+=arcade.kill();
+    spectacle.impact(target.x-scroll,ground()-H*.08,120);
+    shatterEnemy(target.x-scroll,ground()-H*.07);burst(target.x-scroll,ground()-H*.07);
+   }else if(contact.item.kind==='boss'&&!rocket){
+    arcade.boss.hp-=b.damage;burst(b.x,b.y);
+    if(arcade.boss.hp<=0)defeatBoss();
    }
   }
   // Near-miss fire suppresses active opponents without counting as a direct hit.
@@ -469,40 +487,18 @@ function update(dt){
    for(const e of sentries){
     if(!e.alive)continue;
     const sx=e.x-scroll;
-    if(sx<Math.min(oldX,b.x)-H*.055||sx>Math.max(oldX,b.x)+H*.055)continue;
+    if(sx<Math.min(oldX-cameraDelta,b.x)-H*.055||sx>Math.max(oldX-cameraDelta,b.x)+H*.055)continue;
     if(suppressTroop(e,(oldY+b.y)*.5,ground(),H,Math.sign(b.vx)||1)){
      dustPuffs.push({x:sx,y:ground()-H*.18,life:.20,size:H*.008,color:'#d9cb97'});
      if(dustPuffs.length>35)dustPuffs.shift();
     }
    }
   }
-  if(!hit){
-   for(const t of ticks){
-    if(!t.alive||!intersects(t.x-scroll,ground()-H*.055,H*.055,H*.09))continue;
-    if(!rocket){
-     t.alive=false;score+=arcade.kill();
-     spectacle.impact(t.x-scroll,ground()-H*.08,120);
-     shatterEnemy(t.x-scroll,ground()-H*.07);burst(t.x-scroll,ground()-H*.07);
-    }
-    hit=true;break;
-   }
-  }
-  if(!hit&&arcade.boss.active&&!arcade.boss.defeated&&intersects(arcade.boss.x-scroll,ground()-H*.30,H*.27,H*.25)){
-   if(!rocket){
-    arcade.boss.hp-=b.damage;burst(b.x,b.y);
-    if(arcade.boss.hp<=0)defeatBoss();
-   }
-   hit=true;
-  }
-  if(hit){
-   if(rocket){
-    const impactX=oldX+(b.x-oldX)*.5;
-    explosion(impactX,b.y,H*.36);
-    arcade.screenShake=Math.max(arcade.screenShake,10);
-    arcadeHitstop=Math.max(arcadeHitstop,2);
-   }else if(arcade.covers.some(c=>Math.abs(c.x-scroll-b.x)<H*.09&&c.hp>=0)){
-    spectacle.impact(b.x,b.y,0);
-   }
+  if(hit&&rocket){
+   // Blast originates at the actual first contact point.
+   explosion(b.x,b.y,H*.36);
+   arcade.screenShake=Math.max(arcade.screenShake,10);
+   arcadeHitstop=Math.max(arcadeHitstop,2);
   }
   if(rocket&&b.life>0&&!hit){
    b.trailClock=(b.trailClock||0)+dt;

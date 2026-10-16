@@ -206,3 +206,11 @@ Gli assaltatori ora hanno una **preparazione visibile del colpo ravvicinato** di
 ## Miglioramento gameplay in sviluppo — indicatore granata nemica
 
 Il granatiere ora mostra durante il windup un arco tratteggiato con **punto di impatto stimato**, calcolato usando la velocità e la gravità del proiettile nemico, in modo da poter schivare o scivolare intenzionalmente anziché subire esplosioni inattese. L'indicatore svanisce appena finisce la preparazione al lancio, non compare per gli altri soldati e disegna al massimo 12 segni per evitare carichi grafici inutili. Test dedicati verificano fisica, direzione, indicatori e assenza di nuove build APK automatiche.
+
+### Verifiche di combattimento (sviluppo, APK non creata)
+
+- I colpi veloci selezionano il **primo bersaglio effettivo lungo la traiettoria**: barricata, nemico, ostacolo o boss non vengono più colpiti nell'ordine delle liste, ma nella reale distanza percorsa.
+- L'esplosione del razzo avviene al **primo punto di impatto geometrico** anziché nel punto medio del fotogramma.
+- Compensazione del movimento della telecamera durante le collisioni.
+- I colpi subiti dal veicolo passano dallo **stesso sistema di danno con invulnerabilità temporanea** degli altri attacchi, eliminando una via che poteva distruggere rapidamente il carro con una raffica.
+- Nuovi test verificano ordine degli impatti, direzione inversa, proiettili veloci, fotogrammi a telecamera mobile, reset e assenza di build APK automatica.
