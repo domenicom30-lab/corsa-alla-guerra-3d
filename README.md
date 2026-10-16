@@ -198,3 +198,7 @@ La qualità artistica è ancora da valutare su Samsung. Non viene creata una APK
 ### Sviluppo grafico nemici — rinculo e lancio granate (senza APK)
 
 Quattro nuovi atlas di combattimento originali (16 fotogrammi) integrano gli otto già dedicati ad abbassamento e ferite. Fucilieri, assaltatori e pesanti dispongono di armi con rinculo e lampi; il granatiere ha una sequenza in cui alza il braccio e rilascia la granata. Le animazioni dipendono dal tempo di preparazione e dal momento effettivo dello sparo, mantenendo la scala ridotta dei soldati. Nuovi test verificano fotogrammi, scelta della posa e policy di build Android manuale.
+
+### Scontri ravvicinati reattivi (WIP senza APK)
+
+Gli assaltatori ora hanno una **preparazione visibile del colpo ravvicinato** di 0,28 s: il giocatore può evitarlo con un salto, una scivolata o allontanandosi. L'attacco infligge danni al massimo una volta per azione, seguito da un tempo di recupero; un proiettile che ferisce il soldato interrompe la preparazione. Il punto esclamativo sopra la testa anticipa l'impatto e la posa d'attacco sfrutta i nuovi fotogrammi di combattimento. Test deterministici verificano tutti questi stati.

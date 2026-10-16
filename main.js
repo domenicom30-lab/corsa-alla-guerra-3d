@@ -326,13 +326,13 @@ function drawSentries(){
   if(facingPlayer<0)ctx.scale(-1,1);
   if(e.flinch>0){ctx.shadowColor='#fff4ca';ctx.shadowBlur=H*.015}
   if(e.dodgeTime>0){ctx.translate(0,H*.018);ctx.rotate(Math.sin(e.walk*1.4)*.06)}
-   const enemyPose=e.flinch>0?'Hurt':(e.stance==='crouch'||e.suppressed>0||e.dodgeTime>0)?'Crouch':(e.fireFlash>0||e.windup>0)?(e.type==='grenadier'?'Throw':'Fire'):'';
+   const enemyPose=e.flinch>0?'Hurt':(e.stance==='crouch'||e.suppressed>0||e.dodgeTime>0)?'Crouch':(e.fireFlash>0||e.windup>0||e.meleeWindup>0||e.meleeFlash>0)?(e.type==='grenadier'?'Throw':'Fire'):'';
    const enemyFrame=enemyPose==='Hurt'
      ?Math.min(3,Math.floor(Math.max(0,.20-e.flinch)/.05))
      :enemyPose==='Crouch'
        ?Math.floor(phase*.48+e.phase)%4
        :enemyPose==='Fire'||enemyPose==='Throw'
-         ?(e.fireFlash>0?3:Math.min(2,Math.floor((1-e.windup/(e.type==='grenadier'?.58:e.type==='heavy'?.46:.29))*3)))
+         ?(e.fireFlash>0||e.meleeFlash>0?3:e.meleeWindup>0?Math.min(2,Math.floor((1-e.meleeWindup/.28)*3)):Math.min(2,Math.floor((1-e.windup/(e.type==='grenadier'?.58:e.type==='heavy'?.46:.29))*3)))
          :Math.floor(e.walk+(e.vx?0:phase*.25)+e.phase)%8;
    drawRaster(ctx,'enemies',e.type+enemyPose,enemyFrame,-w*.5,ground()-h,w,h);
   ctx.restore();
@@ -340,6 +340,16 @@ function drawSentries(){
    ctx.save();ctx.globalAlpha=Math.min(.85,e.suppressed*1.8);
    ctx.fillStyle='#f4d38c';ctx.font='bold '+Math.max(11,H*.019)+'px monospace';
    ctx.fillText('↓',x-H*.012,ground()-h-H*.018);
+   ctx.restore();
+  }
+  if(e.meleeWindup>0){
+   // Threat indicator grows during the brief close-quarters windup.
+   const readiness=1-e.meleeWindup/.28;
+   ctx.save();ctx.fillStyle='#260f14';
+   ctx.fillRect(x-H*.024,ground()-h-H*.066,H*.048,H*.044);
+   ctx.fillStyle=readiness>.6?'#ffb75a':'#ffe2af';
+   ctx.font='900 '+Math.max(13,H*.027)+'px system-ui';
+   ctx.textAlign='center';ctx.fillText('!',x,ground()-h-H*.03);
    ctx.restore();
   }
   if(e.windup>0){
@@ -412,7 +422,7 @@ function update(dt){
  const collected=arcade.collect(scroll+playerX(),jumpY,ground(),H);if(collected==='health')health=Math.min(3,health+1);
  const rescued=arcade.rescue(scroll+playerX(),jumpY,H);if(rescued){health=Math.min(3,health+rescued);score+=rescued*500;burst(playerX(),ground()-H*.18)}
  const troopEvents=advanceTroopWaves(sentries,dt,scroll,scroll+playerX(),playerX(),H,arcade.enemyShots);
-  for(const event of troopEvents){if(event.type==='contact'&&jumpY<H*.08)damage();else if(event.type==='fire'||event.type==='heavyFire')spectacle.shot(event.x,event.y,Math.sign(playerX()-event.x),event.type==='heavyFire')}
+  for(const event of troopEvents){if(event.type==='contact'&&jumpY<H*.08&&!combatMoves.sliding)damage();else if(event.type==='fire'||event.type==='heavyFire')spectacle.shot(event.x,event.y,Math.sign(playerX()-event.x),event.type==='heavyFire')}
  arcade.step(dt,scroll,playerX(),ground(),H,()=>{if(ride.occupied&&ride.hp>0){ride.hp=Math.max(0,ride.hp-15);arcade.screenShake=Math.min(12,arcade.screenShake+6);if(ride.hp===0){ride.occupied=false;soundEffect('explosion')}}else damage()},explosion,cameraDelta,{jumpY,crouching:isCrouching()});
  if(!running){hud();return}
  shotCooldown=Math.max(0,shotCooldown-dt);muzzleFlash=Math.max(0,muzzleFlash-dt);recoil=Math.max(0,recoil-dt*12);if(fireHeld&&shotCooldown===0)shoot();

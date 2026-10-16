@@ -15,7 +15,7 @@ export function createTroopWaves(){
   for(let j=0;j<count;j++){
    const type=pattern[(wave*3+j)%pattern.length],info=ENEMY_TYPES[type],x=start+j*(145+(wave%2)*35);
    enemies.push({x,home:x,type,hp:info.hp,maxHp:info.hp,alive:true,cooldown:.7+j*.35+wave*.06,
-    phase:wave*.7+j*.45,stance:'stand',flinch:0,fireFlash:0,walk:0,vx:0,aim:0,windup:0,dodgeTime:0,dodgeDir:0,suppressed:0,suppressionCooldown:0,score:info.points});
+    phase:wave*.7+j*.45,stance:'stand',flinch:0,fireFlash:0,walk:0,vx:0,aim:0,windup:0,dodgeTime:0,dodgeDir:0,suppressed:0,suppressionCooldown:0,meleeWindup:0,meleeCooldown:0,meleeFlash:0,score:info.points});
   }
  }
  return enemies;
@@ -23,12 +23,13 @@ export function createTroopWaves(){
 export function resetTroopWaves(enemies){
  for(const e of enemies){
   const info=ENEMY_TYPES[e.type];e.x=e.home;e.hp=info.hp;e.maxHp=info.hp;e.alive=true;
-  e.cooldown=.8+(e.phase%1)*.8;e.stance='stand';e.flinch=0;e.fireFlash=0;e.walk=0;e.vx=0;e.aim=0;e.windup=0;e.dodgeTime=0;e.dodgeDir=0;e.suppressed=0;e.suppressionCooldown=0;
+  e.cooldown=.8+(e.phase%1)*.8;e.stance='stand';e.flinch=0;e.fireFlash=0;e.walk=0;e.vx=0;e.aim=0;e.windup=0;e.dodgeTime=0;e.dodgeDir=0;e.suppressed=0;e.suppressionCooldown=0;e.meleeWindup=0;e.meleeCooldown=0;e.meleeFlash=0;
  }
 }
 export function damageTroop(e,damage=1){
  if(!e?.alive||damage<=0)return {hit:false,killed:false,points:0};
- e.hp=Math.max(0,e.hp-damage);e.flinch=.2;e.windup=0;e.cooldown=Math.max(e.cooldown,.28);
+ e.hp=Math.max(0,e.hp-damage);e.flinch=.2;e.windup=0;e.meleeWindup=0;e.cooldown=Math.max(e.cooldown,.28);
+ if(e.type==='assault')e.meleeCooldown=Math.max(e.meleeCooldown||0,.5);
  if(e.hp>0&&e.type==='assault'){e.dodgeTime=.34;e.dodgeDir=(Math.sin(e.phase*6.37)>0?1:-1);e.stance='crouch';e.cooldown=Math.max(e.cooldown,.65)}
  if(e.hp===0){e.alive=false;return {hit:true,killed:true,points:e.score}}
  return {hit:true,killed:false,points:0};
@@ -51,10 +52,12 @@ export function advanceTroopWaves(enemies,dt,scroll,playerWorldX,playerScreenX,H
  for(const e of enemies){
   if(!e.alive)continue;
   e.flinch=Math.max(0,e.flinch-dt);e.fireFlash=Math.max(0,e.fireFlash-dt);
+  e.meleeFlash=Math.max(0,(e.meleeFlash||0)-dt);
+  e.meleeCooldown=Math.max(0,(e.meleeCooldown||0)-dt);
   e.suppressionCooldown=Math.max(0,(e.suppressionCooldown||0)-dt);
   e.suppressed=Math.max(0,(e.suppressed||0)-dt);
   if(e.dodgeTime>0){const step=Math.min(dt,e.dodgeTime);e.x+=e.dodgeDir*H*.7*step;e.walk+=step*15;e.vx=e.dodgeDir*H*.7;e.stance='crouch';e.dodgeTime-=step;e.cooldown=Math.max(e.cooldown,.15);if(e.dodgeTime<=0)e.flinch=.10;continue;}
-  if(e.suppressed>0){e.stance='crouch';e.windup=0;e.vx=0;continue;}
+  if(e.suppressed>0){e.stance='crouch';e.windup=0;e.meleeWindup=0;e.vx=0;continue;}
   const dx=playerWorldX-e.x,range=Math.abs(dx);
   if(range>H*2.8)continue;
   const type=ENEMY_TYPES[e.type],dir=dx>=0?1:-1;
@@ -71,6 +74,27 @@ export function advanceTroopWaves(enemies,dt,scroll,playerWorldX,playerScreenX,H
    e.x+=e.vx*dt;e.walk+=Math.abs(e.vx)*dt/H*10;
   }else{e.vx=0}
   e.stance=e.type==='rifleman'&&range<H*.63&&Math.sin(e.phase+e.walk+playerWorldX*.001)>0?'crouch':'stand';
+  // Telegraph a short melee lunge: no instant, repeated contact damage.
+  // Jump or slide can evade the warning, and moving away cancels impact.
+  if(e.type==='assault'){
+   const close=Math.abs(playerWorldX-e.x);
+   if(close<H*.145&&e.meleeWindup<=0&&e.meleeCooldown<=0){
+    e.meleeWindup=.28;e.aim=dir;
+    events.push({type:'meleeWarning',x:e.x-scroll,y:H*.78-H*.24});
+   }
+   if(e.meleeWindup>0){
+    e.meleeWindup=Math.max(0,e.meleeWindup-dt);
+    e.windup=0;e.vx=0;e.cooldown=Math.max(e.cooldown,.18);
+    if(e.meleeWindup===0){
+     e.meleeCooldown=1.25;
+     if(Math.abs(playerWorldX-e.x)<H*.14){
+      e.meleeFlash=.16;
+      events.push({type:'contact',x:e.x-scroll,y:H*.7});
+     }
+    }
+    continue;
+   }
+  }
   e.cooldown-=dt;
   const canFire=range<H*type.range&&range>H*.22;
   if(!canFire&&e.windup>0)e.windup=0;
@@ -98,7 +122,7 @@ export function advanceTroopWaves(enemies,dt,scroll,playerWorldX,playerScreenX,H
     }
    }
   }
-  if(range<H*.1&&e.type==='assault')events.push({type:'contact',x:e.x-scroll,y:H*.7});
+  // Contact occurs only once after the telegraphed assault lunge.
  }
  return events;
 }
