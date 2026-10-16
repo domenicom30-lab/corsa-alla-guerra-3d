@@ -22,7 +22,7 @@ const main=readFileSync('main.js','utf8'),mechanics=readFileSync('arcade-mechani
  art=readFileSync('scripts/build_raster_art.py','utf8');
 for(const token of [
  'heroDimensions(H,isCrouching())',
- "troopDimensions(H,e.type,e.stance==='crouch')",
+ "troopDimensions(H,e.type,e.stance==='crouch'||e.dodgeTime>0)",
  "const facingPlayer=e.x>scroll+playerX()?-1:1",
  'if(facingPlayer<0)ctx.scale(-1,1)',
  'if(e.windup>0)',
