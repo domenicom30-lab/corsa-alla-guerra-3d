@@ -9,6 +9,7 @@ import json, math, random, sys
 from sprite_materials import soldier_surface, armored_surface
 from airborne_art import draw_airborne_finishing
 from secondary_landmarks import draw_landmark
+from enemy_falling_art import draw_falling_pose
 
 ROOT = Path(__file__).resolve().parent.parent
 PUBLIC = ROOT / "public" / "assets" / "sprites"
@@ -1224,7 +1225,10 @@ def write_atlas(rel,frames,fw,fh,fn,texture=True):
             soldier_surface(im,hero_pose,n)
         elif rel.startswith('enemies/'):
             kind=rel.split('/')[-1].replace('.png','')
-            if kind.endswith('Crouch'):
+            if kind.endswith('Fall'):
+                finish_enemy_art(im,kind[:-4],n)
+                draw_falling_pose(im,n)
+            elif kind.endswith('Crouch'):
                 finish_enemy_art(im,kind[:-6],n)
                 soldier_surface(im,kind[:-6],n,kind[:-6])
                 finish_enemy_pose(im,'Crouch',n)
@@ -1263,7 +1267,7 @@ def build():
         write_atlas(rel,n,240,210,lambda im,i,p=pose:hero(im,p,i))
     for kind,n in MANIFEST["enemies"].items():
         rel=f"enemies/{kind}.png";expected.add(rel)
-        write_atlas(rel,n,240,210,lambda im,i,k=kind:enemy(im,k[:-6] if k.endswith('Crouch') else k[:-4] if k.endswith(('Hurt','Fire')) else k[:-5] if k.endswith('Throw') else k,i))
+        write_atlas(rel,n,240,210,lambda im,i,k=kind:enemy(im,k[:-6] if k.endswith('Crouch') else k[:-4] if k.endswith(('Hurt','Fire','Fall')) else k[:-5] if k.endswith('Throw') else k,i))
     for kind,n in MANIFEST["boss"].items():
         rel=f"boss/{kind}.png";expected.add(rel)
         write_atlas(rel,n,340,240,lambda im,i:boss(im,i))

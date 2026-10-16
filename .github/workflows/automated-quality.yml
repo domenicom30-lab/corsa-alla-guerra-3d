@@ -61,6 +61,8 @@ jobs:
         run: python3 scripts/test_enemy_actions_v30.py
       - name: Validate four original enemy recoil and grenade-release atlases
         run: python3 scripts/test_enemy_fire_v31.py
+      - name: Validate original illustrated enemy knockdowns
+        run: python3 scripts/test-enemy-falling-art.py
       - name: JavaScript syntax check
         run: node --check main.js
       - name: Gameplay and asset smoke tests

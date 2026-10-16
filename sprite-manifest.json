@@ -71,7 +71,11 @@
     "riflemanFire": 4,
     "assaultFire": 4,
     "grenadierThrow": 4,
-    "heavyFire": 4
+    "heavyFire": 4,
+    "riflemanFall": 6,
+    "assaultFall": 6,
+    "grenadierFall": 6,
+    "heavyFall": 6
   },
   "boss": {
     "commander": 6
