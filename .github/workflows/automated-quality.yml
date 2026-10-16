@@ -88,6 +88,8 @@ jobs:
         run: node --check main.js
       - name: Gameplay and asset smoke tests
         run: npm run check
+      - name: Test Android immersive fullscreen configuration
+        run: python3 scripts/android_immersive.py --self-test
       - name: Functional 2D gameplay mechanics tests
         run: node scripts/test-arcade-mechanics.mjs
       - name: Production web build
@@ -143,6 +145,8 @@ jobs:
             npx cap add android
           fi
           npx cap sync android
+      - name: Enable fullscreen immersive Android landscape
+        run: python3 scripts/android_immersive.py
       - name: Install branded Android icon
         run: python3 scripts/brand_android.py
       - name: Set isolated Android preview version

@@ -72,6 +72,8 @@ jobs:
       - name: Sync Android project
         run: npx cap sync android
 
+      - name: Enable fullscreen immersive Android landscape
+        run: python3 scripts/android_immersive.py
       - name: Install final branded Android icon
         run: python3 scripts/brand_android.py
 
