@@ -156,3 +156,9 @@ Le verifiche automatiche `Automated quality gates` **restano attive** sugli aggi
 - I soldati fucilieri, assaltatori e granatieri ora possono essere **soppressi da un proiettile che passa vicino**, non solamente feriti: interrompono l'attacco, si abbassano e subiscono una breve pausa di fuoco. Gli assaltatori possono schivare lateralmente. Cooldown e distanza verticale prevengono reazioni continue o a colpi molto lontani.
 - Aggiunti test specifici su 6 frame PNG, collisioni di prossimità, copertura, cooldown, ripristino alla ripartenza, integrazione del rendering, oltre a verifica obbligatoria delle nuove risorse nel manifest e nello ZIP APK al momento della release.
 - La workflow **Android resta esclusivamente manuale**. Questo aggiornamento sul ramo `main` non cambia il numero della versione Android né genera una nuova APK: verrà integrato con altri miglioramenti prima della prossima release candidata.
+
+## Sviluppo in corso dopo v2.7 — Animazioni arcade avanzate (senza nuova APK)
+
+Questa fase è sul ramo `main` e **non cambia il pacchetto Android finché non sarà pronta una release candidata**. Il generatore offline produce tre nuovi atlas PNG obbligatori per il protagonista: **slide** (6 frame), **melee** (5 frame, con braccio e lama disegnati separatamente dal fucile) e **land** (4 frame di compressione all'atterraggio). Il motore seleziona questi frame a partire dallo stato delle mosse e dalla fisica effettiva. Atterraggi impegnativi producono anche polvere sul terreno.
+
+I test bloccano l'integrazione se le nuove pose mancano, se i frame sono identici o se la pipeline APK viene riattivata automaticamente. La grafica rimane originale; il dettaglio professionale va ancora confrontato su dispositivo prima della prossima build Android.
