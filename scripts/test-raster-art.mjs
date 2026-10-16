@@ -79,7 +79,7 @@ for(const token of [
  "drawRaster(ctx,'fx','explosion'",
  "drawRaster(ctx,'ui','title'"
 ])assert.ok(main.includes(token),token);
-assert.ok(boss.includes("drawRaster(ctx,'boss','commander'"));
+assert.ok(boss.includes("drawRaster(ctx,'boss',bossSpriteForPhase(boss)"),'Damage phases must choose authored boss atlases');
 assert.ok(effects.includes("drawRaster(ctx,'fx','smoke'"));
 assert.ok(!main.includes("if(!drawHeroFrame("),'Characters must not fall back to code-painted placeholders');
 assert.ok(!main.includes("if(!drawTroop("),'Troops must not use generated runtime sprite fallback');
