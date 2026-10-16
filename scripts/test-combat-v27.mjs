@@ -39,7 +39,7 @@ resetTroopWaves(troops);
 assert.ok(troops.every(e=>e.dodgeTime===0),'Replay clears dodge states');
 const main=readFileSync('main.js','utf8'),html=readFileSync('index.html','utf8');
 for(const marker of [
- "import {createArcadeCombatMoves}",
+ "import {createArcadeCombatMoves,actionFrame}",
  "combatMoves.slash();",
  "function drawCombatMoves()",
  "function slide(){",
