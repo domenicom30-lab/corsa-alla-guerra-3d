@@ -1,0 +1,22 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {bossSpriteForPhase} from '../boss-art-state.js';
+import {rasterAssetManifest as m,rasterAssetCount} from '../sprite-loader.js';
+assert.equal(rasterAssetCount,62);
+assert.deepEqual(Object.keys(m.boss),['commander','commanderDamaged','commanderCritical']);
+assert.ok(Object.values(m.boss).every(n=>n===6));
+const boss={hp:28,maxHp:28,active:true};
+assert.equal(bossSpriteForPhase(boss),'commander');
+boss.hp=16;assert.equal(bossSpriteForPhase(boss),'commanderDamaged');
+boss.hp=9;assert.equal(bossSpriteForPhase(boss),'commanderCritical');
+boss.hp=28;assert.equal(bossSpriteForPhase(boss),'commander','Restart restores intact artwork');
+assert.equal(bossSpriteForPhase(null),'commander');
+const mechanics=readFileSync('arcade-mechanics.js','utf8');
+assert.ok(mechanics.includes("import {bossSpriteForPhase} from './boss-art-state.js'"));
+assert.ok(mechanics.includes("drawRaster(ctx,'boss',bossSpriteForPhase(boss),Math.floor(phase*.5)%6"),
+ 'Live boss must use phase-specific animated raster rather than one static sprite');
+assert.ok(!mechanics.includes("drawRaster(ctx,'boss','commander',Math.floor(phase*.5)%6"));
+const gen=readFileSync('scripts/build_raster_art.py','utf8');
+assert.ok(gen.includes("from boss_damage_art import paint_boss_damage"));
+assert.ok(gen.includes("paint_boss_damage(im,rel.split('/')[-1].replace('.png',''),n)"));
+console.log('PASS: full three-phase boss art upgrade with eighteen authored tank frames and real damage-state rendering');

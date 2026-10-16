@@ -11,6 +11,7 @@ from airborne_art import draw_airborne_finishing
 from secondary_landmarks import draw_landmark
 from enemy_falling_art import draw_falling_pose
 from environment_details import paint_environment_details
+from boss_damage_art import paint_boss_damage
 
 ROOT = Path(__file__).resolve().parent.parent
 PUBLIC = ROOT / "public" / "assets" / "sprites"
@@ -1251,6 +1252,7 @@ def write_atlas(rel,frames,fw,fh,fn,texture=True):
         elif rel.startswith('boss/'):
             finish_boss_art(im,n)
             armored_surface(im,n,boss=True)
+            paint_boss_damage(im,rel.split('/')[-1].replace('.png',''),n)
         elif rel.startswith('vehicles/'):
             armored_surface(im,n,boss=False)
         if texture and n%2==0:

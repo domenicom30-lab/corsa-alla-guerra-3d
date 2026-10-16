@@ -78,7 +78,9 @@
     "heavyFall": 6
   },
   "boss": {
-    "commander": 6
+    "commander": 6,
+    "commanderDamaged": 6,
+    "commanderCritical": 6
   },
   "fx": {
     "explosion": 10,
