@@ -8,7 +8,7 @@ assert.ok(main.includes("drawRaster(ctx,'hero',pose,frame"),'Raster protagonist 
 assert.ok(main.includes('spectacle.drawFront(ctx,W,H,scroll,ground());'),'Effects composited into scene');
 assert.ok(main.includes('spectacle.step(dt,cameraDelta)'),'Effects follow camera');
 assert.ok(main.includes('spectacle.reset();'),'Restart clears particle pools');
-assert.ok(main.includes('spectacle.impact(e.x-scroll,ground()-H*.16,result.killed?result.points:0)'),'Enemy hits award visible points');
+assert.ok(main.includes('spectacle.impact(target.x-scroll,ground()-H*.16,result.killed?result.points:0)'),'Enemy hits award visible points');
 const original=globalThis.document;
 const drawOps=[];
 let created=0;
