@@ -1,5 +1,6 @@
 import {vehicleDimensions} from './arcade-proportions.js';
 import {drawAircraft,damageAircraft} from './aircraft-combat.js';
+import {createBossEncounter} from './boss-encounter.js';
 // Original arcade run-and-gun systems: weapon pickups, grenades, enemy volleys, boss.
 import {drawRocketPickup,segmentHitsRect} from './arcade-arsenal.js';
 import {nearestRectHit} from './collision-order.js';
@@ -11,8 +12,9 @@ export function createArcadeSystems(){
  const covers=[2350,5750,8850].map(x=>({x,hp:100}));
  const prisoners=[1750,4850,7950].map(x=>({x,rescued:false}));
  const boss={x:9600,hp:28,maxHp:28,active:false,defeated:false,cooldown:1.3,velocity:0,turretAngle:0,recoil:0,treadDistance:0};
+ const bossEncounter=createBossEncounter();
  let weapon='normal',ammo=Infinity,grenadeCount=8,combo=0,comboTimer=0,screenShake=0;
- const reset=()=>{weapon='normal';ammo=Infinity;grenadeCount=8;combo=0;comboTimer=0;screenShake=0;grenades.length=0;enemyShots.length=0;airBombs.length=0;airDrops.length=0;Object.assign(plane,{x:-200,active:false,timer:10,dropTimer:0,passes:0,hp:6,maxHp:6,hitFlash:0,crashTime:0,crashY:0,crashAngle:0});pickups.forEach(p=>p.taken=false);covers.forEach(c=>c.hp=100);prisoners.forEach(p=>p.rescued=false);Object.assign(boss,{hp:28,active:false,defeated:false,cooldown:1.3,velocity:0,turretAngle:0,recoil:0,treadDistance:0})};
+ const reset=()=>{weapon='normal';ammo=Infinity;grenadeCount=8;combo=0;comboTimer=0;screenShake=0;grenades.length=0;enemyShots.length=0;airBombs.length=0;airDrops.length=0;Object.assign(plane,{x:-200,active:false,timer:10,dropTimer:0,passes:0,hp:6,maxHp:6,hitFlash:0,crashTime:0,crashY:0,crashAngle:0});pickups.forEach(p=>p.taken=false);covers.forEach(c=>c.hp=100);prisoners.forEach(p=>p.rescued=false);Object.assign(boss,{hp:28,active:false,defeated:false,cooldown:1.3,velocity:0,turretAngle:0,recoil:0,treadDistance:0});bossEncounter.reset()};
  const collect=(worldX,jump,ground,H)=>{let reward=null;for(const p of pickups){if(p.taken||Math.abs(p.x-worldX)>H*.12||jump>H*.18)continue;p.taken=true;reward=p.type;if(p.type==='health'){}else{weapon=p.type;ammo=p.type==='rocket'?35:p.type==='spread'?100:160}}return reward};
  const rescue=(worldX,jump,H)=>{let n=0;for(const p of prisoners)if(!p.rescued&&Math.abs(p.x-worldX)<H*.12&&jump<H*.2){p.rescued=true;n++}return n};
  const hitCover=(worldX,y,ground,H,damage=10)=>{if(y<ground-H*.15||y>ground+H*.02)return false;for(const c of covers){if(c.hp>0&&Math.abs(c.x-worldX)<H*.09){c.hp=Math.max(0,c.hp-damage);return true}}return false};
@@ -92,6 +94,9 @@ export function createArcadeSystems(){
    }
    }
   }
+  bossEncounter.step(dt,{boss,scroll,playerX,playerWorldX:scroll+playerX,ground,H,cameraDelta,
+   jumpY:jumping,sliding:!!playerState.sliding,occupied:!!playerState.occupied,covers,onDamage,
+   onImpact:(x,y)=>onExplosion(x,y,H*.15,true)});
   for(let i=enemyShots.length-1;i>=0;i--){
     const b=enemyShots[i],previousX=b.x,previousY=b.y;
     b.x+=b.vx*dt-cameraDelta;b.y+=b.vy*dt;
@@ -162,6 +167,8 @@ export function createArcadeSystems(){
        ctx.fillStyle='#fff3af';ctx.fillRect(b.x-3,b.y-2,11,4);
      }
    }
+  // Ground warning and jumpable shockwaves are composited below the boss.
+  bossEncounter.draw(ctx,boss,scroll,ground,H,phase);
   if(boss.active&&!boss.defeated){
    const x=boss.x-scroll,unit=H*.01;
    const viewportWidth=ctx.canvas?.clientWidth||ctx.canvas?.width||Infinity;
@@ -282,7 +289,7 @@ export function createArcadeSystems(){
    ctx.restore();
   }
  };
- return {pickups,grenades,enemyShots,airBombs,airDrops,plane,covers,prisoners,boss,reset,collect,rescue,hitCover,melee,fire,throwGrenade,kill,
+ return {pickups,grenades,enemyShots,airBombs,airDrops,plane,covers,prisoners,boss,bossEncounter,reset,collect,rescue,hitCover,melee,fire,throwGrenade,kill,
   hitPlane(damage,H){const outcome=damageAircraft(plane,damage,H);if(outcome.killed){
    if(airDrops.length<3)airDrops.push({x:outcome.x,y:outcome.y});
    screenShake=Math.max(screenShake,12);
