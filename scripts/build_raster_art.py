@@ -43,7 +43,7 @@ def hero(im,pose,n):
     moving=pose in ("run","runFire")
     stride=round(math.sin(t)*22) if moving else 0
     bounce=round(abs(math.sin(t))*5) if moving else 0
-    crouch=25 if pose=="duck" else 0
+    crouch=25 if pose in ("duck","duckFire") else 0
     jump=-17 if pose=="jump" else 0
     hurt=6 if pose=="hurt" else 0
     y=bounce+crouch+jump+hurt
@@ -86,7 +86,7 @@ def hero(im,pose,n):
     poly(d,[(69,81+y),(89,78+y),(94,95+y),(75,101+y)],"#859970")
     rect(d,(61,112+y,79,121+y),"#bd946d","#2c362d")
     # Right shoulder pivots independently when holding the aim-up input.
-    recoil=(n%2)*6 if pose in ("fire","runFire") else 0
+    recoil=(n%2)*6 if pose in ("fire","runFire","duckFire") else 0
     arm_y=96+y+(-10 if pose=="jump" else 0)
     if pose=="aimUp":
         line(d,[(124,91+y),(139,91+y),(132,66+y)],"#586b4d",18)
@@ -117,7 +117,7 @@ def hero(im,pose,n):
     rect(d,(111,101+y,118,107+y),"#bb8d4a")
     rect(d,(112,103+y,118,105+y),"#f0d8a4")
     for j in range(5):rect(d,(94+j*4,111+y,96+j*4,113+y),"#b3b18c")
-    if pose in ("fire","runFire") and n%2==0:
+    if pose in ("fire","runFire","duckFire") and n%2==0:
         poly(d,[(201-recoil,arm_y-7),(214-recoil,arm_y-17),(218-recoil,arm_y-4),(236-recoil,arm_y+1),(216-recoil,arm_y+7)],"#ffb44b",None)
         ell(d,(208-recoil,arm_y-3,223-recoil,arm_y+5),"#fff4b3",None)
     if pose=="hurt":
@@ -133,7 +133,7 @@ def hero_finishing(im,pose,n):
     t=n*math.pi/4
     stride=round(math.sin(t)*22) if pose in ("run","runFire") else 0
     bounce=round(abs(math.sin(t))*5) if pose in ("run","runFire") else 0
-    y=bounce+(25 if pose=="duck" else 0)+(-17 if pose=="jump" else 0)+(6 if pose=="hurt" else 0)
+    y=bounce+(25 if pose in ("duck","duckFire") else 0)+(-17 if pose=="jump" else 0)+(6 if pose=="hurt" else 0)
     rng=random.Random(4049+n*17+len(pose)*13)
     d.arc((80,35+y,131,69+y),186,327,fill=(176,190,136,255),width=3)
     d.line([(83,58+y),(110,55+y),(134,58+y)],fill=(28,38,32,255),width=3)
@@ -169,7 +169,7 @@ def hero_finishing(im,pose,n):
         for k in range(3):
             yy=152+y+k*8
             d.line([(bx+5,yy),(bx+16,yy+3)],fill=(177,181,129,156),width=2)
-    recoil=(n%2)*6 if pose in ("fire","runFire") else 0
+    recoil=(n%2)*6 if pose in ("fire","runFire","duckFire") else 0
     aim_y=96+y+(-10 if pose=="jump" else 0)
     if pose=="aimUp":
         d.line([(128,25+y),(141,23+y)],fill=(191,200,184,255),width=2)
@@ -183,7 +183,7 @@ def hero_finishing(im,pose,n):
             xx=152-recoil+k*8
             d.line([(xx,aim_y+3),(xx+3,aim_y+5)],fill=(25,32,30,220),width=1)
         d.ellipse((157-recoil,aim_y-5,162-recoil,aim_y),fill=(177,177,155,255))
-    if pose in ("fire","runFire") and n%2==0:
+    if pose in ("fire","runFire","duckFire") and n%2==0:
         for j in range(6):
             xx=203-recoil+j*4
             d.line([(xx,aim_y-4-j%2*3),(xx+4,aim_y-6-j%3)],fill=(255,219,126,205),width=2)
@@ -672,6 +672,139 @@ def bg(im,kind,layer):
             x=rng.randrange(W);y=rng.randrange(H)
             d.rectangle((x,y,x+2,y+2),fill=(215,185,143,45))
 
+def draw_stage_prop(im,kind):
+    """Original hand-authored foreground structures for four distinctive levels.
+    Pixel-outlined, textured and mechanically plausible; never repeated across zones.
+    """
+    d=ImageDraw.Draw(im,"RGBA")
+    rng=random.Random(18452+sum(ord(c) for c in kind)*19)
+    if kind=="forestPost":
+        # Rooted log firing position: support beams, thick dirt and stacked sandbags.
+        poly(d,[(28,250),(84,202),(381,206),(455,253),(454,301),(29,306)],(49,58,39,255),None)
+        for x in range(66,429,44):
+            rect(d,(x,226,x+32,300),(81,67,49,255),(33,36,29,255),3)
+            line(d,[(x+8,234),(x+12,292)],(147,121,80,200),3,None)
+            for y in range(241,285,19):
+                d.ellipse((x+10,y,x+15,y+5),fill=(40,36,29,255))
+        for row in range(3):
+            for col in range(9-row):
+                x=59+col*43+row*20
+                y=218+row*25+(col%2)*2
+                ell(d,(x,y,x+49,y+26),(114+row*6,109+col%3*3,78+row*4,255),None)
+                d.arc((x+3,y+1,x+45,y+25),176,338,fill=(191,174,127,225),width=3)
+                line(d,[(x+7,y+16),(x+41,y+17)],(66,64,49,160),2,None)
+        # Slanted roof of corrugated metal at the post's rear.
+        for x in (110,385):
+            rect(d,(x,63,x+22,213),(57,54,40,255),(30,34,28,255),3)
+            line(d,[(x+6,68),(x+4,205)],(164,128,78,255),3,None)
+        poly(d,[(86,88),(135,42),(399,39),(431,91)],(43,56,47,255))
+        for x in range(108,402,22):
+            line(d,[(x,78),(x+11,48)],(104,109,88,235),4,None)
+        line(d,[(90,93),(429,95)],(183,155,102,255),8,None)
+        # Open firing slot under canopy.
+        rect(d,(140,99,384,192),(20,32,31,255),(98,85,64,255),5)
+        for x in (160,245,335):
+            rect(d,(x,120,x+10,187),(39,46,40,255))
+        line(d,[(128,197),(403,198)],(205,172,117,255),8,None)
+        # Loose netting and leaf camouflage.
+        for k in range(42):
+            x=rng.randrange(95,418);y=rng.randrange(39,106)
+            col=(69,87,50,230) if k%3 else (140,132,71,210)
+            d.ellipse((x,y,x+rng.randrange(12,27),y+rng.randrange(4,13)),fill=col)
+        # Ground contact shadow.
+        d.ellipse((16,297,467,316),fill=(11,18,16,95))
+    elif kind=="ruinHouse":
+        # Red brick two-story shattered building with arched windows and soot.
+        poly(d,[(37,302),(38,85),(95,48),(295,45),(319,126),(358,138),(367,299)],(132,97,73,255))
+        poly(d,[(42,95),(100,59),(296,61),(317,137),(299,150),(267,107),(123,108)],(165,123,94,255),None)
+        poly(d,[(33,77),(101,32),(298,29),(354,136),(310,127),(282,63),(92,64)],(63,60,56,255))
+        poly(d,[(94,47),(296,45),(310,60),(91,62)],(198,156,112,255),None)
+        for y in range(111,297,18):
+            for x in range(49+(y%36)*2//9,350,34):
+                d.line([(x,y),(x+26,y)],fill=(79,63,53,220),width=3)
+                d.line([(x,y),(x,y+15)],fill=(89,67,55,170),width=2)
+                if (x+y)%5==0:rect(d,(x+6,y-7,x+15,y-4),(205,153,110,160),None)
+        for x in (105,249):
+            rect(d,(x,125,x+64,215),(37,40,40,255),(54,45,42,255),5)
+            d.arc((x,108,x+64,159),180,360,fill=(36,39,37,255),width=10)
+            rect(d,(x+10,161,x+54,171),(74,70,62,255))
+            line(d,[(x+32,129),(x+32,210)],(143,121,89,255),5,None)
+        # Collapse and exposed floors behind ripped wall.
+        poly(d,[(351,139),(409,171),(381,215),(430,240),(374,282),(359,300),(331,296),(340,250),(310,225),(351,201)],(94,78,65,255))
+        for x in range(310,439,19):
+            y=255+rng.randint(-14,18)
+            poly(d,[(x,y),(x+20,y-8),(x+28,y+16),(x-5,y+19)],(103+rng.randint(0,25),83,66,255))
+        rect(d,(75,238,169,301),(45,42,39,255))
+        poly(d,[(68,236),(176,236),(181,245),(68,247)],(182,150,110,255),None)
+        d.ellipse((30,301,463,318),fill=(25,27,25,110))
+        for k in range(60):
+            x=rng.randint(35,353);y=rng.randint(86,283)
+            d.line([(x,y),(x+rng.randint(-6,8),y+rng.randint(-4,8))],fill=(33,37,35,110),width=rng.randint(1,3))
+    elif kind=="factoryMachinery":
+        # Workshop pumping machinery, pipes, vats, gauges and rotating gear housing.
+        for x in (96,378):
+            rect(d,(x,23,x+35,292),(66,67,61,255),(22,33,35,255),6)
+            for y in range(49,292,25):rect(d,(x+6,y,x+29,y+7),(132,125,103,255),None)
+        rect(d,(65,281,454,311),(53,57,55,255),(21,29,29,255),5)
+        for x in range(79,454,35):
+            line(d,[(x,284),(x+13,302)],(180,149,101,255),5,None)
+        ell(d,(100,87,343,283),(41,51,52,255),(19,25,26,255),7)
+        ell(d,(124,112,322,270),(100,109,102,255),(26,37,37,255),7)
+        ell(d,(163,146,284,258),(46,58,56,255),(161,161,135,255),9)
+        for k in range(12):
+            a=k*math.pi/6
+            x=225+math.cos(a)*61;y=203+math.sin(a)*55
+            rect(d,(x-7,y-8,x+7,y+8),(49,60,60,255),(20,26,27,255),2)
+        ell(d,(198,178,252,229),(148,155,131,255),(25,35,36,255),6)
+        ell(d,(218,195,234,210),(45,56,56,255),None)
+        # Overhead pipes with clamps and valve handles.
+        line(d,[(48,64),(414,64),(414,193)],(41,55,55,255),26,None)
+        line(d,[(48,64),(414,64),(414,193)],(142,149,135,255),12,None)
+        for x in (104,178,312,391):
+            rect(d,(x,50,x+20,80),(58,65,63,255),(27,35,35,255),4)
+            rect(d,(x+8,52,x+13,78),(190,168,126,255),None)
+        ell(d,(373,155,450,229),(55,67,65,255),(191,181,140,255),6)
+        d.arc((380,163,441,223),205,330,fill=(221,198,142,255),width=4)
+        line(d,[(408,185),(432,170)],(200,111,79,255),4,None)
+        for x in (142,321):
+            d.ellipse((x-15,35,x+15,65),fill=(46,56,53,255),outline=(187,152,100,255),width=4)
+            for j in range(6):
+                a=j*math.pi/3
+                d.line([(x+math.cos(a)*11,50+math.sin(a)*11),(x+math.cos(a)*21,50+math.sin(a)*21)],fill=(174,143,93,255),width=3)
+        for k in range(65):
+            x=rng.randint(80,437);y=rng.randint(96,280)
+            d.line([(x,y),(x+rng.randint(-6,8),y+2)],fill=(204,158,111,95) if k%2 else (19,29,29,120),width=2)
+        d.ellipse((44,300,468,320),fill=(14,22,21,110))
+    else:
+        # Massive fortress gate and searchlight battery, weathered concrete/steel.
+        poly(d,[(22,309),(42,86),(116,54),(396,63),(465,112),(469,310)],(83,91,85,255))
+        for x in (53,349):
+            rect(d,(x,69,x+81,290),(105,113,105,255),(39,53,50,255),6)
+            for y in (100,145,190,235):rect(d,(x+11,y,x+69,y+6),(64,76,69,255),None)
+        poly(d,[(116,80),(180,36),(308,36),(365,80)],(40,53,50,255))
+        line(d,[(124,86),(350,86)],(167,162,129,255),9,None)
+        rect(d,(139,132,342,303),(31,46,44,255),(16,25,26,255),6)
+        for x in range(150,343,23):
+            rect(d,(x,138,x+13,301),(68,86,80,255),(21,34,32,255),3)
+        for y in range(148,298,28):
+            line(d,[(144,y),(338,y)],(119,125,107,255),4,None)
+        # Reinforcing crossed bars of the steel gate.
+        line(d,[(145,142),(335,296)],(37,51,48,255),17,None)
+        line(d,[(335,142),(145,296)],(37,51,48,255),17,None)
+        line(d,[(150,142),(339,292)],(162,158,121,255),5,None)
+        ell(d,(183,102,292,166),(33,47,46,255),(168,162,121,255),8)
+        ell(d,(203,112,272,155),(203,179,112,255),(30,42,42,255),4)
+        line(d,[(237,133),(269,125)],(35,42,42,255),5,None)
+        for x in (86,393):
+            d.ellipse((x-35,20,x+36,94),fill=(46,61,59,255),outline=(143,153,138,255),width=7)
+            d.polygon([(x-24,45),(x+26,32),(x+15,68)],fill=(221,201,139,255))
+            line(d,[(x,94),(x,121)],(55,66,61,255),8,None)
+        for k in range(65):
+            x=rng.randint(47,439);y=rng.randint(95,285)
+            d.line([(x,y),(x+rng.randint(-9,5),y+rng.randint(-8,10))],fill=(34,45,43,150),width=2)
+        d.ellipse((22,304,466,320),fill=(14,22,21,100))
+
+
 def ui(im,kind,n):
     d=ImageDraw.Draw(im,"RGBA"); w,h=im.size
     if kind=="hud":
@@ -730,6 +863,9 @@ def build():
     for kind,n in MANIFEST["ui"].items():
         rel=f"ui/{kind}.png";expected.add(rel)
         write_atlas(rel,n,512 if kind=="hud" else 768,76 if kind=="hud" else 162,lambda im,i,k=kind:ui(im,k,i),False)
+    for name,frames in MANIFEST["props"].items():
+        rel=f"props/{name}.png";expected.add(rel)
+        write_atlas(rel,frames,480,320,lambda im,i,k=name:draw_stage_prop(im,k),False)
     for scene in MANIFEST["backgrounds"]:
         for layer in ("far","near"):
             rel=f"backgrounds/{scene}-{layer}.png";expected.add(rel)
@@ -750,7 +886,7 @@ def build():
 
 def validate(expected=None):
     expected=expected or {
-      f"{cat}/{kind}.png" for cat in ("hero","enemies","boss","fx","ui")
+      f"{cat}/{kind}.png" for cat in ("hero","enemies","boss","fx","ui","props")
       for kind in MANIFEST[cat]
     }
     expected.update(f"backgrounds/{scene}-{layer}.png" for scene in MANIFEST["backgrounds"] for layer in ("far","near"))

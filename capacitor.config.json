@@ -1,6 +1,6 @@
 {
-  "appId": "com.corsaguerra.arcadeprova25",
-  "appName": "Corsa alla Guerra 2D 2.5",
+  "appId": "com.corsaguerra.arcadeprova26",
+  "appName": "Corsa alla Guerra 2D 2.6",
   "webDir": "dist",
   "android": {
     "backgroundColor": "#131f21"

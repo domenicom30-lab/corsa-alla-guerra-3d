@@ -1,5 +1,5 @@
 {
-  "version": "2.4.0",
+  "version": "2.6.0",
   "frameSizes": {
     "hero": [
       240,
@@ -30,6 +30,10 @@
     "backgrounds": [
       1400,
       540
+    ],
+    "props": [
+      480,
+      320
     ]
   },
   "hero": {
@@ -40,7 +44,8 @@
     "fire": 4,
     "duck": 3,
     "hurt": 3,
-    "aimUp": 4
+    "aimUp": 4,
+    "duckFire": 4
   },
   "enemies": {
     "rifleman": 8,
@@ -67,5 +72,11 @@
     "village",
     "industrial",
     "fortress"
-  ]
+  ],
+  "props": {
+    "forestPost": 1,
+    "ruinHouse": 1,
+    "factoryMachinery": 1,
+    "fortressGate": 1
+  }
 }

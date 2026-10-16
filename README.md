@@ -123,3 +123,14 @@ The commando has a dedicated 4-frame `aimUp` PNG animation: shoulders pivot, rif
 - Nuovo tasto touch contestuale centrale: **AVVICINATI AL CARRO** a distanza; **ENTRA NEL CARRO** quando raggiungibile; **ESCI DAL CARRO** una volta a bordo. Resta disponibile anche il tasto fisico `E`.
 - Nuovi test automatizzati per soglie di distanza, veicolo distrutto, avvio, pausa, entrata, uscita, dimensioni e interfaccia Android.
 - Versione e identificativo Android autonomo `com.corsaguerra.arcadeprova25` per evitare conflitti di firma con altre APK di prova.
+
+
+## Versione 2.6 — Scenari differenziati e animazioni aggiuntive
+
+- Quattro **nuovi elementi scenici PNG originali** con silhouette, materiali, superfici e dettagli differenti: postazione forestale, abitazione in rovina, macchinario industriale e portale fortificato. Non sono più ripetuti indistintamente in ogni zona.
+- Il sistema di sprite obbligatori include la nuova famiglia `props` e 4 frame `duckFire` per sparare da accovacciati, con rinculo dedicato. Tutte le risorse sono controllate nella pipeline e all'interno dell'APK.
+- L'insegna della missione occupa meno spazio sul Samsung per lasciare vedere il personaggio e il campo di battaglia.
+- Test aggiuntivi sulla composizione dei quattro elementi grafici, sui fotogrammi duckFire e sul legame fra stage e asset.
+- APK separata con ID `com.corsaguerra.arcadeprova26` e versione 2.6.0.
+
+I materiali sono disegni originali generati offline; una qualità equivalente ai titoli arcade illustrati a mano resta un obiettivo artistico ancora da verificare su dispositivo.

@@ -5,13 +5,13 @@ import {rasterAssetManifest as manifest,rasterAssetCount,
  drawRaster,drawRasterBackground,disposeSpritePacks} from '../sprite-loader.js';
 
 const specs=[];
-for(const category of ['hero','enemies','boss','fx','ui'])
+for(const category of ['hero','enemies','boss','fx','ui','props'])
  for(const [name,count] of Object.entries(manifest[category]))
   specs.push({category,name,count,size:category==='ui'?manifest.frameSizes.ui[name]:manifest.frameSizes[category]});
 for(const scene of manifest.backgrounds)for(const layer of ['far','near'])
  specs.push({category:'backgrounds',name:scene+'-'+layer,count:1,size:manifest.frameSizes.backgrounds});
 assert.equal(rasterAssetCount,specs.length);
-assert.ok(rasterAssetCount>=25,'Full original raster pack must contain gameplay and scenery');
+assert.ok(rasterAssetCount>=33,'Full original raster pack must contain gameplay and scenery');
 let totalBytes=0;
 for(const {category,name,count,size} of specs){
  const path='public/assets/sprites/'+category+'/'+name+'.png';
