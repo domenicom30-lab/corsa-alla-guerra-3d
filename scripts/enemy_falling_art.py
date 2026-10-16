@@ -16,7 +16,8 @@ def draw_falling_pose(im,n):
     source=im.copy()
     # Advance the character's center toward the floor as the body topples.
     cropped=source.crop((29,19,239,199))
-    w=max(1,int(210*sx)),h=max(1,int(180*sy))
+    w=max(1,int(210*sx))
+    h=max(1,int(180*sy))
     cropped=cropped.resize((w,h),Image.Resampling.BICUBIC)
     rotated=cropped.rotate(angle,Image.Resampling.BICUBIC,expand=True)
     im.paste((0,0,0,0),(0,0,im.width,im.height))
