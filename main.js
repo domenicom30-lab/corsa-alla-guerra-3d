@@ -326,7 +326,13 @@ function drawSentries(){
   if(facingPlayer<0)ctx.scale(-1,1);
   if(e.flinch>0){ctx.shadowColor='#fff4ca';ctx.shadowBlur=H*.015}
   if(e.dodgeTime>0){ctx.translate(0,H*.018);ctx.rotate(Math.sin(e.walk*1.4)*.06)}
-   drawRaster(ctx,'enemies',e.type,Math.floor(e.walk+(e.vx?0:phase*.25)+e.phase)%8,-w*.5,ground()-h,w,h);
+   const enemyPose=e.flinch>0?'Hurt':(e.stance==='crouch'||e.suppressed>0||e.dodgeTime>0)?'Crouch':'';
+   const enemyFrame=enemyPose==='Hurt'
+     ?Math.min(3,Math.floor(Math.max(0,.20-e.flinch)/.05))
+     :enemyPose==='Crouch'
+       ?Math.floor(phase*.48+e.phase)%4
+       :Math.floor(e.walk+(e.vx?0:phase*.25)+e.phase)%8;
+   drawRaster(ctx,'enemies',e.type+enemyPose,enemyFrame,-w*.5,ground()-h,w,h);
   ctx.restore();
   if(e.suppressed>0){
    ctx.save();ctx.globalAlpha=Math.min(.85,e.suppressed*1.8);

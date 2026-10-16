@@ -582,6 +582,38 @@ def finish_enemy_art(im,kind,n):
             d.point((xx,yy),fill=(10,29,30,125) if j%3 else (207,210,158,150))
 
 
+
+def finish_enemy_pose(im,pose,n):
+    """Distinct illustrated impact and defensive stances in original enemy silhouettes."""
+    if pose=="Crouch":
+        compact=im.resize((240,150),Image.Resampling.NEAREST)
+        im.paste((0,0,0,0),(0,0,240,210))
+        im.paste(compact,(0,56+n%2*2))
+        d=ImageDraw.Draw(im,"RGBA")
+        # New bent knee, low rifle and grounded cloth/dust details.
+        d.polygon([(94,166),(123,174+n%2*2),(143,182),(117,189),(88,182)],fill=(62,81,62,255))
+        d.line([(102,170),(134,182)],fill=(159,169,124,255),width=4)
+        d.line([(152,149+n%2*2),(202,156+n%2*2)],fill=(27,35,33,255),width=7)
+        d.line([(158,146+n%2*2),(198,151+n%2*2)],fill=(190,191,159,255),width=2)
+        for k in range(4):
+            xx=55-k*10-n*2;yy=191+k%2*2
+            d.ellipse((xx,yy,xx+9,yy+4),fill=(148,138,102,170))
+    elif pose=="Hurt":
+        tilted=im.rotate((-12,-7,4,0)[n%4],Image.Resampling.BICUBIC,
+                         expand=False,center=(116,145))
+        im.paste((0,0,0,0),(0,0,240,210))
+        im.paste(tilted,(0,0))
+        d=ImageDraw.Draw(im,"RGBA")
+        cx=106+n%2*8;cy=105+n%2*5
+        if n<3:
+            radius=12+n*6
+            d.arc((cx-radius,cy-radius,cx+radius,cy+radius),200,335,
+                  fill=(248,230,166,245-n*60),width=3)
+        for k in range(5):
+            dx=k*9+n*2
+            d.line([(cx+dx,cy-k*3),(cx+dx+6,cy-k*3-7)],
+                   fill=(204,172,111,max(45,180-n*30)),width=3)
+
 def finish_boss_art(im,n):
     """Tank dents, roadwheel highlights, bevels and scuffed steel."""
     d=ImageDraw.Draw(im,"RGBA")
@@ -1099,7 +1131,15 @@ def write_atlas(rel,frames,fw,fh,fn,texture=True):
             if hero_pose not in ('slide','land'):hero_finishing(im,hero_pose,n)
             if hero_pose=='melee':draw_melee_bayonet(im,n)
         elif rel.startswith('enemies/'):
-            finish_enemy_art(im,rel.split('/')[-1].replace('.png',''),n)
+            kind=rel.split('/')[-1].replace('.png','')
+            if kind.endswith('Crouch'):
+                finish_enemy_art(im,kind[:-6],n)
+                finish_enemy_pose(im,'Crouch',n)
+            elif kind.endswith('Hurt'):
+                finish_enemy_art(im,kind[:-4],n)
+                finish_enemy_pose(im,'Hurt',n)
+            else:
+                finish_enemy_art(im,kind,n)
         elif rel.startswith('boss/'):
             finish_boss_art(im,n)
         if texture and n%2==0:
@@ -1117,7 +1157,7 @@ def build():
         write_atlas(rel,n,240,210,lambda im,i,p=pose:hero(im,p,i))
     for kind,n in MANIFEST["enemies"].items():
         rel=f"enemies/{kind}.png";expected.add(rel)
-        write_atlas(rel,n,240,210,lambda im,i,k=kind:enemy(im,k,i))
+        write_atlas(rel,n,240,210,lambda im,i,k=kind:enemy(im,k[:-6] if k.endswith('Crouch') else k[:-4] if k.endswith('Hurt') else k,i))
     for kind,n in MANIFEST["boss"].items():
         rel=f"boss/{kind}.png";expected.add(rel)
         write_atlas(rel,n,340,240,lambda im,i:boss(im,i))

@@ -188,3 +188,9 @@ La release Android non parte automaticamente: la sola verifica continua è la pi
 Sostituiti i rettangoli di prova con due nuove risorse **PNG originali**: un prigioniero animato su quattro fotogrammi, con divisa civile, volto ed equipaggiamento, e una barricata di sacchi di sabbia in tre condizioni visive (integra, danneggiata, distrutta). Le coperture completamente distrutte restano come detriti scenici, ma non fermano più i proiettili. La nuova scala dei soldati, le soglie di liberazione e le collisioni restano invariate.
 
 La pipeline di qualità verifica ogni fotogramma e i collegamenti con il gioco. **Nessuna APK viene generata automaticamente** finché non è pronta una nuova versione candidata alla prova su Samsung.
+
+### Nuove pose dei quattro tipi di soldati (lavoro in corso)
+
+Otto nuovi atlas animati **originali** in formato PNG: quattro posture **Crouch** con arma abbassata e ginocchia piegate, quattro reazioni **Hurt** con inclinazione, colpi ed equipaggiamento. Sono 32 fotogrammi aggiuntivi. Ogni nemico continua a usare la sua animazione base quando cammina, ma ora cambia realmente posa in caso di ferita, abbassamento, soppressione o schivata. Gli originali vengono generati offline e testati in CI: non vengono scaricati sprite protetti di altri giochi.
+
+La qualità artistica è ancora da valutare su Samsung. Non viene creata una APK per ogni aggiornamento; la pipeline Android resta manuale.

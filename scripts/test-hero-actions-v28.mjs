@@ -7,7 +7,7 @@ const workflow=readFileSync('.github/workflows/build-apk.yml','utf8');
 assert.equal(m.hero.slide,6);
 assert.equal(m.hero.melee,5);
 assert.equal(m.hero.land,4);
-assert.equal(rasterAssetCount,39,'Mandatory animated hero, troop, vehicles and gameplay scenery atlases');
+assert.equal(rasterAssetCount,47,'Mandatory animated hero, troop, vehicles and gameplay scenery atlases');
 for(const part of [
 "combatMoves.slashActive?'melee'",
 "combatMoves.sliding?'slide'",

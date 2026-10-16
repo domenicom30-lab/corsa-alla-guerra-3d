@@ -58,7 +58,15 @@
     "rifleman": 8,
     "assault": 8,
     "grenadier": 8,
-    "heavy": 8
+    "heavy": 8,
+    "riflemanCrouch": 4,
+    "riflemanHurt": 4,
+    "assaultCrouch": 4,
+    "assaultHurt": 4,
+    "grenadierCrouch": 4,
+    "grenadierHurt": 4,
+    "heavyCrouch": 4,
+    "heavyHurt": 4
   },
   "boss": {
     "commander": 6
