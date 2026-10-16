@@ -291,6 +291,95 @@ def boss(im,n):
     if n%2==0:ell(d,(266,105,279,116),"#ffd386",None)
     speckle(im,100+n,160)
 
+
+def drivable_tank(im,n):
+    """Original six-frame arcade tank. Unlike the old runtime rectangles, all shading
+    and silhouette variation is shipped as authored PNG sheets built offline.
+    """
+    d=ImageDraw.Draw(im,"RGBA")
+    rng=random.Random(40109+n*11)
+    offset=(n%3)*4
+    recoil=(n%2)*7
+    # Ground shadow; links follow the frame index for kinetic treads.
+    ell(d,(28,215,368,248),(14,23,19,103),None)
+    ell(d,(36,162,359,232),"#101a18",None)
+    ell(d,(46,166,349,225),"#272f29","#0f1817",5)
+    for k in range(15):
+        xx=45+k*20
+        rect(d,(xx,168+(k+n)%3,xx+17,179+(k+n)%3),"#697568","#18231f",2)
+        rect(d,(xx,210+(k+n)%3,xx+17,220+(k+n)%3),"#768273","#18231f",2)
+        rect(d,(xx+4,168+(k+n)%3,xx+9,170+(k+n)%3),"#e2c691",None)
+    # Road wheels, casting lines, hub rims and individual bolts.
+    for k in range(7):
+        cx=72+k*42
+        ell(d,(cx-18,175,cx+18,216),"#1b2724","#101816",5)
+        ell(d,(cx-12,181,cx+12,210),"#8e9a82","#343f36",3)
+        ell(d,(cx-7,185,cx+7,205),"#4b6255",None)
+        ell(d,(cx-2,193,cx+3,198),"#d7c397",None)
+        for q in range(4):
+            ang=q*math.pi/2+n*.12
+            px=cx+math.cos(ang)*9;py=195+math.sin(ang)*10
+            ell(d,(px-2,py-2,px+2,py+2),"#d1bd92",None)
+    # Layered armor hull with chipped angled front plate.
+    poly(d,[(37,170),(67,120),(108,113),(313,111),(354,133),(365,171),(353,184),(40,184)],"#4c6654")
+    poly(d,[(46,155),(81,126),(122,121),(319,125),(346,150),(343,161)],"#839b76",None)
+    poly(d,[(47,167),(349,164),(340,181),(46,181)],"#293e35",None)
+    poly(d,[(60,139),(91,130),(115,131),(87,152),(52,159)],"#b1bd83",None)
+    poly(d,[(324,128),(353,148),(356,164),(336,164)],"#313f37",None)
+    rect(d,(91,149,303,157),"#32463d","#1e2b26",2)
+    for k in range(12):
+        x=110+k*17
+        rect(d,(x,151,x+5,154),"#afbba2",None)
+    # Thick riveted applique plates.
+    for x in (64,117,171,228,284,332):
+        for y in (145,174):
+            ell(d,(x-3,y-3,x+3,y+3),"#e1cea1","#333b32",1)
+    # Turret ring and upper armor dome, angled welded edges.
+    ell(d,(125,106,273,141),"#203129","#111d1c",5)
+    poly(d,[(115,123),(133,88),(180,68),(258,75),(283,105),(275,125)],"#4d6a59")
+    poly(d,[(131,99),(176,77),(253,82),(270,98)],"#acb994",None)
+    poly(d,[(139,109),(171,94),(269,108),(274,124),(122,127)],"#314a3f",None)
+    line(d,[(140,115),(271,116)],"#a5af88",4,None)
+    # Operable hatch, rim and periscope.
+    ell(d,(176,62,237,89),"#243a32","#15241e",4)
+    ell(d,(184,64,230,79),"#92a58b","#2f4337",3)
+    rect(d,(193,54,222,64),"#34483a","#1d2d27",3)
+    rect(d,(198,56,204,60),"#d0d4b1",None)
+    # Tank cannon, six-frame spring recoil and metal brake.
+    poly(d,[(251,102),(365-recoil,99),(369-recoil,115),(249,119)],"#303f38")
+    rect(d,(263,100,367-recoil,106),"#9ca991","#33443d",3)
+    rect(d,(264,111,359-recoil,115),"#1f2e2b",None)
+    rect(d,(364-recoil,94,384-recoil,119),"#202d2b","#0e1919",3)
+    rect(d,(371-recoil,98,384-recoil,104),"#99a78c",None)
+    rect(d,(372-recoil,111,385-recoil,116),"#8e9d88",None)
+    for x in (285,316,346):
+        line(d,[(x-recoil//2,100),(x-recoil//2,115)],"#26352e",3,None)
+    # Utility gear and brown webbing lashed to the rear.
+    rect(d,(77,102,121,132),"#514d3a","#222b25",4)
+    for q in range(3):
+        line(d,[(84+q*12,105),(91+q*12,130)],"#b4a275",3,None)
+    rect(d,(73,114,121,119),"#242f29",None)
+    ell(d,(59,123,87,150),"#a29b6d","#334439",3)
+    line(d,[(61,135),(84,137)],"#d5c08d",2,None)
+    # Commander visible only when entering; fully hand-painted into frames.
+    if n in (1,2,4,5):
+        ell(d,(193,34,222,67),"#ba875f","#262f29",2)
+        poly(d,[(188,38),(190,19),(207,14),(227,21),(230,39)],"#3d5746")
+        poly(d,[(185,36),(234,35),(235,43),(185,43)],"#283c32")
+        rect(d,(216,46,225,50),"#25382e",None)
+        line(d,[(196,66),(219,75)],"#c7a07b",5,None)
+    # Battle scars with metallic highlight, grime, serial insignia.
+    for i in range(85):
+        x=rng.randint(59,332);y=rng.randint(99,167)
+        color=(199,188,134,115) if i%3 else (25,37,30,165)
+        line(d,[(x,y),(x+rng.randint(-6,6),y+rng.randint(-3,2))],color,rng.randint(1,2),None)
+    rect(d,(165,139,215,163),"#344a3e","#a5aa82",2)
+    d.text((173,144),"07",fill="#e2dbad")
+    # Muzzle ignition occupies a separate animation frame, no opaque rectangles.
+    if n==5:
+        poly(d,[(385-recoil,101),(396,88),(399,101),(411,109),(392,115)],"#ffd76e",None)
+        ell(d,(384-recoil,100,399,111),"#fff4c4",None)
+
 def fx(im,kind,n,count):
     d=ImageDraw.Draw(im,"RGBA")
     progress=n/max(1,count-1)
@@ -857,6 +946,9 @@ def build():
     for kind,n in MANIFEST["boss"].items():
         rel=f"boss/{kind}.png";expected.add(rel)
         write_atlas(rel,n,340,240,lambda im,i:boss(im,i))
+    for kind,n in MANIFEST["vehicles"].items():
+        rel=f"vehicles/{kind}.png";expected.add(rel)
+        write_atlas(rel,n,400,250,lambda im,i:drivable_tank(im,i),False)
     for kind,n in MANIFEST["fx"].items():
         rel=f"fx/{kind}.png";expected.add(rel)
         write_atlas(rel,n,128,128,lambda im,i,k=kind,v=n:fx(im,k,i,v),False)
@@ -886,7 +978,7 @@ def build():
 
 def validate(expected=None):
     expected=expected or {
-      f"{cat}/{kind}.png" for cat in ("hero","enemies","boss","fx","ui","props")
+      f"{cat}/{kind}.png" for cat in ("hero","enemies","boss","vehicles","fx","ui","props")
       for kind in MANIFEST[cat]
     }
     expected.update(f"backgrounds/{scene}-{layer}.png" for scene in MANIFEST["backgrounds"] for layer in ("far","near"))

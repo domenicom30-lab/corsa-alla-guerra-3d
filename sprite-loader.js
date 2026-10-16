@@ -6,7 +6,7 @@ let state='idle',failure=null,loadPromise=null;
 const images=new Map();
 const dimensions=manifest.frameSizes;
 const names=[];
-for(const group of ['hero','enemies','boss','fx','ui','props']){
+for(const group of ['hero','enemies','boss','vehicles','fx','ui','props']){
  for(const [name,frames] of Object.entries(manifest[group]))names.push({
   key:group+'/'+name,url:SHEET_ROOT+group+'/'+name+'.png',frames,
   dimensions:group==='ui'?dimensions.ui[name]:dimensions[group]

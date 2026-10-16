@@ -41,6 +41,8 @@ jobs:
         run: python3 scripts/test_aimup_art.py
       - name: Validate distinct stage props and crouch firing frames
         run: python3 scripts/test_art_v26.py
+      - name: Validate original animated drivable tank art
+        run: python3 scripts/test_tank_art.py
       - name: JavaScript syntax check
         run: node --check main.js
       - name: Gameplay and asset smoke tests

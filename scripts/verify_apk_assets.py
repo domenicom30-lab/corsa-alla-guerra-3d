@@ -7,7 +7,7 @@ manifest=json.loads((root/'sprite-manifest.json').read_text('utf-8'))
 apk=root/'android/app/build/outputs/apk/debug/app-debug.apk'
 if not apk.is_file():raise SystemExit(f'APK mancante: {apk}')
 wanted={}
-for group in ('hero','enemies','boss','fx','ui','props'):
+for group in ('hero','enemies','boss','vehicles','fx','ui','props'):
     for name,frames in manifest[group].items():
         dims=manifest['frameSizes'][group]
         if group=='ui':dims=dims[name]

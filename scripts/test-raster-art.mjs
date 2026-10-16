@@ -5,7 +5,7 @@ import {rasterAssetManifest as manifest,rasterAssetCount,
  drawRaster,drawRasterBackground,disposeSpritePacks} from '../sprite-loader.js';
 
 const specs=[];
-for(const category of ['hero','enemies','boss','fx','ui','props'])
+for(const category of ['hero','enemies','boss','vehicles','fx','ui','props'])
  for(const [name,count] of Object.entries(manifest[category]))
   specs.push({category,name,count,size:category==='ui'?manifest.frameSizes.ui[name]:manifest.frameSizes[category]});
 for(const scene of manifest.backgrounds)for(const layer of ['far','near'])

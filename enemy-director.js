@@ -15,7 +15,7 @@ export function createTroopWaves(){
   for(let j=0;j<count;j++){
    const type=pattern[(wave*3+j)%pattern.length],info=ENEMY_TYPES[type],x=start+j*(145+(wave%2)*35);
    enemies.push({x,home:x,type,hp:info.hp,maxHp:info.hp,alive:true,cooldown:.7+j*.35+wave*.06,
-    phase:wave*.7+j*.45,stance:'stand',flinch:0,fireFlash:0,walk:0,vx:0,aim:0,windup:0,dodgeTime:0,dodgeDir:0,score:info.points});
+    phase:wave*.7+j*.45,stance:'stand',flinch:0,fireFlash:0,walk:0,vx:0,aim:0,windup:0,dodgeTime:0,dodgeDir:0,suppressed:0,suppressionCooldown:0,score:info.points});
   }
  }
  return enemies;
@@ -23,7 +23,7 @@ export function createTroopWaves(){
 export function resetTroopWaves(enemies){
  for(const e of enemies){
   const info=ENEMY_TYPES[e.type];e.x=e.home;e.hp=info.hp;e.maxHp=info.hp;e.alive=true;
-  e.cooldown=.8+(e.phase%1)*.8;e.stance='stand';e.flinch=0;e.fireFlash=0;e.walk=0;e.vx=0;e.aim=0;e.windup=0;e.dodgeTime=0;e.dodgeDir=0;
+  e.cooldown=.8+(e.phase%1)*.8;e.stance='stand';e.flinch=0;e.fireFlash=0;e.walk=0;e.vx=0;e.aim=0;e.windup=0;e.dodgeTime=0;e.dodgeDir=0;e.suppressed=0;e.suppressionCooldown=0;
  }
 }
 export function damageTroop(e,damage=1){
@@ -33,12 +33,28 @@ export function damageTroop(e,damage=1){
  if(e.hp===0){e.alive=false;return {hit:true,killed:true,points:e.score}}
  return {hit:true,killed:false,points:0};
 }
+// Triggered only by an actual near-miss projectile crossing the enemy's danger band.
+export function suppressTroop(e,bulletY,ground,H,incoming=1){
+ if(!e?.alive||e.type==='heavy'||e.suppressionCooldown>0||!Number.isFinite(bulletY)||H<=0)return false;
+ if(bulletY<ground-H*.31||bulletY>ground-H*.045)return false;
+ e.windup=0;
+ e.suppressed=.54;
+ e.suppressionCooldown=1.55;
+ e.cooldown=Math.max(e.cooldown,.65);
+ e.stance='crouch';
+ e.aim=incoming>=0?1:-1;
+ if(e.type==='assault'&&e.dodgeTime<=0){e.dodgeTime=.24;e.dodgeDir=-Math.sign(incoming||1)}
+ return true;
+}
 export function advanceTroopWaves(enemies,dt,scroll,playerWorldX,playerScreenX,H,enemyShots){
  const events=[];if(dt<=0)return events;
  for(const e of enemies){
   if(!e.alive)continue;
   e.flinch=Math.max(0,e.flinch-dt);e.fireFlash=Math.max(0,e.fireFlash-dt);
+  e.suppressionCooldown=Math.max(0,(e.suppressionCooldown||0)-dt);
+  e.suppressed=Math.max(0,(e.suppressed||0)-dt);
   if(e.dodgeTime>0){const step=Math.min(dt,e.dodgeTime);e.x+=e.dodgeDir*H*.7*step;e.walk+=step*15;e.vx=e.dodgeDir*H*.7;e.stance='crouch';e.dodgeTime-=step;e.cooldown=Math.max(e.cooldown,.15);if(e.dodgeTime<=0)e.flinch=.10;continue;}
+  if(e.suppressed>0){e.stance='crouch';e.windup=0;e.vx=0;continue;}
   const dx=playerWorldX-e.x,range=Math.abs(dx);
   if(range>H*2.8)continue;
   const type=ENEMY_TYPES[e.type],dir=dx>=0?1:-1;

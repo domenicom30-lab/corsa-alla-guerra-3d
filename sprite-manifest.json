@@ -34,6 +34,10 @@
     "props": [
       480,
       320
+    ],
+    "vehicles": [
+      400,
+      250
     ]
   },
   "hero": {
@@ -78,5 +82,8 @@
     "ruinHouse": 1,
     "factoryMachinery": 1,
     "fortressGate": 1
+  },
+  "vehicles": {
+    "slug": 6
   }
 }

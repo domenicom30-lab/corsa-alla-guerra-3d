@@ -148,3 +148,11 @@ Questo aggiornamento migliora le meccaniche ma non dimostra ancora parità di qu
 Per evitare un nuovo APK a ogni modifica, `.github/workflows/build-apk.yml` **non viene più attivato automaticamente** da push su `main` o pull request. L'APK viene creata soltanto tramite l'avvio esplicito della workflow `Build Android APK` (`workflow_dispatch`), quando le meccaniche e gli asset per una release candidata sono integrati e i test risultano verdi.
 
 Le verifiche automatiche `Automated quality gates` **restano attive** sugli aggiornamenti del ramo `main`. Il numero di versione e il pacchetto Android devono essere aggiornati solo quando si decide di produrre una nuova APK testabile.
+
+
+## Sviluppo grafico e tattico — ancora senza nuova APK
+- Sostituito il rendering principale del **carro guidabile** basato su rettangoli durante la partita con un atlas originale PNG di **6 fotogrammi da 400×250**. I frame rappresentano maglie del cingolo, ruote con mozzi e rivetti, torretta corazzata, freno di bocca, rinculo, comandante e usura della vernice.
+- Il motore usa l'illustrazione raster prerenderizzata quando gli sprite obbligatori sono caricati. Mantiene le proporzioni del carro rispetto alla fanteria.
+- I soldati fucilieri, assaltatori e granatieri ora possono essere **soppressi da un proiettile che passa vicino**, non solamente feriti: interrompono l'attacco, si abbassano e subiscono una breve pausa di fuoco. Gli assaltatori possono schivare lateralmente. Cooldown e distanza verticale prevengono reazioni continue o a colpi molto lontani.
+- Aggiunti test specifici su 6 frame PNG, collisioni di prossimità, copertura, cooldown, ripristino alla ripartenza, integrazione del rendering, oltre a verifica obbligatoria delle nuove risorse nel manifest e nello ZIP APK al momento della release.
+- La workflow **Android resta esclusivamente manuale**. Questo aggiornamento sul ramo `main` non cambia il numero della versione Android né genera una nuova APK: verrà integrato con altri miglioramenti prima della prossima release candidata.

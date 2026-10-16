@@ -8,7 +8,7 @@ import {prepareHeroFrames,drawHeroFrame} from './hero-animation.js';
 import {createArcadeSpectacle} from './arcade-spectacle.js';
 import {createBattleCasualties} from './battle-aftermath.js';
 import {segmentHitsRect,rocketSplashDamage,drawRocketProjectile} from './arcade-arsenal.js';
-import {createTroopWaves,resetTroopWaves,advanceTroopWaves,damageTroop} from './enemy-director.js';
+import {createTroopWaves,resetTroopWaves,advanceTroopWaves,damageTroop,suppressTroop} from './enemy-director.js';
 import {prepareTroopSprites,drawTroop,drawFallenTroop} from './troop-art.js';
 import {STAGES,stageAt,drawStageBackdrop,drawStageMarker} from './stage-art.js';
 // Protagonist animation is now supplied by mandatory pre-rendered PNG atlases.
@@ -137,6 +137,15 @@ function toggleRide(){
 }
 function drawRide(){
  const x=ride.x-scroll;if(x< -H*.55||x>W+H*.55)return;
+ if(spritePacksReady()){
+  const h=H*.29,w=h*400/250,animation=ride.occupied?1+Math.floor(runCycle*.9)%5:0;
+  ctx.save();ctx.translate(x,ground());ctx.scale(facing,1);
+  ctx.imageSmoothingEnabled=false;
+  drawRaster(ctx,'vehicles','slug',animation,-w*.5,-h,w,h);
+  if(ride.hp<40){ctx.globalAlpha=.20+Math.sin(phase*.7)*.12;ctx.fillStyle='#352e29';ctx.fillRect(-w*.42,-h*.7,w*.82,h*.35)}
+  ctx.restore();
+  return;
+ }
  const u=vehicleDimensions(H).h/19,t=ride.occupied?runCycle*3:0;
  ctx.save();ctx.translate(x,ground());ctx.imageSmoothingEnabled=false;
  const box=(x,y,w,h,c)=>{ctx.fillStyle=c;ctx.fillRect(x*u,y*u,w*u,h*u)};
@@ -310,6 +319,12 @@ function drawSentries(){
   if(e.dodgeTime>0){ctx.translate(0,H*.018);ctx.rotate(Math.sin(e.walk*1.4)*.06)}
    drawRaster(ctx,'enemies',e.type,Math.floor(e.walk+(e.vx?0:phase*.25)+e.phase)%8,-w*.5,ground()-h,w,h);
   ctx.restore();
+  if(e.suppressed>0){
+   ctx.save();ctx.globalAlpha=Math.min(.85,e.suppressed*1.8);
+   ctx.fillStyle='#f4d38c';ctx.font='bold '+Math.max(11,H*.019)+'px monospace';
+   ctx.fillText('↓',x-H*.012,ground()-h-H*.018);
+   ctx.restore();
+  }
   if(e.windup>0){
    const p=Math.min(1,e.windup/(e.type==='grenadier'?.58:e.type==='heavy'?.46:.29));
    ctx.save();ctx.globalAlpha=.65+Math.sin(phase*.65)*.3;
@@ -414,6 +429,19 @@ function update(dt){
      }else{aftermath.impact(e.x-scroll,ground()-H*.16,H,e.type==='heavy');arcadeHitstop=Math.max(arcadeHitstop,1)}
     }
     hit=true;break;
+   }
+  }
+  // Near-miss fire suppresses active opponents without counting as a direct hit.
+  // Only bullets that actually cross an opponent's X position may trigger cover.
+  if(!hit&&!rocket){
+   for(const e of sentries){
+    if(!e.alive)continue;
+    const sx=e.x-scroll;
+    if(sx<Math.min(oldX,b.x)-H*.055||sx>Math.max(oldX,b.x)+H*.055)continue;
+    if(suppressTroop(e,(oldY+b.y)*.5,ground(),H,Math.sign(b.vx)||1)){
+     dustPuffs.push({x:sx,y:ground()-H*.18,life:.20,size:H*.008,color:'#d9cb97'});
+     if(dustPuffs.length>35)dustPuffs.shift();
+    }
    }
   }
   if(!hit){
