@@ -77,6 +77,7 @@ function auditLayout(layout){
  assert.ok(layout.aim.y>layout.height*.70,'Aim button still obscures center of game');
  assert.ok(layout.topbar.height<layout.height*.11,'HUD occupies over eleven percent of visible scene');
  assert.equal(layout.touch.length,8,'Expected all 8 mobile movement/combat buttons');
+ assert.equal(layout.vehiclePromptVisible,false,'Disabled approach-to-tank button still covers the battlefield');
  for(const b of layout.touch){
   assert.ok(b.width>=44&&b.height>=44,'Touch target is too small: '+b.id);
   assert.ok(b.left>=0&&b.right<=layout.width,'Touch button clips outside screen: '+b.id);
@@ -107,14 +108,16 @@ try{
  await waitMode(cdp,'ready');
  await evaluate(cdp,`document.querySelector('.arcade-action-primary').click(); true`);
  await waitMode(cdp,'playing');
- await pause(1300);
+ // Capture the actual playable scene after the short mission title fades.
+ await pause(3200);
  const layout=await evaluate(cdp,`(()=>{
  const ids=['left','right','slide','aim-up','jump','shoot','grenade','duck'];
  const rect=id=>{let r=document.getElementById(id).getBoundingClientRect();
   return {id,left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height,y:r.y}};
  return {width:innerWidth,height:innerHeight,aimCount:document.querySelectorAll('#aim-up').length,
   aim:rect('aim-up'),topbar:document.querySelector('.topbar').getBoundingClientRect().toJSON(),
-  touch:ids.map(rect),state:document.querySelector('.arcade-menu')?.dataset.mode};
+  touch:ids.map(rect),vehiclePromptVisible:!document.getElementById('vehicle-toggle').hidden,
+  state:document.querySelector('.arcade-menu')?.dataset.mode};
 })()`);
  auditLayout(layout);
  const image=await cdp.cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});

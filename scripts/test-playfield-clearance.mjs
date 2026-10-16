@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const main=readFileSync('main.js','utf8');
+const browser=readFileSync('scripts/capture-game-browser.mjs','utf8');
+assert.ok(main.includes("const width=Math.min(W*.38,H*.62),height=Math.min(67,H*.072),y=H*.102"),'Mission banner should be small and near top HUD');
+assert.ok(!main.includes('const tw=Math.min(W*.64,H*1.03)'),'Huge legacy title panel still obscures the mission');
+assert.ok(main.includes("rideButton.hidden=!state.visible||state.disabled;"),'Faraway tank prompt must not remain in playfield');
+assert.ok(main.includes("state.visible+':'+state.disabled"),'Contextual vehicle button reacts to disabled state');
+assert.ok(browser.includes('await pause(3200)'),'Visual smoke test must capture after mission title');
+assert.ok(browser.includes('vehiclePromptVisible'),'Headless game QA tests for clutter from inactive controls');
+assert.ok(browser.includes("assert.equal(layout.vehiclePromptVisible,false"));
+console.log('PASS: unobstructed original battlefield, compact mission banners, hidden inactive tank action and visual screenshot QA');
