@@ -4,6 +4,7 @@ import {createArcadeSystems} from '../arcade-mechanics.js';
 import {prepareEnemyFrames,drawEnemyFrame} from '../enemy-frames.js';
 const main = readFileSync('main.js', 'utf8');
 const html = readFileSync('index.html', 'utf8');
+const hudRenderer=readFileSync('arcade-hud-renderer.js','utf8');
 const art = readFileSync('pixel-art.js','utf8');
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 const checks = [
@@ -21,7 +22,7 @@ const checks = [
  ['Meccaniche arcade',()=>{const combat=readFileSync('arcade-mechanics.js','utf8');for(const token of ['throwGrenade','enemyShots','boss','pickups','spread','heavy','combo'])assert.ok(combat.includes(token),token);assert.ok(main.includes('arcade.step('));assert.ok(main.includes('arcade.fire('))}],
  ['Controlli granata e fine partita',()=>{assert.ok(main.includes("['grenade',grenade]"));assert.ok(main.includes('distance=scroll/50'));assert.ok(main.includes('movement.left=false;movement.right=false'))}],
  ['Boss: premio assegnato una sola volta',()=>{assert.ok(main.includes('function defeatBoss('));assert.ok(main.includes('if(bossVictoryAwarded)return'));assert.ok(main.includes('bossVictoryAwarded=false;bossDeathTime=-1;bossDeathX=0;arcade.reset()'))}],
- ['Feedback arcade visivo',()=>{for(const token of ['function drawBlastEffects(', 'blastEffects.length=0','COMBO x'])assert.ok(main.includes(token),token)}],
+ ['Feedback arcade visivo',()=>{for(const token of ['function drawBlastEffects(', 'blastEffects.length=0'])assert.ok(main.includes(token),token);assert.ok(main.includes('hudView.update({'));assert.ok(hudRenderer.includes('COMBO x'))}],
  ['Animazione soldato sincronizzata',()=>{for(const token of ['let runCycle=0','runCycle+=Math.abs(scroll-previousScroll)','Math.floor(runCycle)%8','footstepBob'])assert.ok(main.includes(token),token)}],
  ['Rinculo e ombra del soldato',()=>{for(const token of ['let recoil=0','recoil=1;','recoil=Math.max(0,recoil-dt*12)','ctx.ellipse(playerX()'])assert.ok(main.includes(token),token)}],
  ['Sprite animati fotogramma per fotogramma',()=>{for(const token of ["from './soldier-frames.js'",'loadSoldierFrames();',"drawRaster(ctx,'hero',pose,frame",'Math.floor(runCycle)%8'])assert.ok(main.includes(token),token)}],
@@ -64,7 +65,7 @@ const checks = [
  ['Carro guidabile e audio procedurale',()=>{const game=readFileSync('main.js','utf8');for(const t of ['function toggleRide()','function drawRide()','function soundEffect(type)','ride.occupied','ride.hp','vehicle-toggle','ride.occupied?\'cannon\':\'shoot\''])assert.ok(game.includes(t),t)}],
  ['Boss animato e rendering limitato alla viewport',()=>{const combat=readFileSync('arcade-mechanics.js','utf8');for(const t of ['const treadFrame=Math.floor(boss.treadDistance/Math.max(1,H*.035))%4','if(x<-H*.55||x>viewportWidth+H*.55)return','treadFrame%2'])assert.ok(combat.includes(t),t)}],
  ['Nuova partita azzera movimento e tempo',()=>{assert.ok(main.includes("clearTouchMovement();movement.left=false;movement.right=false;last=0;message.style.display='none';hud()"))}],
- ['Salute boss visibile durante lo scontro',()=>{for(const token of ["arcade.boss.active&&!arcade.boss.defeated?' · BOSS '",'Math.ceil(arcade.boss.hp/arcade.boss.maxHp*100)'])assert.ok(main.includes(token),token)}],
+ ['Salute boss visibile durante lo scontro',()=>{assert.ok(main.includes('bossHealth:arcade.boss.active&&!arcade.boss.defeated?'));assert.ok(hudRenderer.includes(' · BOSS '));assert.ok(hudRenderer.includes('Math.ceil(bossHealth)'))}],
  ['Barra vita boss in pixel art',()=>{for(const token of ['function drawBossHealthBar()','if(!arcade.boss.active||arcade.boss.defeated)return','ctx.fillRect(x,y,width*ratio,height)','drawArcadeFlash();drawBossHealthBar();','spectacle.drawOverlay(ctx,W,H,arcade.combo);','drawMissionBanner();requestAnimationFrame(frame)'])assert.ok(main.includes(token),token)}],
  ['Distruzione scenografica boss',()=>{for(const token of ['for(let i=0;i<5;i++){burst(bossScreenX','for(let i=0;i<4;i++){shatterEnemy(bossScreenX','arcade.screenShake=Math.max(arcade.screenShake,18)'])assert.ok(main.includes(token),token)}],
  ['Vittoria azzera controlli touch e fuoco',()=>{for(const token of ["if(distance>=200&&arcade.boss.defeated){victoryRestartAt=performance.now()+VICTORY_RESTART_DELAY_MS","gameMenu.victory({score,record:arcadeHighScore","running=false;fireHeld=false;clearTouchMovement()","shotCooldown=0;last=0;message.textContent="])assert.ok(main.includes(token),token)}],
