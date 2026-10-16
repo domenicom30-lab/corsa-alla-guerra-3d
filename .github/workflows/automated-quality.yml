@@ -96,6 +96,14 @@ jobs:
         run: node scripts/test-arcade-mechanics.mjs
       - name: Production web build
         run: npm run build
+      - name: Upload compiled in-browser visual QA build
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: CorsaGuerra-Playable-Web-Preview
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
       - name: Save diagnostic summary
         if: always()
         run: |
