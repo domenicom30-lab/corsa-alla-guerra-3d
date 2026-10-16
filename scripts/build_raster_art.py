@@ -15,6 +15,7 @@ from boss_damage_art import paint_boss_damage
 from grenade_throw_art import draw_grenade_throw
 from fortress_repaint import paint_fortress_scene
 from actor_redraw import polish_hero, polish_enemy
+from tank_redesign import paint_tank_signature
 
 ROOT = Path(__file__).resolve().parent.parent
 PUBLIC = ROOT / "public" / "assets" / "sprites"
@@ -1264,6 +1265,7 @@ def write_atlas(rel,frames,fw,fh,fn,texture=True):
             paint_boss_damage(im,rel.split('/')[-1].replace('.png',''),n)
         elif rel.startswith('vehicles/'):
             armored_surface(im,n,boss=False)
+            paint_tank_signature(im,n)
         if texture and n%2==0:
             speckle(im,775+n*8,20)
         sheet.paste(im,(fw*n,0),im if False else None)

@@ -49,6 +49,8 @@ jobs:
         run: python3 scripts/test-fortress-clarity.py
       - name: Validate original animated drivable tank art
         run: python3 scripts/test_tank_art.py
+      - name: Validate repainted armored vehicle detail and optics
+        run: python3 scripts/test-tank-redesign.py
       - name: Test new hero action sprites
         run: python3 scripts/test_art_v28.py
       - name: Validate breathing, jump anticipation and original cloth motion
