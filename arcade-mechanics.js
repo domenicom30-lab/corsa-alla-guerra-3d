@@ -1,6 +1,7 @@
 import {vehicleDimensions} from './arcade-proportions.js';
 // Original arcade run-and-gun systems: weapon pickups, grenades, enemy volleys, boss.
 import {drawRocketPickup,segmentHitsRect} from './arcade-arsenal.js';
+import {nearestRectHit} from './collision-order.js';
 import {drawRaster,spritePacksReady} from './sprite-loader.js';
 export function createArcadeSystems(){
  const pickups=Array.from({length:12},(_,i)=>({x:1400+i*715,type:['spread','heavy','rocket','health'][i%4],taken:false}));
@@ -72,12 +73,21 @@ export function createArcadeSystems(){
     const b=enemyShots[i],previousX=b.x,previousY=b.y;
     b.x+=b.vx*dt-cameraDelta;b.y+=b.vy*dt;
     b.vy+=(b.gravity||0)*dt;b.life-=dt;
-    // A fast enemy bullet must not teleport through destructible cover at low FPS.
-    const blocked=covers.some(c=>c.hp>0
-      &&segmentHitsRect(previousX,previousY,b.x,b.y,c.x-scroll,ground-H*.065,H*.09,H*.095)
-      &&hitCover(c.x,Math.max(ground-H*.13,Math.min(ground,b.y)),ground,H,b.kind==='grenade'?30:10));
-    if(blocked){
-      if(b.kind==='grenade')onExplosion(b.x,b.y,H*.16,true);
+    // Camera-compensated incoming contact: hit the closest cover or player.
+    const objects=covers.filter(c=>c.hp>0).map(c=>({
+      kind:'cover',ref:c,x:c.x-scroll,y:ground-H*.065,w:H*.09,h:H*.095
+    }));
+    objects.push({kind:'player',x:playerX,y:playerCenterY,w:H*.065,h:verticalRadius});
+    const touch=nearestRectHit(previousX-cameraDelta,previousY,b.x,b.y,objects);
+    if(touch){
+      b.x=touch.x;b.y=touch.y;
+      if(touch.item.kind==='cover'){
+        hitCover(touch.item.ref.x,Math.max(ground-H*.13,Math.min(ground,b.y)),ground,H,b.kind==='grenade'?30:10);
+        if(b.kind==='grenade')onExplosion(b.x,b.y,H*.16,true);
+      }else{
+        onDamage();
+        if(b.kind==='grenade')onExplosion(b.x,b.y,H*.16,true);
+      }
       enemyShots.splice(i,1);continue;
     }
     if(b.kind==='grenade'&&(b.y>=ground-H*.03||b.life<=0)){
@@ -85,9 +95,7 @@ export function createArcadeSystems(){
       onExplosion(b.x,Math.min(b.y,ground-H*.03),H*.19,true);
       enemyShots.splice(i,1);continue;
     }
-    if(segmentHitsRect(previousX,previousY,b.x,b.y,playerX,playerCenterY,H*.065,verticalRadius)){
-      onDamage();enemyShots.splice(i,1);
-    }else if(b.life<=0)enemyShots.splice(i,1);
+    if(b.life<=0)enemyShots.splice(i,1);
    }
   for(let i=grenades.length-1;i>=0;i--){const g=grenades[i];g.x+=g.vx*dt-cameraDelta;g.y+=g.vy*dt;g.vy+=H*2.4*dt;g.fuse-=dt;if(g.y>ground-H*.02){g.y=ground-H*.02;g.vy*=-.35;g.vx*=.8}if(g.fuse<=0){for(const c of covers)if(Math.abs(c.x-(scroll+g.x))<H*.4)c.hp=Math.max(0,c.hp-50);onExplosion(g.x,g.y,H*.35);screenShake=14;grenades.splice(i,1)}}
  };

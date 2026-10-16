@@ -214,3 +214,9 @@ Il granatiere ora mostra durante il windup un arco tratteggiato con **punto di i
 - Compensazione del movimento della telecamera durante le collisioni.
 - I colpi subiti dal veicolo passano dallo **stesso sistema di danno con invulnerabilità temporanea** degli altri attacchi, eliminando una via che poteva distruggere rapidamente il carro con una raffica.
 - Nuovi test verificano ordine degli impatti, direzione inversa, proiettili veloci, fotogrammi a telecamera mobile, reset e assenza di build APK automatica.
+
+### Simmetria della gestione dei colpi nemici
+
+I colpi provenienti dai nemici usano ora lo stesso ordinamento geometrico del fuoco del protagonista: la prima collisione tra **barricata e soldato** vince, anche se il fotogramma scatta o la telecamera si sposta. I test verificano il caso con un personaggio davanti alla barricata, quello con la barricata davanti al personaggio e una traiettoria con telecamera mobile. Le granate producono l'esplosione nel punto del primo contatto.
+
+Le verifiche continuano via GitHub Actions **senza compilare alcuna APK Android**.
