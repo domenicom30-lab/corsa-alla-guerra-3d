@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {rasterAssetManifest as manifest,rasterAssetCount} from '../sprite-loader.js';
 const kinds=['rifleman','assault','grenadier','heavy'];
-assert.equal(rasterAssetCount,47,'Existing 39 plus 8 new enemy pose atlases');
+assert.equal(rasterAssetCount,51,'39 original atlases plus 12 enemy action variants');
 for(const kind of kinds){
   assert.equal(manifest.enemies[kind],8);
   assert.equal(manifest.enemies[kind+'Crouch'],4);
   assert.equal(manifest.enemies[kind+'Hurt'],4);
+  assert.equal(manifest.enemies[kind+(kind==='grenadier'?'Throw':'Fire')],4);
 }
 const main=readFileSync('main.js','utf8');
 const generator=readFileSync('scripts/build_raster_art.py','utf8');
@@ -16,6 +17,7 @@ for(const token of [
 "enemyPose==='Hurt'",
 "enemyPose==='Crouch'",
 "drawRaster(ctx,'enemies',e.type+enemyPose,enemyFrame",
+"enemyPose==='Fire'||enemyPose==='Throw'",
 ])assert.ok(main.includes(token),'Renderer state is missing: '+token);
 for(const token of [
 'def finish_enemy_pose(im,pose,n):',

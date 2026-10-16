@@ -614,6 +614,48 @@ def finish_enemy_pose(im,pose,n):
             d.line([(cx+dx,cy-k*3),(cx+dx+6,cy-k*3-7)],
                    fill=(204,172,111,max(45,180-n*30)),width=3)
 
+
+def finish_enemy_attack(im,pose,n):
+    """Four authored attack keys: visible cannon recoil or overhead grenade release."""
+    d=ImageDraw.Draw(im,"RGBA")
+    if pose=="Throw":
+        # Erase the original straight rifle. The visible arm now rises to throw.
+        d.rectangle((141,91,231,125),fill=(0,0,0,0))
+        angle=(-1.57,-1.16,-.69,-.24)[n%4]
+        shoulder=(128,93)
+        elbow=(146,86)
+        hand=(elbow[0]+int(math.cos(angle)*36),elbow[1]+int(math.sin(angle)*36))
+        line(d,[shoulder,elbow,hand],(148,144,97,255),15)
+        d.ellipse((hand[0]-8,hand[1]-9,hand[0]+10,hand[1]+7),
+                  fill=(188,145,105,255),outline=(52,55,42,255),width=2)
+        if n<3:
+            d.ellipse((hand[0]+6,hand[1]-15,hand[0]+21,hand[1]),
+                      fill=(58,74,53,255),outline=(200,184,129,255),width=2)
+            d.line([(hand[0]+12,hand[1]-18),(hand[0]+16,hand[1]-14)],
+                   fill=(215,197,139,255),width=3)
+        else:
+            # Last frame releases a grenade into the projectile simulation.
+            for j in range(3):
+                xx=hand[0]+16+j*8; yy=hand[1]-15-j*6
+                d.line([(xx,yy),(xx+4,yy-4)],fill=(222,187,117,220),width=2)
+    elif pose=="Fire":
+        # Replace static barrel with recoil positions and unique flash frames.
+        recoil=(0,8,4,0)[n%4]
+        d.rectangle((145,94,231,126),fill=(0,0,0,0))
+        d.line([(125,96),(145+recoil,105)],fill=(38,51,42,255),width=17)
+        d.ellipse((141+recoil,99,155+recoil,117),fill=(192,155,109,255))
+        d.rectangle((145+recoil,95,208+recoil,110),
+                    fill=(31,43,41,255),outline=(16,25,26,255),width=3)
+        d.line([(153+recoil,99),(205+recoil,99)],fill=(184,198,166,255),width=2)
+        d.rectangle((207+recoil,98,221+recoil,105),fill=(20,30,31,255))
+        d.line([(168+recoil,110),(185+recoil,125)],fill=(41,56,46,255),width=6)
+        if n in (0,1):
+            mx=224+recoil
+            d.polygon([(mx,98),(mx+7,90),(mx+9,99),(mx+15,103),(mx+3,109)],
+                      fill=(255,222,125,240))
+            d.line([(mx+2,102),(mx+11,102)],fill=(239,125,49,245),width=3)
+
+
 def finish_boss_art(im,n):
     """Tank dents, roadwheel highlights, bevels and scuffed steel."""
     d=ImageDraw.Draw(im,"RGBA")
@@ -1138,6 +1180,12 @@ def write_atlas(rel,frames,fw,fh,fn,texture=True):
             elif kind.endswith('Hurt'):
                 finish_enemy_art(im,kind[:-4],n)
                 finish_enemy_pose(im,'Hurt',n)
+            elif kind.endswith('Fire'):
+                finish_enemy_art(im,kind[:-4],n)
+                finish_enemy_attack(im,'Fire',n)
+            elif kind.endswith('Throw'):
+                finish_enemy_art(im,kind[:-5],n)
+                finish_enemy_attack(im,'Throw',n)
             else:
                 finish_enemy_art(im,kind,n)
         elif rel.startswith('boss/'):
@@ -1157,7 +1205,7 @@ def build():
         write_atlas(rel,n,240,210,lambda im,i,p=pose:hero(im,p,i))
     for kind,n in MANIFEST["enemies"].items():
         rel=f"enemies/{kind}.png";expected.add(rel)
-        write_atlas(rel,n,240,210,lambda im,i,k=kind:enemy(im,k[:-6] if k.endswith('Crouch') else k[:-4] if k.endswith('Hurt') else k,i))
+        write_atlas(rel,n,240,210,lambda im,i,k=kind:enemy(im,k[:-6] if k.endswith('Crouch') else k[:-4] if k.endswith(('Hurt','Fire')) else k[:-5] if k.endswith('Throw') else k,i))
     for kind,n in MANIFEST["boss"].items():
         rel=f"boss/{kind}.png";expected.add(rel)
         write_atlas(rel,n,340,240,lambda im,i:boss(im,i))

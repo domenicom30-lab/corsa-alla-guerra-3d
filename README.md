@@ -194,3 +194,7 @@ La pipeline di qualità verifica ogni fotogramma e i collegamenti con il gioco. 
 Otto nuovi atlas animati **originali** in formato PNG: quattro posture **Crouch** con arma abbassata e ginocchia piegate, quattro reazioni **Hurt** con inclinazione, colpi ed equipaggiamento. Sono 32 fotogrammi aggiuntivi. Ogni nemico continua a usare la sua animazione base quando cammina, ma ora cambia realmente posa in caso di ferita, abbassamento, soppressione o schivata. Gli originali vengono generati offline e testati in CI: non vengono scaricati sprite protetti di altri giochi.
 
 La qualità artistica è ancora da valutare su Samsung. Non viene creata una APK per ogni aggiornamento; la pipeline Android resta manuale.
+
+### Sviluppo grafico nemici — rinculo e lancio granate (senza APK)
+
+Quattro nuovi atlas di combattimento originali (16 fotogrammi) integrano gli otto già dedicati ad abbassamento e ferite. Fucilieri, assaltatori e pesanti dispongono di armi con rinculo e lampi; il granatiere ha una sequenza in cui alza il braccio e rilascia la granata. Le animazioni dipendono dal tempo di preparazione e dal momento effettivo dello sparo, mantenendo la scala ridotta dei soldati. Nuovi test verificano fotogrammi, scelta della posa e policy di build Android manuale.

@@ -66,7 +66,11 @@
     "grenadierCrouch": 4,
     "grenadierHurt": 4,
     "heavyCrouch": 4,
-    "heavyHurt": 4
+    "heavyHurt": 4,
+    "riflemanFire": 4,
+    "assaultFire": 4,
+    "grenadierThrow": 4,
+    "heavyFire": 4
   },
   "boss": {
     "commander": 6
