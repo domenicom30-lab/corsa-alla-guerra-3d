@@ -17,7 +17,7 @@ for(const part of [
 "pose==='land'?Math.min(3",
 "drawRaster(ctx,'hero',pose,frame",
 "landTime=.22",
-"landTime=0;gameMenu.playMode()",
+"landTime=0;grenadeTime=0;gameMenu.playMode()",
 ])assert.ok(source.includes(part),part);
 for(const token of ['def draw_slide_pose(im,n):','def draw_melee_bayonet(im,n):','def draw_land_pose(im,n):','Image.Resampling.NEAREST'])
   assert.ok(painter.includes(token),token);
