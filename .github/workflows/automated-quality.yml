@@ -47,6 +47,8 @@ jobs:
         run: python3 scripts/test_art_v28.py
       - name: Validate breathing, jump anticipation and original cloth motion
         run: python3 scripts/test-hero-secondary-motion.py
+      - name: Validate premium original actor and armor materials
+        run: python3 scripts/test-surface-materials.py
       - name: Validate new slide and melee animation sheets
         run: python3 scripts/test_action_poses.py
       - name: Validate illustrated prisoner and destructible barricade atlases

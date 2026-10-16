@@ -6,6 +6,7 @@ Requires Pillow. Manifest is versioned and every declared atlas is mandatory.
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFilter
 import json, math, random, sys
+from sprite_materials import soldier_surface, armored_surface
 
 ROOT = Path(__file__).resolve().parent.parent
 PUBLIC = ROOT / "public" / "assets" / "sprites"
@@ -1217,24 +1218,33 @@ def write_atlas(rel,frames,fw,fh,fn,texture=True):
             if hero_pose not in ('slide','land'):hero_finishing(im,hero_pose,n)
             draw_secondary_motion(im,hero_pose,n)
             if hero_pose=='melee':draw_melee_bayonet(im,n)
+            soldier_surface(im,hero_pose,n)
         elif rel.startswith('enemies/'):
             kind=rel.split('/')[-1].replace('.png','')
             if kind.endswith('Crouch'):
                 finish_enemy_art(im,kind[:-6],n)
+                soldier_surface(im,kind[:-6],n,kind[:-6])
                 finish_enemy_pose(im,'Crouch',n)
             elif kind.endswith('Hurt'):
                 finish_enemy_art(im,kind[:-4],n)
+                soldier_surface(im,kind[:-4],n,kind[:-4])
                 finish_enemy_pose(im,'Hurt',n)
             elif kind.endswith('Fire'):
                 finish_enemy_art(im,kind[:-4],n)
+                soldier_surface(im,kind[:-4],n,kind[:-4])
                 finish_enemy_attack(im,'Fire',n)
             elif kind.endswith('Throw'):
                 finish_enemy_art(im,kind[:-5],n)
+                soldier_surface(im,kind[:-5],n,kind[:-5])
                 finish_enemy_attack(im,'Throw',n)
             else:
                 finish_enemy_art(im,kind,n)
+                soldier_surface(im,kind,n,kind)
         elif rel.startswith('boss/'):
             finish_boss_art(im,n)
+            armored_surface(im,n,boss=True)
+        elif rel.startswith('vehicles/'):
+            armored_surface(im,n,boss=False)
         if texture and n%2==0:
             speckle(im,775+n*8,20)
         sheet.paste(im,(fw*n,0),im if False else None)
