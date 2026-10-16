@@ -96,6 +96,15 @@ jobs:
         run: node scripts/test-arcade-mechanics.mjs
       - name: Production web build
         run: npm run build
+      - name: Real Chromium gameplay screenshot and touch layout QA
+        run: node scripts/capture-game-browser.mjs
+      - name: Upload real gameplay screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: CorsaGuerra-Gameplay-Screenshot-QA
+          path: artifacts/gameplay-browser-qa.png
+          if-no-files-found: error
+          retention-days: 14
       - name: Upload compiled in-browser visual QA build
         if: github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
