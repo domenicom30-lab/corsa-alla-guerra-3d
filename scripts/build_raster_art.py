@@ -7,6 +7,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFilter
 import json, math, random, sys
 from sprite_materials import soldier_surface, armored_surface
+from airborne_art import draw_airborne_finishing
 
 ROOT = Path(__file__).resolve().parent.parent
 PUBLIC = ROOT / "public" / "assets" / "sprites"
@@ -48,10 +49,10 @@ def hero(im,pose,n):
         return
     d=ImageDraw.Draw(im); t=n*math.pi/4
     moving=pose in ("run","runFire")
-    stride=round(math.sin(t)*22) if moving else ([-12,14,1][n%3] if pose=="jump" else 0)
+    stride=round(math.sin(t)*22) if moving else ((-3,-14,-17,-8,8,18,12,0)[n%8] if pose in ("jump","jumpFire") else 0)
     bounce=round(abs(math.sin(t))*5) if moving else 0
     crouch=25 if pose in ("duck","duckFire") else 0
-    jump=([-13,-24,-16][n%3] if pose=="jump" else 0)
+    jump=((-5,-11,-22,-29,-30,-21,-11,-3)[n%8] if pose in ("jump","jumpFire") else 0)
     hurt=6 if pose=="hurt" else 0
     idle_breath=round((1-math.cos(n*math.pi/2))*1.25) if pose=="idle" else 0
     y=bounce+crouch+jump+hurt+idle_breath
@@ -94,8 +95,8 @@ def hero(im,pose,n):
     poly(d,[(69,81+y),(89,78+y),(94,95+y),(75,101+y)],"#859970")
     rect(d,(61,112+y,79,121+y),"#bd946d","#2c362d")
     # Right shoulder pivots independently when holding the aim-up input.
-    recoil=(n%2)*6 if pose in ("fire","runFire","duckFire") else 0
-    arm_y=96+y+(-10 if pose=="jump" else 0)
+    recoil=(n%2)*6 if pose in ("fire","runFire","duckFire","jumpFire") else 0
+    arm_y=96+y+(-10 if pose in ("jump","jumpFire") else 0)
     if pose=="aimUp":
         line(d,[(124,91+y),(139,91+y),(132,66+y)],"#586b4d",18)
         ell(d,(123,61+y,143,77+y),"#cc9e75")
@@ -125,7 +126,7 @@ def hero(im,pose,n):
     rect(d,(111,101+y,118,107+y),"#bb8d4a")
     rect(d,(112,103+y,118,105+y),"#f0d8a4")
     for j in range(5):rect(d,(94+j*4,111+y,96+j*4,113+y),"#b3b18c")
-    if pose in ("fire","runFire","duckFire") and n%2==0:
+    if pose in ("fire","runFire","duckFire","jumpFire") and n%2==0:
         poly(d,[(201-recoil,arm_y-7),(214-recoil,arm_y-17),(218-recoil,arm_y-4),(236-recoil,arm_y+1),(216-recoil,arm_y+7)],"#ffb44b",None)
         ell(d,(208-recoil,arm_y-3,223-recoil,arm_y+5),"#fff4b3",None)
     if pose=="hurt":
@@ -139,9 +140,9 @@ def hero_finishing(im,pose,n):
     """Second-pass cloth shading, engraved helmet, joint folds and rifle details."""
     d=ImageDraw.Draw(im,"RGBA")
     t=n*math.pi/4
-    stride=round(math.sin(t)*22) if pose in ("run","runFire") else ([-12,14,1][n%3] if pose=="jump" else 0)
+    stride=round(math.sin(t)*22) if pose in ("run","runFire") else ((-3,-14,-17,-8,8,18,12,0)[n%8] if pose in ("jump","jumpFire") else 0)
     bounce=round(abs(math.sin(t))*5) if pose in ("run","runFire") else 0
-    y=bounce+(25 if pose in ("duck","duckFire") else 0)+([-13,-24,-16][n%3] if pose=="jump" else 0)+(6 if pose=="hurt" else 0)+(round((1-math.cos(n*math.pi/2))*1.25) if pose=="idle" else 0)
+    y=bounce+(25 if pose in ("duck","duckFire") else 0)+((-5,-11,-22,-29,-30,-21,-11,-3)[n%8] if pose in ("jump","jumpFire") else 0)+(6 if pose=="hurt" else 0)+(round((1-math.cos(n*math.pi/2))*1.25) if pose=="idle" else 0)
     rng=random.Random(4049+n*17+len(pose)*13)
     d.arc((80,35+y,131,69+y),186,327,fill=(176,190,136,255),width=3)
     d.line([(83,58+y),(110,55+y),(134,58+y)],fill=(28,38,32,255),width=3)
@@ -177,8 +178,8 @@ def hero_finishing(im,pose,n):
         for k in range(3):
             yy=152+y+k*8
             d.line([(bx+5,yy),(bx+16,yy+3)],fill=(177,181,129,156),width=2)
-    recoil=(n%2)*6 if pose in ("fire","runFire","duckFire") else 0
-    aim_y=96+y+(-10 if pose=="jump" else 0)
+    recoil=(n%2)*6 if pose in ("fire","runFire","duckFire","jumpFire") else 0
+    aim_y=96+y+(-10 if pose in ("jump","jumpFire") else 0)
     if pose=="aimUp":
         d.line([(128,25+y),(141,23+y)],fill=(191,200,184,255),width=2)
         for k in range(4):
@@ -191,7 +192,7 @@ def hero_finishing(im,pose,n):
             xx=152-recoil+k*8
             d.line([(xx,aim_y+3),(xx+3,aim_y+5)],fill=(25,32,30,220),width=1)
         d.ellipse((157-recoil,aim_y-5,162-recoil,aim_y),fill=(177,177,155,255))
-    if pose in ("fire","runFire","duckFire") and n%2==0:
+    if pose in ("fire","runFire","duckFire","jumpFire") and n%2==0:
         for j in range(6):
             xx=203-recoil+j*4
             d.line([(xx,aim_y-4-j%2*3),(xx+4,aim_y-6-j%3)],fill=(255,219,126,205),width=2)
@@ -200,22 +201,22 @@ def hero_finishing(im,pose,n):
 
 def draw_secondary_motion(im,pose,n):
     """Original eight-phase cloth flutter and equipment inertia, baked into PNG sprite atlases."""
-    if pose not in ("idle","run","runFire","jump","fire","duck","duckFire","aimUp"):
+    if pose not in ("idle","run","runFire","jump","jumpFire","fire","duck","duckFire","aimUp"):
         return
     d=ImageDraw.Draw(im,"RGBA")
     t=n*math.pi/4
     stride=round(math.sin(t)*22) if pose in ("run","runFire") else 0
     bounce=round(abs(math.sin(t))*5) if pose in ("run","runFire") else 0
     crouch=25 if pose in ("duck","duckFire") else 0
-    jump=([-13,-24,-16][n%3] if pose=="jump" else 0)
+    jump=((-5,-11,-22,-29,-30,-21,-11,-3)[n%8] if pose in ("jump","jumpFire") else 0)
     breathing=round((1-math.cos(n*math.pi/2))*1.25) if pose=="idle" else 0
     y=bounce+crouch+jump+breathing
     # The warm scarf stream follows acceleration instead of being glued to the torso.
     flutter=round(math.sin(t)*9) if pose in ("run","runFire") else (-4,2,5,0)[n%4]
-    if pose=="jump":
-        flutter=(7,-6,11)[n%3]
+    if pose in ("jump","jumpFire"):
+        flutter=(3,8,13,6,-7,-12,-4,2)[n%8]
     tail_x=66-flutter
-    tail_y=96+y-(5 if pose=="jump" else 0)+(abs(flutter)//3)
+    tail_y=96+y-(5 if pose in ("jump","jumpFire") else 0)+(abs(flutter)//3)
     d.polygon([(91,84+y),(104,89+y),(88,96+y),(tail_x,tail_y+5),
                (tail_x-11,tail_y),(81,87+y)],
               fill=(154,49,39,255))
@@ -232,8 +233,8 @@ def draw_secondary_motion(im,pose,n):
     d.line([(x-7,112+y),(x+2,112+y)],fill=(215,188,122,255),width=2)
     d.point((x-2,121+y),fill=(231,209,146,255))
     # Jacket hem flaps slightly in opposite directions during running.
-    if pose in ("run","runFire","jump"):
-        hem=round(math.sin(t)*6) if pose!="jump" else (5,-7,3)[n%3]
+    if pose in ("run","runFire","jump","jumpFire"):
+        hem=round(math.sin(t)*6) if pose not in ("jump","jumpFire") else (3,7,11,6,-8,-12,-4,0)[n%8]
         d.polygon([(88,134+y),(111,138+y),(109+hem,150+y),
                    (92+hem,146+y)],fill=(63,81,59,255))
         d.line([(91+hem,145+y),(106+hem,149+y)],
@@ -1217,6 +1218,7 @@ def write_atlas(rel,frames,fw,fh,fn,texture=True):
             hero_pose=rel.split('/')[-1].replace('.png','')
             if hero_pose not in ('slide','land'):hero_finishing(im,hero_pose,n)
             draw_secondary_motion(im,hero_pose,n)
+            if hero_pose in ('jump','jumpFire'):draw_airborne_finishing(im,hero_pose,n)
             if hero_pose=='melee':draw_melee_bayonet(im,n)
             soldier_surface(im,hero_pose,n)
         elif rel.startswith('enemies/'):

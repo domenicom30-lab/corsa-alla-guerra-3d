@@ -7,6 +7,7 @@ import {aircraftHitbox} from './aircraft-combat.js';
 import {bossPhase} from './boss-encounter.js';
 import {createExplosiveProps} from './explosive-props.js';
 import {createFieldEmplacements} from './field-emplacements.js';
+import {airborneFrame} from './arcade-air-animation.js';
 import {createArcadeCombatMoves,actionFrame} from './arcade-combat-moves.js';
 import {grenadeThreat,drawGrenadeThreat} from './grenade-threat.js';
 import {createGameInterface} from './game-interface.js';
@@ -276,7 +277,7 @@ function background(){
  }
 }
 function drawPlayer(){
- const {h,w}=heroDimensions(H,isCrouching()),runFrame=jumpY>0?1:Math.floor(runCycle)%8;
+ const {h,w}=heroDimensions(H,isCrouching()),runFrame=Math.floor(runCycle)%8;
  const x=playerX()-w*.5,y=ground()-jumpY-h;
  ctx.save();ctx.globalAlpha=.24*Math.max(.3,1-jumpY/H);ctx.fillStyle='#17150e';ctx.beginPath();ctx.ellipse(playerX(),ground()+H*.006,w*.4,H*.012,0,0,Math.PI*2);ctx.fill();ctx.restore();
  const moving=Math.abs(horizontalSpeed)>SPEED*.09;
@@ -287,8 +288,8 @@ function drawPlayer(){
  // Keep character readable while invulnerable: use a subtle outline, not transparency.
  if(invulnerable>0&&Math.floor(invulnerable*12)%2===0){ctx.shadowColor='#f8e2a1';ctx.shadowBlur=H*.014;}
  const sheet=arcadeArt.soldier;
- const pose=hitFlash>0?'hurt':combatMoves.slashActive?'melee':combatMoves.sliding?'slide':isCrouching()?(muzzleFlash>0||fireHeld?'duckFire':'duck'):aimUp?'aimUp':jumpY>0?'jump':landTime>0?'land':moving?(muzzleFlash>0||fireHeld?'runFire':'run'):muzzleFlash>0||fireHeld?'fire':'idle';
- const frame=pose==='slide'?actionFrame(combatMoves.slideFraction,6):pose==='melee'?actionFrame(combatMoves.slashFraction,5):pose==='land'?Math.min(3,Math.floor((.22-landTime)/.055)):pose==='run'||pose==='runFire'?runFrame:pose==='fire'||pose==='duckFire'?Math.floor(phase*.9)%4:pose==='idle'||pose==='aimUp'?Math.floor(phase*.2)%4:pose==='jump'?Math.min(2,Math.floor(Math.abs(vy)/Math.max(1,H))):Math.floor(phase*.3)%3;
+ const pose=hitFlash>0?'hurt':combatMoves.slashActive?'melee':combatMoves.sliding?'slide':isCrouching()?(muzzleFlash>0||fireHeld?'duckFire':'duck'):aimUp?'aimUp':jumpY>0?(muzzleFlash>0||fireHeld?'jumpFire':'jump'):landTime>0?'land':moving?(muzzleFlash>0||fireHeld?'runFire':'run'):muzzleFlash>0||fireHeld?'fire':'idle';
+ const frame=pose==='slide'?actionFrame(combatMoves.slideFraction,6):pose==='melee'?actionFrame(combatMoves.slashFraction,5):pose==='land'?Math.min(3,Math.floor((.22-landTime)/.055)):pose==='run'||pose==='runFire'?runFrame:pose==='fire'||pose==='duckFire'?Math.floor(phase*.9)%4:pose==='idle'||pose==='aimUp'?Math.floor(phase*.2)%4:pose==='jump'||pose==='jumpFire'?airborneFrame(jumpY,vy,H):Math.floor(phase*.3)%3;
  drawRaster(ctx,'hero',pose,frame,x,y-footstepBob,w,h);
  if(muzzleFlash>0){const mx=aimUp?x+w*.57:x+w*.95,my=aimUp?y+h*.08:y+h*.48,flash=H*(.032+.013*Math.min(1,muzzleFlash/.07));ctx.save();if(spritePacksReady())drawRaster(ctx,'fx','muzzle',Math.floor(phase*.9)%6,mx-H*.012,my-H*.048,H*.1,H*.08);if(aimUp){ctx.translate(mx,my);ctx.rotate(-Math.PI/2);ctx.translate(-mx,-my)}ctx.fillStyle='#fff6c8';ctx.fillRect(mx,my-H*.006,flash*.6,H*.012);ctx.fillStyle='#ffc34e';ctx.beginPath();ctx.moveTo(mx,my-H*.015);ctx.lineTo(mx+flash,my);ctx.lineTo(mx,my+H*.015);ctx.closePath();ctx.fill();ctx.fillStyle='#f08b27';ctx.fillRect(mx+flash*.7,my-H*.004,flash*.28,H*.008);for(let i=0;i<3;i++){const sparkX=mx+flash*(.55+i*.23),sparkY=my+(i-1)*H*.023;ctx.fillStyle=i===1?'#fff3a1':'#f5a83e';ctx.fillRect(sparkX,sparkY,Math.max(2,H*.005),Math.max(2,H*.005))}ctx.restore()}
  ctx.restore();

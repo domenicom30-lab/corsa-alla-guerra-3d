@@ -17,8 +17,8 @@ def soldier_surface(im, pose, n, faction="hero"):
     y=(round(abs(math.sin(n*math.pi/4))*5) if pose in ("run","runFire") else 0)
     if pose in ("duck","duckFire") or pose.endswith("Crouch"):
         y+=25
-    if pose=="jump":
-        y+=(-13,-24,-16)[n%3]
+    if pose in ("jump","jumpFire"):
+        y+=(-5,-11,-22,-29,-30,-21,-11,-3)[n%8]
     if pose=="hurt" or pose.endswith("Hurt"):
         y+=6
     if pose=="idle":

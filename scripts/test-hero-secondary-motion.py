@@ -6,7 +6,7 @@ from hashlib import sha256
 
 root=Path(__file__).resolve().parent.parent
 base=root/"public/assets/sprites/hero"
-config={"idle":4,"run":8,"runFire":8,"jump":3}
+config={"idle":4,"run":8,"runFire":8,"jump":8,"jumpFire":8}
 atlasses={}
 for pose,count in config.items():
     path=base/(pose+".png")
