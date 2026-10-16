@@ -3,18 +3,18 @@ import {readFileSync} from 'node:fs';
 import {createArcadeSystems} from '../arcade-mechanics.js';
 const H=400,ground=H*.78,playerX=200;
 let shots=createArcadeSystems(),hits=0;
-shots.enemyShots.push({x:90,y:ground-H*.18,vx:2300,vy:0,kind:'tracer',life:1});
+shots.enemyShots.push({x:90,y:ground-H*.145,vx:2300,vy:0,kind:'tracer',life:1});
 shots.step(.10,0,playerX,ground,H,()=>hits++,()=>{},0,{jumpY:0,crouching:false});
 assert.equal(hits,1,'Fast enemy shot must hit player despite skipping over player coordinates');
 assert.equal(shots.enemyShots.length,0,'A projectile must disappear after hitting its target');
 
 shots=createArcadeSystems();hits=0;
-shots.enemyShots.push({x:90,y:ground-H*.18,vx:2300,vy:0,kind:'tracer',life:1});
+shots.enemyShots.push({x:90,y:ground-H*.145,vx:2300,vy:0,kind:'tracer',life:1});
 shots.step(.10,0,playerX,ground,H,()=>hits++,()=>{},0,{jumpY:0,crouching:true});
 assert.equal(hits,0,'Sliding / crouched player should duck below the same swept bullet');
 
 shots=createArcadeSystems();hits=0;
-shots.enemyShots.push({x:90,y:ground-H*.18,vx:2300,vy:0,kind:'tracer',life:1});
+shots.enemyShots.push({x:90,y:ground-H*.145,vx:2300,vy:0,kind:'tracer',life:1});
 shots.step(.10,0,playerX,ground,H,()=>hits++,()=>{},0,{jumpY:H*.30,crouching:false});
 assert.equal(hits,0,'Jumping player must avoid chest-height shot even at slow FPS');
 

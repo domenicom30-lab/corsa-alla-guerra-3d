@@ -4,11 +4,11 @@
 const size=(height,factor)=>Math.max(1,height)*factor;
 export const SPRITE_FRAME_RATIO=240/210;
 export function heroDimensions(H,crouching=false){
- const h=size(H,crouching?.195:.255);
+ const h=size(H,crouching?.165:.218);
  return {h,w:h*SPRITE_FRAME_RATIO};
 }
 export function troopDimensions(H,kind='rifleman',crouching=false){
- const h=size(H,crouching?.195:kind==='heavy'?.29:kind==='grenadier'?.25:kind==='assault'?.25:.238);
+ const h=size(H,crouching?.165:kind==='heavy'?.248:kind==='grenadier'?.222:kind==='assault'?.220:.208);
  return {h,w:h*SPRITE_FRAME_RATIO};
 }
 export function vehicleDimensions(H,boss=false){

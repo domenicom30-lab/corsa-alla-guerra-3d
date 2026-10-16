@@ -479,8 +479,8 @@ function update(dt){
     kind:'cover',ref:c,x:c.x-scroll,y:ground()-H*.065,w:H*.087,h:H*.082
   });
   for(const e of sentries)if(e.alive)targets.push({
-    kind:'troop',ref:e,x:e.x-scroll,y:ground()-H*(e.stance==='crouch'?.087:.145),
-    w:H*.078,h:H*(e.stance==='crouch'?.070:.15)
+    kind:'troop',ref:e,x:e.x-scroll,y:ground()-H*(e.stance==='crouch'?.060:e.type==='heavy'?.094:.082),
+    w:H*(e.type==='heavy'?.081:.070),h:H*(e.stance==='crouch'?.058:e.type==='heavy'?.093:.082)
   });
   for(const t of ticks)if(t.alive)targets.push({
     kind:'obstacle',ref:t,x:t.x-scroll,y:ground()-H*.055,w:H*.055,h:H*.09

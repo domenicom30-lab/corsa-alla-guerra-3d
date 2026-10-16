@@ -80,7 +80,7 @@ assert.equal(hurt,1,'Grenade splash damages player within radius');
 assert.equal(game.enemyShots.length,0,'Grenade expires upon ground impact');
 assert.ok(explosions.some(args=>args[3]===true),'Enemy grenade cannot damage friendly enemies / boss');
 // Duck and jump use small, separate hitboxes: a high straight shot must miss.
-const playerShotTest=createArcadeSystems(),baseY=ground-h*.18;
+const playerShotTest=createArcadeSystems(),baseY=ground-h*.145;
 playerShotTest.enemyShots.push({x:200,y:baseY,vx:0,vy:0,kind:'tracer',life:1});
 let struck=0;
 playerShotTest.step(.03,0,200,ground,h,()=>struck++,()=>{},0,{crouching:true,jumpY:0});

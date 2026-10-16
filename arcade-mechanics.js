@@ -34,8 +34,8 @@ export function createArcadeSystems(){
  const kill=()=>{combo++;comboTimer=3;screenShake=Math.min(12,screenShake+3);return 100+Math.min(combo,15)*20};
  const step=(dt,scroll,playerX,ground,H,onDamage,onExplosion,cameraDelta=0,playerState={})=>{
    const jumping=Math.max(0,playerState.jumpY||0),crouching=!!playerState.crouching;
-   const playerCenterY=ground-H*(crouching?.058:.105)-jumping;
-   const verticalRadius=H*(crouching?.049:.095);
+   const playerCenterY=ground-H*(crouching?.060:.092)-jumping;
+   const verticalRadius=H*(crouching?.055:.082);
   // Targetable raids, animated crash, and bounded falling bombs.
   plane.timer-=dt;plane.hitFlash=Math.max(0,plane.hitFlash-dt);
   if(plane.crashTime>0){
