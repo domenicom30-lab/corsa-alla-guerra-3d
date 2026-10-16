@@ -59,6 +59,8 @@ jobs:
         run: python3 scripts/test-surface-materials.py
       - name: Validate articulated infantry and distinct enemy silhouettes
         run: python3 scripts/test-actor-redraw.py
+      - name: Verify live-looking torso and weapon motion in original sprite sheets
+        run: python3 scripts/test-torso-motion.py
       - name: Generate real 2D sprite art review
         run: python3 scripts/build-actor-review.py
       - name: Upload sprite contact sheet for visual inspection

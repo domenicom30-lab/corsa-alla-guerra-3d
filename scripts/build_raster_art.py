@@ -15,6 +15,7 @@ from boss_damage_art import paint_boss_damage
 from grenade_throw_art import draw_grenade_throw
 from fortress_repaint import paint_fortress_scene
 from actor_redraw import polish_hero, polish_enemy
+from torso_motion import articulate_upper_body
 from tank_redesign import paint_tank_signature
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -1234,6 +1235,7 @@ def write_atlas(rel,frames,fw,fh,fn,texture=True):
             soldier_surface(im,hero_pose,n)
             if hero_pose=='throw':draw_grenade_throw(im,n)
             polish_hero(im,hero_pose,n)
+            articulate_upper_body(im,hero_pose,n,'hero')
         elif rel.startswith('enemies/'):
             kind=rel.split('/')[-1].replace('.png','')
             if kind.endswith('Fall'):
@@ -1259,6 +1261,7 @@ def write_atlas(rel,frames,fw,fh,fn,texture=True):
                 finish_enemy_art(im,kind,n)
                 soldier_surface(im,kind,n,kind)
             polish_enemy(im,kind,n)
+            if kind in ('rifleman','assault','grenadier','heavy'):articulate_upper_body(im,'run',n,kind)
         elif rel.startswith('boss/'):
             finish_boss_art(im,n)
             armored_surface(im,n,boss=True)
