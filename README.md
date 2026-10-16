@@ -134,3 +134,11 @@ The commando has a dedicated 4-frame `aimUp` PNG animation: shoulders pivot, rif
 - APK separata con ID `com.corsaguerra.arcadeprova26` e versione 2.6.0.
 
 I materiali sono disegni originali generati offline; una qualità equivalente ai titoli arcade illustrati a mano resta un obiettivo artistico ancora da verificare su dispositivo.
+
+## Versione 2.7 — Combattimento arcade avanzato
+- **SCIVOLA:** pulsante vicino al movimento e Shift su tastiera. Scivolata bassa con accelerazione temporanea, scia, durata di 0,37 s e ricarica di 0,92 s. Non funziona mentre si è nel carro o in salto.
+- **Colpo ravvicinato visibile:** arco di lama con due livelli di luce e tempo di attacco dedicato; funziona contro i soldati vicini prima del tiro.
+- **Nemici assaltatori reattivi:** dopo un colpo non letale effettuano una schivata con spostamento fisico, posizione accovacciata e hitbox coerente, interrompendo il fuoco e riposizionandosi.
+- Reset e cronologia dello stato combattono gli exploit da tap ripetuti; test automatici separati con valori e condizioni verificati.
+- APK installabile separata: `com.corsaguerra.arcadeprova27`.
+Questo aggiornamento migliora le meccaniche ma non dimostra ancora parità di qualità grafica con Metal Slug; serve prova sul Samsung.

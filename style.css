@@ -129,3 +129,10 @@
 #vehicle-toggle[data-vehicle-action="exit"]{background:linear-gradient(180deg,#866b37ef,#473923ed);border-color:#ffe3a9}
 #vehicle-toggle:not(:disabled):active{filter:brightness(1.3);transform:translateX(-50%) scale(.96)}
 @media(max-height:420px){#vehicle-toggle{bottom:calc(100% + 5px);height:35px;min-width:122px;padding:3px 8px;font-size:11px}}
+
+/* A low-profile evade button near movement; keep firing controls unchanged. */
+.control-group .slide-button{background:linear-gradient(160deg,#42605bba,#12282bd9);border-color:#a9d8c2}
+.control-group .slide-button svg{fill:#d9f6e5}
+.control-group .slide-button:active{background:#517a69}
+@media(max-width:1050px){#controls .control-group:first-of-type{gap:clamp(3px,.5vw,7px)}}
+@media(max-height:440px){#controls .slide-button{width:clamp(39px,6vw,54px);height:clamp(39px,6vw,54px)}}
