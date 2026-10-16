@@ -42,6 +42,9 @@ def hero(im,pose,n):
     if pose=='slide':
         draw_slide_pose(im,n)
         return
+    if pose=='land':
+        draw_land_pose(im,n)
+        return
     d=ImageDraw.Draw(im); t=n*math.pi/4
     moving=pose in ("run","runFire")
     stride=round(math.sin(t)*22) if moving else 0
@@ -197,7 +200,7 @@ def draw_slide_pose(im,n):
     Boots trail behind, helmet stays low, barrel clears the knees.
     """
     d=ImageDraw.Draw(im,"RGBA")
-    kick=round(math.sin(n*math.pi/2)*5)
+    kick=round(math.sin(n*math.pi/2)*5)+(n//2)*2
     # Soft dust and trailing boots, using the same saturated uniform palette.
     ell(d,(21,185,196,199),(35,44,33,105),None)
     poly(d,[(23,172+kick),(55,171+kick),(102,175),(118,186),(27,190)],"#3d4e3d")
@@ -255,6 +258,22 @@ def draw_melee_bayonet(im,n):
         a=(-1.15+k*.15+n*.11)
         px=x+math.cos(a)*r+8;py=y+math.sin(a)*r
         ell(d,(px-3,py-2,px+3,py+2),(255,208,126,160),None)
+
+
+def draw_land_pose(im,n):
+    """Four-frame landing squash and recovery, with a grounded dust ripple."""
+    base=Image.new("RGBA",im.size,(0,0,0,0))
+    hero(base,"idle",n)
+    scale=(.79,.84,.93,1.0)[n%4]
+    h=round(im.height*scale)
+    mini=base.resize((im.width,h),Image.Resampling.NEAREST)
+    im.alpha_composite(mini,(0,im.height-h))
+    d=ImageDraw.Draw(im,"RGBA")
+    radius=54+n*15
+    d.arc((104-radius,173,104+radius,208),195,343,fill=(180,161,109,190-int(n*26)),width=max(1,4-n))
+    for k in range(5):
+        x=37+k*36+(n%2)*8
+        ell(d,(x,188-n%3,x+3,191-n%3),(199,182,136,135),None)
 
 def enemy(im,kind,n):
     d=ImageDraw.Draw(im);stride=int(math.sin(n*math.pi/4)*19);bob=abs(int(math.sin(n*math.pi/4)*3))
@@ -991,7 +1010,7 @@ def write_atlas(rel,frames,fw,fh,fn,texture=True):
         fn(im,n)
         if rel.startswith('hero/'):
             hero_pose=rel.split('/')[-1].replace('.png','')
-            if hero_pose!='slide':hero_finishing(im,hero_pose,n)
+            if hero_pose not in ('slide','land'):hero_finishing(im,hero_pose,n)
             if hero_pose=='melee':draw_melee_bayonet(im,n)
         elif rel.startswith('enemies/'):
             finish_enemy_art(im,rel.split('/')[-1].replace('.png',''),n)
