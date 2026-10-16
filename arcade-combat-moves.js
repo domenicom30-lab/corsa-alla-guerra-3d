@@ -35,3 +35,10 @@ export function createArcadeCombatMoves(){
 export function enemyCombatPose(e){
  return e?.dodgeTime>0?'dodge':e?.flinch>0?'hurt':e?.windup>0?'windup':'normal';
 }
+
+// Timeline-based frames: animation always begins at frame zero and ends on the final pose.
+export function actionFrame(remainingFraction,count){
+ if(!Number.isInteger(count)||count<1||!Number.isFinite(remainingFraction))return 0;
+ const remaining=Math.max(0,Math.min(1,remainingFraction));
+ return Math.min(count-1,Math.floor((1-remaining)*count));
+}

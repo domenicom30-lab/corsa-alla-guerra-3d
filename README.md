@@ -220,3 +220,7 @@ Il granatiere ora mostra durante il windup un arco tratteggiato con **punto di i
 I colpi provenienti dai nemici usano ora lo stesso ordinamento geometrico del fuoco del protagonista: la prima collisione tra **barricata e soldato** vince, anche se il fotogramma scatta o la telecamera si sposta. I test verificano il caso con un personaggio davanti alla barricata, quello con la barricata davanti al personaggio e una traiettoria con telecamera mobile. Le granate producono l'esplosione nel punto del primo contatto.
 
 Le verifiche continuano via GitHub Actions **senza compilare alcuna APK Android**.
+
+### Pose d'azione temporizzate
+
+Le animazioni originali di scivolata e combattimento ravvicinato sono ora **sincronizzate con l'inizio della mossa**, anziché con il contatore delle animazioni del livello. Ogni gesto parte dal primo fotogramma, attraversa l'intera sequenza e torna alla posa normale al completamento. Il nuovo test usa la simulazione dei tempi effettivi delle mosse; non viene generata alcuna APK automatica.
