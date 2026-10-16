@@ -1,3 +1,4 @@
+import {drawRaster,spritePacksReady} from './sprite-loader.js';
 // Original arcade cinematic effects, deterministic and canvas-only (no external downloads).
 const rand=n=>{const x=Math.sin(n*127.1+78.233)*43758.5453;return x-Math.floor(x)};
 export function drawBattleAtmosphere(ctx,W,H,scroll,phase,ground){
@@ -60,22 +61,30 @@ export function drawArcadeForeground(ctx,W,H,scroll,ground,phase){
 export function drawBossDeathCinematic(ctx,W,H,ground,elapsed,x){
  if(elapsed<0||elapsed>2.6)return;
  ctx.save();ctx.imageSmoothingEnabled=false;
- const p=elapsed/2.6;
- for(let i=0;i<22;i++){
-  const delay=i*.08;
+ // The earlier explosion was 22 opaque orange circles, some over 100px
+ // across, masking the fourth stage and the soldier in landscape mode.
+ // Draw a limited series of the existing original fire/smoke PNG keyframes.
+ for(let i=0;i<14;i++){
+  const delay=i*.145;
   if(elapsed<delay)continue;
-  const life=Math.min(1,(elapsed-delay)/.52);
-  const a=i*2.39996;
-  const cx=x+Math.cos(a)*H*(.08+i%5*.045);
-  const cy=ground-H*(.16+Math.abs(Math.sin(a))*.3);
-  const radius=H*(.018+life*.10);
-  ctx.globalAlpha=Math.max(0,1-life);
-  ctx.fillStyle=life<.3?'#fff4bb':i%2?'#ffb43f':'#dc4a25';
-  ctx.beginPath();ctx.arc(cx,cy,radius,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#fff0b0';ctx.fillRect(cx-radius*.25,cy-radius*.25,radius*.5,radius*.5);
+  const lifetime=Math.min(1,(elapsed-delay)/.68);
+  if(lifetime>=1)continue;
+  const angle=i*2.39996;
+  const cx=x+Math.cos(angle)*H*(.050+(i%4)*.033);
+  const cy=ground-H*(.13+Math.abs(Math.sin(angle))*.15);
+  const size=H*(.055+(i%3)*.014)*(.8+Math.sin(lifetime*Math.PI)*.28);
+  if(cx<-size||cx>W+size)continue;
+  ctx.globalAlpha=Math.min(1,(1-lifetime)*1.3);
+  if(spritePacksReady()){
+   drawRaster(ctx,'fx','explosion',Math.min(9,Math.floor(lifetime*10)),
+    cx-size*.5,cy-size*.5,size,size);
+  }else{
+   // Small pixel shards are the only fallback, never filled sky-sized discs.
+   ctx.fillStyle=i%2?'#ffbc68':'#e5743b';
+   for(let j=0;j<5;j++)ctx.fillRect(cx+j*size*.08,cy+(j%3)*size*.06,
+      Math.max(2,H*.004),Math.max(2,H*.003));
+  }
  }
- ctx.globalAlpha=Math.max(0,.25-p*.25);
- ctx.fillStyle='#fff6dc';ctx.fillRect(0,0,W,H);
  ctx.restore();
 }
 

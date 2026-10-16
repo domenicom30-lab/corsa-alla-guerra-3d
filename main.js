@@ -409,7 +409,20 @@ function drawBullets(){
  }
 }
 function burst(x,y){scorches.mark(scroll+x,y,ground(),H,1.1);spectacle.explosion(x,y,.7);blastEffects.push({x,y,life:.48,maxLife:.48});if(blastEffects.length>16)blastEffects.shift();for(let i=0;i<13;i++){const angle=i*Math.PI*2/13;if(particles.length>=MAX_PARTICLES)particles.shift();particles.push({x,y,vx:Math.cos(angle)*(80+i*9),vy:Math.sin(angle)*(80+i*7)-60,life:.38+i*.012,color:i%3===0?'#ffdc6b':i%3===1?'#ee5828':'#aa181b'})}}
-function drawBlastEffects(){for(const e of blastEffects){const progress=1-e.life/e.maxLife;if(spritePacksReady()){const width=H*(.20+progress*.23);drawRaster(ctx,'fx','explosion',Math.min(9,Math.floor(progress*10)),e.x-width*.5,e.y-width*.5,width,width);continue;}const radius=H*(.025+progress*.18);ctx.save();ctx.imageSmoothingEnabled=false;const frame=Math.min(7,Math.floor(progress*8));const core=H*(.028+Math.sin(Math.PI*progress)*.095);if(frame<6){for(let i=0;i<8;i++){const a=i*Math.PI/4+frame*.17,r=core*(.65+(i%3)*.22),size=Math.max(2,H*.016*(1-progress));ctx.fillStyle=i%3===0?'#fff2a0':i%3===1?'#ffb13e':'#e95127';ctx.fillRect(Math.round(e.x+Math.cos(a)*r),Math.round(e.y+Math.sin(a)*r),Math.ceil(size),Math.ceil(size))}ctx.fillStyle=frame<2?'#fff8c6':frame<4?'#ffcf65':'#e46b35';ctx.fillRect(Math.round(e.x-core*.5),Math.round(e.y-core*.5),Math.ceil(core),Math.ceil(core))}ctx.globalAlpha=Math.max(0,1-progress);ctx.strokeStyle=progress<.45?'#fff4a3':'#ff7a30';ctx.lineWidth=Math.max(3,H*.013*(1-progress*.6));ctx.beginPath();ctx.arc(e.x,e.y,radius,0,Math.PI*2);ctx.stroke();for(let i=0;i<10;i++){const angle=i*Math.PI/5+progress*.45;const dist=radius*(.65+(i%3)*.16);const size=Math.max(3,H*.016*(1-progress));ctx.fillStyle=i%3===0?'#fff4a3':i%3===1?'#ffae43':'#de4228';ctx.fillRect(e.x+Math.cos(angle)*dist-size/2,e.y+Math.sin(angle)*dist-size/2,size,size)}ctx.restore()}}
+function drawBlastEffects(){
+ // The old 0.43H orange discs obscured actors and buildings on Galaxy Fold.
+ // Keep only compact sprite animation, without giant circular fallback FX.
+ if(!spritePacksReady())return;
+ for(const e of blastEffects){
+  const progress=Math.max(0,Math.min(1,1-e.life/e.maxLife));
+  const width=H*(.095+.055*Math.sin(Math.PI*progress));
+  ctx.save();
+  ctx.globalAlpha=progress>.60?Math.max(0,(1-progress)/.40):1;
+  drawRaster(ctx,'fx','explosion',Math.min(9,Math.floor(progress*10)),
+   Math.round(e.x-width*.5),Math.round(e.y-width*.5),width,width);
+  ctx.restore();
+ }
+}
 function shatterEnemy(x,y){const colors=['#c94e37','#7c2829','#e29b60','#3b2426'];for(let i=0;i<12;i++){const a=i*Math.PI/6;enemyDebris.push({x,y,vx:Math.cos(a)*(55+i*9),vy:Math.sin(a)*(45+i*7)-H*.22,life:.45+(i%4)*.09,size:Math.max(3,H*.008+(i%3)*2),color:colors[i%4]})}if(enemyDebris.length>120)enemyDebris.splice(0,enemyDebris.length-120)}
 function drawEnemyDebris(){for(const p of enemyDebris){ctx.save();ctx.globalAlpha=Math.min(1,p.life*2.5);ctx.translate(Math.round(p.x),Math.round(p.y));ctx.rotate((p.x+p.y)*.012);ctx.fillStyle=p.color;ctx.fillRect(-p.size*.5,-p.size*.5,p.size,p.size*.7);ctx.fillStyle='#e9ad70';ctx.fillRect(-p.size*.2,-p.size*.35,Math.max(2,p.size*.35),Math.max(2,p.size*.2));ctx.restore()}}
 function drawDust(){for(const p of dustPuffs){ctx.save();ctx.globalAlpha=Math.max(0,p.life/.34)*.52;ctx.fillStyle=p.color;ctx.fillRect(Math.round(p.x),Math.round(p.y),Math.max(2,p.size),Math.max(2,p.size*.55));ctx.fillStyle='#d7c6a2';ctx.globalAlpha=Math.max(0,p.life/.34)*.3;ctx.fillRect(Math.round(p.x+p.size*.2),Math.round(p.y-p.size*.25),Math.max(2,p.size*.45),Math.max(2,p.size*.35));ctx.restore()}}

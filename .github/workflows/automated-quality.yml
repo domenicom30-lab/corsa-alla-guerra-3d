@@ -45,6 +45,8 @@ jobs:
         run: python3 scripts/test-secondary-landmarks.py
       - name: Validate individual detailed background environments
         run: python3 scripts/test-environment-details.py
+      - name: Regress actual fortress screenshot and eliminate pale sky discs
+        run: python3 scripts/test-fortress-clarity.py
       - name: Validate original animated drivable tank art
         run: python3 scripts/test_tank_art.py
       - name: Test new hero action sprites

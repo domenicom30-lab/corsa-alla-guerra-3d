@@ -13,6 +13,7 @@ from enemy_falling_art import draw_falling_pose
 from environment_details import paint_environment_details
 from boss_damage_art import paint_boss_damage
 from grenade_throw_art import draw_grenade_throw
+from fortress_repaint import paint_fortress_scene
 
 ROOT = Path(__file__).resolve().parent.parent
 PUBLIC = ROOT / "public" / "assets" / "sprites"
@@ -887,6 +888,9 @@ def bg(im,kind,layer):
     rng=random.Random(101+len(kind)*111+(31 if layer=='near' else 0))
     if kind=='forest':
         paint_forest_v21(im,layer)
+        return
+    if kind=='fortress':
+        paint_fortress_scene(im,layer)
         return
     themes={
       "forest":((34,55,70),(195,151,96)),
