@@ -3,6 +3,7 @@ import {loadSpritePacks,spritePacksReady,drawRaster,drawRasterBackground,spriteP
 import {heroDimensions,troopDimensions,vehicleDimensions} from './arcade-proportions.js';
 import {vehicleInteraction} from './vehicle-controls.js';
 import {vehicleRamContacts} from './vehicle-ram.js';
+import {aircraftHitbox} from './aircraft-combat.js';
 import {createArcadeCombatMoves,actionFrame} from './arcade-combat-moves.js';
 import {grenadeThreat,drawGrenadeThreat} from './grenade-threat.js';
 import {createGameInterface} from './game-interface.js';
@@ -484,6 +485,8 @@ function update(dt){
   for(const t of ticks)if(t.alive)targets.push({
     kind:'obstacle',ref:t,x:t.x-scroll,y:ground()-H*.055,w:H*.055,h:H*.09
   });
+  const aircraft=aircraftHitbox(arcade.plane,H);
+  if(aircraft)targets.push({kind:'aircraft',ref:arcade.plane,...aircraft});
   if(arcade.boss.active&&!arcade.boss.defeated)targets.push({
     kind:'boss',ref:arcade.boss,x:arcade.boss.x-scroll,y:ground()-H*.30,w:H*.27,h:H*.25
   });
@@ -507,6 +510,16 @@ function update(dt){
     target.alive=false;score+=arcade.kill();
     spectacle.impact(target.x-scroll,ground()-H*.08,120);
     shatterEnemy(target.x-scroll,ground()-H*.07);burst(target.x-scroll,ground()-H*.07);
+   }else if(contact.item.kind==='aircraft'){
+    const outcome=arcade.hitPlane(b.damage,H);
+    if(outcome.hit){
+     spectacle.impact(b.x,b.y,outcome.killed?outcome.points:0);
+     if(outcome.killed){
+      score+=arcade.kill()+outcome.points;
+      spectacle.explosion(outcome.x,outcome.y,1.3);
+      burst(outcome.x,outcome.y);soundEffect('explosion');
+     }
+    }
    }else if(contact.item.kind==='boss'&&!rocket){
     arcade.boss.hp-=b.damage;burst(b.x,b.y);
     if(arcade.boss.hp<=0)defeatBoss();

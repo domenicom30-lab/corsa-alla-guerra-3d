@@ -1,4 +1,5 @@
 import {vehicleDimensions} from './arcade-proportions.js';
+import {drawAircraft,damageAircraft} from './aircraft-combat.js';
 // Original arcade run-and-gun systems: weapon pickups, grenades, enemy volleys, boss.
 import {drawRocketPickup,segmentHitsRect} from './arcade-arsenal.js';
 import {nearestRectHit} from './collision-order.js';
@@ -6,12 +7,12 @@ import {drawRaster,spritePacksReady} from './sprite-loader.js';
 export function createArcadeSystems(){
  const pickups=Array.from({length:12},(_,i)=>({x:1400+i*715,type:['spread','heavy','rocket','health'][i%4],taken:false}));
  const grenades=[],enemyShots=[],airBombs=[],airDrops=[];
- const plane={x:-200,active:false,timer:10,dropTimer:0,passes:0};
+ const plane={x:-200,active:false,timer:10,dropTimer:0,passes:0,hp:6,maxHp:6,hitFlash:0,crashTime:0,crashY:0,crashAngle:0};
  const covers=[2350,5750,8850].map(x=>({x,hp:100}));
  const prisoners=[1750,4850,7950].map(x=>({x,rescued:false}));
  const boss={x:9600,hp:28,maxHp:28,active:false,defeated:false,cooldown:1.3,velocity:0,turretAngle:0,recoil:0,treadDistance:0};
  let weapon='normal',ammo=Infinity,grenadeCount=8,combo=0,comboTimer=0,screenShake=0;
- const reset=()=>{weapon='normal';ammo=Infinity;grenadeCount=8;combo=0;comboTimer=0;screenShake=0;grenades.length=0;enemyShots.length=0;airBombs.length=0;airDrops.length=0;Object.assign(plane,{x:-200,active:false,timer:10,dropTimer:0,passes:0});pickups.forEach(p=>p.taken=false);covers.forEach(c=>c.hp=100);prisoners.forEach(p=>p.rescued=false);Object.assign(boss,{hp:28,active:false,defeated:false,cooldown:1.3,velocity:0,turretAngle:0,recoil:0,treadDistance:0})};
+ const reset=()=>{weapon='normal';ammo=Infinity;grenadeCount=8;combo=0;comboTimer=0;screenShake=0;grenades.length=0;enemyShots.length=0;airBombs.length=0;airDrops.length=0;Object.assign(plane,{x:-200,active:false,timer:10,dropTimer:0,passes:0,hp:6,maxHp:6,hitFlash:0,crashTime:0,crashY:0,crashAngle:0});pickups.forEach(p=>p.taken=false);covers.forEach(c=>c.hp=100);prisoners.forEach(p=>p.rescued=false);Object.assign(boss,{hp:28,active:false,defeated:false,cooldown:1.3,velocity:0,turretAngle:0,recoil:0,treadDistance:0})};
  const collect=(worldX,jump,ground,H)=>{let reward=null;for(const p of pickups){if(p.taken||Math.abs(p.x-worldX)>H*.12||jump>H*.18)continue;p.taken=true;reward=p.type;if(p.type==='health'){}else{weapon=p.type;ammo=p.type==='rocket'?35:p.type==='spread'?100:160}}return reward};
  const rescue=(worldX,jump,H)=>{let n=0;for(const p of prisoners)if(!p.rescued&&Math.abs(p.x-worldX)<H*.12&&jump<H*.2){p.rescued=true;n++}return n};
  const hitCover=(worldX,y,ground,H,damage=10)=>{if(y<ground-H*.15||y>ground+H*.02)return false;for(const c of covers){if(c.hp>0&&Math.abs(c.x-worldX)<H*.09){c.hp=Math.max(0,c.hp-damage);return true}}return false};
@@ -35,9 +36,31 @@ export function createArcadeSystems(){
    const jumping=Math.max(0,playerState.jumpY||0),crouching=!!playerState.crouching;
    const playerCenterY=ground-H*(crouching?.058:.105)-jumping;
    const verticalRadius=H*(crouching?.049:.095);
-  plane.timer-=dt;if(!plane.active&&plane.timer<=0){plane.active=true;plane.x=-H*.3;plane.dropTimer=0;plane.timer=14;plane.passes++}
-  if(plane.active){plane.x+=H*1.15*dt;plane.dropTimer+=dt;if(plane.dropTimer>=.75){plane.dropTimer=0;if(plane.x>0&&plane.x<H*2.5){if(plane.passes%2===0&&airDrops.length===0)airDrops.push({x:plane.x,y:H*.12});else airBombs.push({x:plane.x,y:H*.12,vy:0})}}if(plane.x>H*3.8)plane.active=false}
-  for(let i=airBombs.length-1;i>=0;i--){const b=airBombs[i];b.vy+=H*1.2*dt;b.y+=b.vy*dt;if(b.y>=ground){if(Math.abs(b.x-playerX)<H*.12&&jumping<H*.10)onDamage();onExplosion(b.x,ground,H*.14);airBombs.splice(i,1)}}
+  // Targetable raids, animated crash, and bounded falling bombs.
+  plane.timer-=dt;plane.hitFlash=Math.max(0,plane.hitFlash-dt);
+  if(plane.crashTime>0){
+   plane.crashTime=Math.max(0,plane.crashTime-dt);
+   plane.crashAngle+=dt*4.6;plane.crashY+=H*.65*dt;plane.x+=H*.16*dt;
+   if(plane.crashY>=ground-H*.09){
+    plane.crashTime=0;onExplosion(plane.x+H*.14,ground-H*.05,H*.2,true);
+   }
+  }
+  if(!plane.active&&plane.crashTime===0&&plane.timer<=0){
+   Object.assign(plane,{active:true,x:-H*.31,hp:plane.maxHp,hitFlash:0,dropTimer:0,crashAngle:0});
+   plane.timer=14;plane.passes++;
+  }
+  if(plane.active){
+   plane.x+=H*1.15*dt;plane.dropTimer+=dt;
+   if(plane.dropTimer>=.75){
+    plane.dropTimer=0;
+    if(plane.x>0&&plane.x<H*2.5){
+     if(plane.passes%2===0&&airDrops.length===0)airDrops.push({x:plane.x+H*.12,y:H*.12});
+     else if(airBombs.length<12)airBombs.push({x:plane.x+H*.12,y:H*.15,vy:0});
+    }
+   }
+   if(plane.x>H*3.8)plane.active=false;
+  }
+  for(let i=airBombs.length-1;i>=0;i--){const b=airBombs[i];b.vy+=H*1.2*dt;b.y+=b.vy*dt;if(b.y>=ground){if(Math.abs(b.x-playerX)<H*.12&&jumping<H*.10)onDamage();onExplosion(b.x,ground,H*.14,true);airBombs.splice(i,1)}}
   for(let i=airDrops.length-1;i>=0;i--){const d=airDrops[i];d.y=Math.min(ground-H*.07,d.y+H*.18*dt);if(Math.abs(d.x-playerX)<H*.12&&d.y>=ground-H*.15){weapon='heavy';ammo=100;airDrops.splice(i,1)}}
   comboTimer-=dt;if(comboTimer<=0)combo=0;screenShake=Math.max(0,screenShake-dt*28);
   if(!boss.defeated&&scroll+playerX>boss.x-H*1.6)boss.active=true;
@@ -114,7 +137,18 @@ export function createArcadeSystems(){
     if(x<-w||x>ctx.canvas.width+w)continue;
     drawRaster(ctx,'props','prisonerIdle',Math.floor(phase*.14)%4,x-w*.5,ground-h,w,h);
   }
-  if(plane.active){ctx.fillStyle='#343a39';ctx.fillRect(plane.x, H*.09,H*.22,H*.038);ctx.fillRect(plane.x+H*.07,H*.065,H*.06,H*.09);ctx.fillStyle='#c24e37';ctx.fillRect(plane.x+H*.2,H*.1,H*.03,H*.02)}
+  // Four original raster frames and a distinct spinning wreck.
+  drawAircraft(ctx,plane,H,phase);
+  // The projected impact area lights up during the last 0.95 seconds.
+  for(const bomb of airBombs){
+   const gravity=H*1.2;
+   const t=(-bomb.vy+Math.sqrt(bomb.vy*bomb.vy+2*gravity*Math.max(0,ground-bomb.y)))/gravity;
+   if(t<.95){ctx.save();ctx.globalAlpha=Math.min(.85,(.95-t)*.95);
+    ctx.strokeStyle='#ffb95e';ctx.lineWidth=Math.max(2,H*.009);
+    ctx.beginPath();ctx.ellipse(bomb.x,ground-H*.008,H*.08,H*.022,0,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle='#cf5b38';ctx.fillRect(bomb.x-H*.011,ground-H*.05,H*.022,H*.014);
+    ctx.restore();}
+  }
   for(const b of airBombs){ctx.fillStyle='#292e2b';ctx.fillRect(b.x-H*.012,b.y-H*.017,H*.024,H*.034)}
   for(const d of airDrops){ctx.fillStyle='#eee3c5';ctx.beginPath();ctx.arc(d.x,d.y-H*.06,H*.065,Math.PI,0);ctx.fill();ctx.fillStyle='#a57a43';ctx.fillRect(d.x-H*.03,d.y-H*.03,H*.06,H*.06)}
   for(const p of pickups){if(p.taken)continue;const x=p.x-scroll;if(x< -80||x>(ctx.canvas.clientWidth||ctx.canvas.width)+80)continue;const y=ground-H*.18+Math.sin(phase*.12)*H*.013;if(p.type==='rocket'){drawRocketPickup(ctx,x,y,H*.07);continue}ctx.save();ctx.translate(x,y);ctx.fillStyle=p.type==='health'?'#c63e42':p.type==='spread'?'#d9b64e':'#6cba96';ctx.fillRect(-H*.035,-H*.035,H*.07,H*.07);ctx.strokeStyle='#fff5d4';ctx.lineWidth=2;ctx.strokeRect(-H*.035,-H*.035,H*.07,H*.07);ctx.fillStyle='#171d19';ctx.font='bold '+Math.max(11,H*.042)+'px monospace';ctx.textAlign='center';ctx.fillText(p.type==='health'?'+':p.type==='spread'?'S':'H',0,H*.015);ctx.restore()}
@@ -248,5 +282,9 @@ export function createArcadeSystems(){
    ctx.restore();
   }
  };
- return {pickups,grenades,enemyShots,airBombs,airDrops,plane,covers,prisoners,boss,reset,collect,rescue,hitCover,melee,fire,throwGrenade,kill,step,draw,get weapon(){return weapon},get ammo(){return ammo},get grenadeCount(){return grenadeCount},get combo(){return combo},get screenShake(){return screenShake},set screenShake(value){screenShake=Number.isFinite(value)?Math.max(0,value):0}};
+ return {pickups,grenades,enemyShots,airBombs,airDrops,plane,covers,prisoners,boss,reset,collect,rescue,hitCover,melee,fire,throwGrenade,kill,
+  hitPlane(damage,H){const outcome=damageAircraft(plane,damage,H);if(outcome.killed){
+   if(airDrops.length<3)airDrops.push({x:outcome.x,y:outcome.y});
+   screenShake=Math.max(screenShake,12);
+  }return outcome;},step,draw,get weapon(){return weapon},get ammo(){return ammo},get grenadeCount(){return grenadeCount},get combo(){return combo},get screenShake(){return screenShake},set screenShake(value){screenShake=Number.isFinite(value)?Math.max(0,value):0}};
 }
