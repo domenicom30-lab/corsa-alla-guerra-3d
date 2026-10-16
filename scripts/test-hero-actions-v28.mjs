@@ -7,18 +7,19 @@ const workflow=readFileSync('.github/workflows/build-apk.yml','utf8');
 assert.equal(m.hero.slide,6);
 assert.equal(m.hero.melee,5);
 assert.equal(m.hero.land,4);
-assert.equal(rasterAssetCount,36,'Three new hero atlases must be mandatory');
+assert.equal(rasterAssetCount,37,'36 infantry and scenery atlases plus the separately animated drivable tank');
 for(const part of [
-"combatMoves.sliding?'slide':combatMoves.slashActive?'melee':landingTime>0?'land'",
-"pose==='slide'?Math.min(5",
-"pose==='melee'?Math.min(4",
+"combatMoves.slashActive?'melee'",
+"combatMoves.sliding?'slide'",
+"landTime>0?'land'",
+"pose==='slide'?Math.floor(phase*.9)%6",
+"pose==='melee'?Math.floor(phase*.9)%5",
 "pose==='land'?Math.min(3",
 "drawRaster(ctx,'hero',pose,frame",
-"landingTime=.18",
-"landingTime=0;fireHeld=false",
-"if(dustPuffs.length>35)",
+"landTime=.22",
+"landTime=0;gameMenu.playMode()",
 ])assert.ok(source.includes(part),part);
-for(const token of ['def finish_special_hero(im,pose,n):','Image.Resampling.NEAREST','if pose=="melee":','if pose=="land":'])
+for(const token of ['def draw_slide_pose(im,n):','def draw_melee_bayonet(im,n):','def draw_land_pose(im,n):','Image.Resampling.NEAREST'])
   assert.ok(painter.includes(token),token);
 assert.ok(workflow.includes("on:\n  workflow_dispatch:"));
 assert.ok(!workflow.includes("\n  push:"),'APK remains manual release-only');
