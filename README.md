@@ -174,3 +174,11 @@ I test bloccano l'integrazione se le nuove pose mancano, se i frame sono identic
 I granatieri possono **arretrare** quando il protagonista si avvicina, restando entro il proprio tratto di battaglia. Gli assaltatori avanzano ora fino alla distanza del **corpo a corpo**, mentre i soldati corazzati continuano a mantenere lo spazio di tiro. Tre nuove verifiche controllano movimento, distanza e reset della missione.
 
 La release Android non parte automaticamente: la sola verifica continua è la pipeline di qualità.
+
+### Feedback carro e collisioni più affidabili (WIP, nessuna APK)
+
+- I proiettili nemici attraversano ora una **hitbox spazzata tra il fotogramma precedente e quello corrente**: anche su dispositivi con rallentamenti non devono oltrepassare il soldato né le coperture.
+- **Scivolata e salto** continuano a proteggere dai proiettili che passano sopra o sotto il corpo del protagonista, rispettando le rispettive sagome ridotte.
+- Il carro guidabile usa fotogrammi dedicati di **rinculo e lampo del cannone** anche se rimane fermo, non soltanto durante lo scorrimento dei cingoli. Lo stato dell'animazione viene azzerato al riavvio.
+- Test automatizzati specifici per traiettorie veloci, coperture, evasione e animazione del carro.
+- La procedura APK rimane manuale: nessuna build Android automatica è richiesta da questi sviluppi.

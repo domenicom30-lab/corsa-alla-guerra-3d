@@ -1,6 +1,6 @@
 import {vehicleDimensions} from './arcade-proportions.js';
 // Original arcade run-and-gun systems: weapon pickups, grenades, enemy volleys, boss.
-import {drawRocketPickup} from './arcade-arsenal.js';
+import {drawRocketPickup,segmentHitsRect} from './arcade-arsenal.js';
 import {drawRaster,spritePacksReady} from './sprite-loader.js';
 export function createArcadeSystems(){
  const pickups=Array.from({length:12},(_,i)=>({x:1400+i*715,type:['spread','heavy','rocket','health'][i%4],taken:false}));
@@ -69,9 +69,14 @@ export function createArcadeSystems(){
    }
   }
   for(let i=enemyShots.length-1;i>=0;i--){
-    const b=enemyShots[i];b.x+=b.vx*dt-cameraDelta;b.y+=b.vy*dt;
+    const b=enemyShots[i],previousX=b.x,previousY=b.y;
+    b.x+=b.vx*dt-cameraDelta;b.y+=b.vy*dt;
     b.vy+=(b.gravity||0)*dt;b.life-=dt;
-    if(hitCover(scroll+b.x,b.y,ground,H,b.kind==='grenade'?30:10)){
+    // A fast enemy bullet must not teleport through destructible cover at low FPS.
+    const blocked=covers.some(c=>c.hp>0
+      &&segmentHitsRect(previousX,previousY,b.x,b.y,c.x-scroll,ground-H*.065,H*.09,H*.095)
+      &&hitCover(c.x,Math.max(ground-H*.13,Math.min(ground(),b.y)),ground,H,b.kind==='grenade'?30:10));
+    if(blocked){
       if(b.kind==='grenade')onExplosion(b.x,b.y,H*.16,true);
       enemyShots.splice(i,1);continue;
     }
@@ -80,7 +85,7 @@ export function createArcadeSystems(){
       onExplosion(b.x,Math.min(b.y,ground-H*.03),H*.19,true);
       enemyShots.splice(i,1);continue;
     }
-    if(Math.abs(b.x-playerX)<H*.065&&Math.abs(b.y-playerCenterY)<verticalRadius){
+    if(segmentHitsRect(previousX,previousY,b.x,b.y,playerX,playerCenterY,H*.065,verticalRadius)){
       onDamage();enemyShots.splice(i,1);
     }else if(b.life<=0)enemyShots.splice(i,1);
    }
