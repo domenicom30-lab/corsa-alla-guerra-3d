@@ -75,7 +75,7 @@ export function createArcadeSystems(){
     // A fast enemy bullet must not teleport through destructible cover at low FPS.
     const blocked=covers.some(c=>c.hp>0
       &&segmentHitsRect(previousX,previousY,b.x,b.y,c.x-scroll,ground-H*.065,H*.09,H*.095)
-      &&hitCover(c.x,Math.max(ground-H*.13,Math.min(ground(),b.y)),ground,H,b.kind==='grenade'?30:10));
+      &&hitCover(c.x,Math.max(ground-H*.13,Math.min(ground,b.y)),ground,H,b.kind==='grenade'?30:10));
     if(blocked){
       if(b.kind==='grenade')onExplosion(b.x,b.y,H*.16,true);
       enemyShots.splice(i,1);continue;
