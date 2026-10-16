@@ -162,3 +162,10 @@ Le verifiche automatiche `Automated quality gates` **restano attive** sugli aggi
 Questa fase è sul ramo `main` e **non cambia il pacchetto Android finché non sarà pronta una release candidata**. Il generatore offline produce tre nuovi atlas PNG obbligatori per il protagonista: **slide** (6 frame), **melee** (5 frame, con braccio e lama disegnati separatamente dal fucile) e **land** (4 frame di compressione all'atterraggio). Il motore seleziona questi frame a partire dallo stato delle mosse e dalla fisica effettiva. Atterraggi impegnativi producono anche polvere sul terreno.
 
 I test bloccano l'integrazione se le nuove pose mancano, se i frame sono identici o se la pipeline APK viene riattivata automaticamente. La grafica rimane originale; il dettaglio professionale va ancora confrontato su dispositivo prima della prossima build Android.
+
+
+### Secondo intervento grafico senza nuova APK
+- Aggiunte due animazioni prerenderizzate originali, quattro frame ciascuna: `hero/slide.png` e `hero/melee.png`. La scivolata ora abbassa davvero il casco e allunga il corpo lungo il terreno; il combattimento corpo a corpo ha una baionetta con rinculo e riflessi animati.
+- Il protagonista sceglie la posa sulla base degli stati reali del sistema di combattimento; non viene più simulata una scivolata soltanto con `duck`.
+- Verifica CI delle dimensioni degli atlas, frame unici, trasparenza, posa bassa e collegamento col motore.
+- **Nessun incremento di versione Android e nessuna APK automatica**: tutte le prove restano nel sistema di quality gates.

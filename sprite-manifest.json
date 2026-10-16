@@ -1,5 +1,5 @@
 {
-  "version": "2.8.0-dev",
+  "version": "2.6.0",
   "frameSizes": {
     "hero": [
       240,
@@ -34,6 +34,10 @@
     "props": [
       480,
       320
+    ],
+    "vehicles": [
+      400,
+      250
     ]
   },
   "hero": {
@@ -46,9 +50,8 @@
     "hurt": 3,
     "aimUp": 4,
     "duckFire": 4,
-    "slide": 6,
-    "melee": 5,
-    "land": 4
+    "slide": 4,
+    "melee": 4
   },
   "enemies": {
     "rifleman": 8,
@@ -81,5 +84,8 @@
     "ruinHouse": 1,
     "factoryMachinery": 1,
     "fortressGate": 1
+  },
+  "vehicles": {
+    "slug": 6
   }
 }
