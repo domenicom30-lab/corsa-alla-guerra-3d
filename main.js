@@ -9,6 +9,7 @@ import {createExplosiveProps} from './explosive-props.js';
 import {createFieldEmplacements} from './field-emplacements.js';
 import {airborneFrame} from './arcade-air-animation.js';
 import {drawBattleWeather} from './battle-weather.js';
+import {createHudRenderer} from './arcade-hud-renderer.js';
 import {createBattleScorches} from './battle-scorches.js';
 import {createArcadeCombatMoves,actionFrame} from './arcade-combat-moves.js';
 import {grenadeThreat,drawGrenadeThreat} from './grenade-threat.js';
@@ -432,7 +433,23 @@ function grenade(){if(!running){start()}if(running&&!paused&&arcade.throwGrenade
 function damage(){if(invulnerable>0||!running)return;hitFlash=.2;arcade.screenShake=Math.max(arcade.screenShake,7);invulnerable=1.25;if(ride.occupied&&ride.hp>0){ride.hp=Math.max(0,ride.hp-20);if(ride.hp===0){ride.occupied=false;jumpY=H*.07;vy=H*.42;explosion(playerX(),ground()-H*.14,H*.16)}hud();return}health--;if(health<=0)showContinue()}
 function defeatBoss(){if(bossVictoryAwarded)return;bossVictoryAwarded=true;bossDeathTime=0;bossDeathX=arcade.boss.x-scroll;arcade.boss.defeated=true;arcade.boss.active=false;score+=3000;const bossScreenX=arcade.boss.x-scroll;for(let i=0;i<5;i++){burst(bossScreenX+Math.cos(i*Math.PI*2/5)*H*.16,ground()-H*(.24+Math.sin(i*Math.PI*2/5)*.12))}for(let i=0;i<4;i++){shatterEnemy(bossScreenX+(i-1.5)*H*.11,ground()-H*(.18+(i%2)*.12))}arcade.screenShake=Math.max(arcade.screenShake,18);message.textContent='BOSS SCONFITTO — RAGGIUNGI IL TRAGUARDO';message.style.display='block';setTimeout(()=>{if(running&&!paused)message.style.display='none'},1800)}
 function explosion(x,y,radius,hostile=false){explosiveProps.igniteNear(scroll+x,radius);hitFlash=Math.max(hitFlash,.09);soundEffect('explosion');burst(x,y);if(hostile)return;for(const result of emplacements.blast(scroll+x,radius,5)){score+=arcade.kill()+result.points;spectacle.impact(result.x-scroll,ground()-H*.13,result.points);}for(const c of arcade.covers)if(c.hp>0&&Math.abs(c.x-scroll-x)<radius)c.hp=Math.max(0,c.hp-50);for(const e of sentries){if(!e.alive||Math.abs(e.x-scroll-x)>radius)continue;const result=damageTroop(e,rocketSplashDamage(Math.abs(e.x-scroll-x),radius,5));if(result.killed){score+=arcade.kill()+result.points;aftermath.defeated(e.type,e.x-scroll,ground(),H,Math.sign(e.x-scroll-x)||1,2.5);shatterEnemy(e.x-scroll,ground()-H*.14);spectacle.impact(e.x-scroll,ground()-H*.14,result.points)}else aftermath.impact(e.x-scroll,ground()-H*.14,H,e.type==='heavy')}for(const t of ticks){if(t.alive&&Math.abs(t.x-scroll-x)<radius){t.alive=false;score+=arcade.kill();shatterEnemy(t.x-scroll,ground()-H*.07)}}if(arcade.boss.active&&!arcade.boss.defeated&&Math.abs(arcade.boss.x-scroll-x)<radius+H*.2){arcade.boss.hp-=5;arcadeHitstop=3;if(arcade.boss.hp<=0)defeatBoss()}}
-function hud(){updateVehicleButton();armorHud.hidden=!ride.occupied;if(ride.occupied){const armor=Math.max(0,Math.min(100,ride.hp/ride.maxHp*100));armorFill.style.width=armor+'%';armorLabel.textContent='CORAZZA '+Math.ceil(armor)+'%';armorHud.classList.toggle('critical',armor<=30)}saveArcadeHighScore();document.getElementById('points').textContent='PUNTI '+score+' · BEST '+arcadeHighScore+' · C '+arcadeCredits;document.getElementById('hearts').innerHTML=Array.from({length:3},(_,i)=>'<span class="heart '+(i>=health?'heart-lost':'')+'">♥</span>').join('');stats.textContent='Z'+(stageAt(scroll)+1)+' · '+Math.max(0,200-Math.floor(distance))+'m · '+arcade.weapon.toUpperCase()+(Number.isFinite(arcade.ammo)?' '+arcade.ammo:'')+' · BOMBE '+arcade.grenadeCount+(arcade.combo>1?' · COMBO x'+arcade.combo:'')+(arcade.boss.active&&!arcade.boss.defeated?' · BOSS '+Math.max(0,Math.ceil(arcade.boss.hp/arcade.boss.maxHp*100))+'%':'')}
+const hudView=createHudRenderer({
+ points:document.getElementById('points'),
+ hearts:document.getElementById('hearts'),
+ stats,armorHud,armorFill,armorLabel
+});
+function hud(){
+ updateVehicleButton();
+ saveArcadeHighScore();
+ hudView.update({
+  score,best:arcadeHighScore,credits:arcadeCredits,health,
+  stage:stageAt(scroll),remaining:Math.max(0,200-Math.floor(distance)),
+  weapon:arcade.weapon,ammo:arcade.ammo,grenades:arcade.grenadeCount,
+  combo:arcade.combo,bossHealth:arcade.boss.active&&!arcade.boss.defeated?
+   arcade.boss.hp/arcade.boss.maxHp*100:null,
+  vehicle:ride.occupied,vehicleHp:ride.hp,vehicleMaxHp:ride.maxHp
+ });
+}
 function update(dt){
  if(!running||paused)return;
  combatMoves.step(dt);
@@ -635,7 +652,7 @@ const jumpButton=document.getElementById('jump');jumpButton.addEventListener('po
 const activeMovementPointers={left:new Set(),right:new Set()};
 function clearTouchMovement(){activeMovementPointers.left.clear();activeMovementPointers.right.clear();movement.left=false;movement.right=false}
 for(const id of ['left','right']){const el=document.getElementById(id);const pointers=activeMovementPointers[id];el.addEventListener('pointerdown',e=>{e.preventDefault();if(!running)start();el.setPointerCapture(e.pointerId);pointers.add(e.pointerId);movement[id]=true});for(const type of ['pointerup','pointercancel','lostpointercapture'])el.addEventListener(type,e=>{pointers.delete(e.pointerId);movement[id]=pointers.size>0})}
-const aimButton=document.createElement('button');aimButton.type='button';aimButton.id='aim-up';aimButton.textContent='↑ MIRA';aimButton.setAttribute('aria-label','Mira verso alto');Object.assign(aimButton.style,{position:'fixed',right:'12px',top:'57%',zIndex:'20',padding:'12px',background:'#253b43',color:'#fff',border:'2px solid #ffe49a',borderRadius:'12px',touchAction:'none',fontWeight:'bold'});document.body.appendChild(aimButton);aimButton.addEventListener('pointerdown',e=>{e.preventDefault();aimButton.setPointerCapture(e.pointerId);aimUp=true;aimButton.style.background='#526e5c'});for(const type of ['pointerup','pointercancel','lostpointercapture'])aimButton.addEventListener(type,()=>{aimUp=false;aimButton.style.background='#253b43'});const fireButton=document.getElementById('shoot');fireButton.addEventListener('pointerdown',e=>{e.preventDefault();if(!running)start();fireHeld=true;fireButton.setPointerCapture(e.pointerId);shoot()});for(const event of ['pointerup','pointercancel','lostpointercapture'])fireButton.addEventListener(event,()=>fireHeld=false);
+const aimButton=document.getElementById('aim-up');aimButton.addEventListener('pointerdown',e=>{e.preventDefault();aimButton.setPointerCapture(e.pointerId);aimUp=true;aimButton.setAttribute('aria-pressed','true')});for(const type of ['pointerup','pointercancel','lostpointercapture'])aimButton.addEventListener(type,()=>{aimUp=false;aimButton.setAttribute('aria-pressed','false')});const fireButton=document.getElementById('shoot');fireButton.addEventListener('pointerdown',e=>{e.preventDefault();if(!running)start();fireHeld=true;fireButton.setPointerCapture(e.pointerId);shoot()});for(const event of ['pointerup','pointercancel','lostpointercapture'])fireButton.addEventListener(event,()=>fireHeld=false);
 addEventListener('blur',()=>{clearTouchMovement();movement.left=false;movement.right=false;fireHeld=false;jumpHeld=false;aimUp=false;duckHeld=false;if(running&&!paused){paused=true;gameMenu.pause();message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display='block'}});
 message.addEventListener('pointerdown',()=>{if(paused)pause();else start()});canvas.addEventListener('pointerdown',()=>{if(!running)start()});
 addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.repeat){if(!running)start();else if(paused)pause()}if(e.key==='ArrowLeft'||e.key==='a'){if(!running)start();movement.left=true;}if(e.key==='ArrowRight'||e.key==='d'){if(!running)start();movement.right=true;}if(e.key==='w'||e.key==='W')aimUp=true;if(e.key==='ArrowUp'||e.key===' '){e.preventDefault();jumpHeld=true;if(!e.repeat)jump();}if(e.key==='ArrowDown'){duckHeld=true;duck()}if((e.key==='e'||e.key==='E')&&!e.repeat)toggleRide();if(e.key==='Shift'&&!e.repeat)slide();if(e.key==='Escape')pause();if((e.key==='f'||e.key==='j'||e.key==='J'||e.key==='Control')&&!e.repeat)shoot();if((e.key==='g'||e.key==='k'||e.key==='K')&&!e.repeat)grenade()});

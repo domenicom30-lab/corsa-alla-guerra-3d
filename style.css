@@ -145,3 +145,57 @@
 #vehicle-armor.critical{border-color:#f08062;color:#ffb19a}
 #vehicle-armor.critical #vehicle-armor-fill{background:linear-gradient(90deg,#a73029,#ed744b)}
 @media(max-height:410px){#vehicle-armor{top:clamp(40px,9vh,55px);padding:4px 7px 5px}}
+
+
+/* Foldable/phone playfield-first controls — reduce visual occlusion.
+   The eight touch targets are aligned at the bottom, not floating over
+   enemies. Full target remains >=44 CSS px even on smaller landscape phones. */
+#controls{
+  left:max(9px,env(safe-area-inset-left));
+  right:max(9px,env(safe-area-inset-right));
+  bottom:max(14px,env(safe-area-inset-bottom));
+  align-items:flex-end;
+  gap:clamp(14px,2vw,30px);
+}
+#controls .control-group{gap:clamp(4px,.7vw,12px);}
+#controls .control-group button{
+  width:clamp(46px,6.05vw,76px);
+  height:clamp(46px,6.05vw,76px);
+  min-width:44px;
+  padding:clamp(6px,.8vw,12px);
+  border-color:#bac5b89c;
+  background:linear-gradient(160deg,#22342b87,#101e2399);
+  box-shadow:inset 0 1px #c4d9ca55,0 3px 6px #0008;
+  -webkit-backdrop-filter:none;
+  backdrop-filter:none;
+}
+#controls .control-group button small{
+  bottom:-12px;
+  font:700 clamp(7px,.68vw,10px) system-ui,sans-serif;
+  border:0;
+  background:#0d1b1dcc;
+  padding:1px;
+  letter-spacing:0;
+  border-radius:3px;
+}
+#controls .control-group .aim-button{
+  opacity:1;
+  transform:none;
+  transform-origin:center;
+  border-color:#9bb8a6;
+  background:linear-gradient(160deg,#344e4299,#16291fbc);
+}
+#controls .control-group .aim-button[aria-pressed="true"]{
+  background:#648d66cf;
+  border-color:#e4efc5;
+  box-shadow:0 0 12px #e1e9be77;
+}
+#controls .control-group .aim-button svg{fill:#e2f4de}
+.topbar{height:clamp(34px,6vh,48px);top:max(4px,env(safe-area-inset-top));}
+.hud-pill{background-image:linear-gradient(90deg,#0b1818c9,#16221fd0),url('/assets/sprites/ui/hud.png');}
+@media(max-height:430px){
+ #controls{bottom:max(12px,env(safe-area-inset-bottom))}
+ #controls .control-group button{width:clamp(44px,6.7vw,61px);height:clamp(44px,6.7vw,61px)}
+ #controls .control-group button small{bottom:-9px;font-size:7px}
+ .topbar{height:clamp(31px,7vh,42px)}
+}
