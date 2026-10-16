@@ -3,6 +3,7 @@ import {loadSpritePacks,spritePacksReady,drawRaster,drawRasterBackground,spriteP
 import {heroDimensions,troopDimensions,vehicleDimensions} from './arcade-proportions.js';
 import {vehicleInteraction} from './vehicle-controls.js';
 import {createArcadeCombatMoves} from './arcade-combat-moves.js';
+import {grenadeThreat,drawGrenadeThreat} from './grenade-threat.js';
 import {createGameInterface} from './game-interface.js';
 import {prepareHeroFrames,drawHeroFrame} from './hero-animation.js';
 import {createArcadeSpectacle} from './arcade-spectacle.js';
@@ -353,6 +354,10 @@ function drawSentries(){
    ctx.restore();
   }
   if(e.windup>0){
+   if(e.type==='grenadier'){
+    const threat=grenadeThreat(x,ground(),H,facingPlayer);
+    drawGrenadeThreat(ctx,threat,H,e.windup,phase,W);
+   }
    const p=Math.min(1,e.windup/(e.type==='grenadier'?.58:e.type==='heavy'?.46:.29));
    ctx.save();ctx.globalAlpha=.65+Math.sin(phase*.65)*.3;
    ctx.fillStyle='#211d1b';ctx.fillRect(x-H*.030,ground()-h-H*.034,H*.06,H*.014);

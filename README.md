@@ -202,3 +202,7 @@ Quattro nuovi atlas di combattimento originali (16 fotogrammi) integrano gli ott
 ### Scontri ravvicinati reattivi (WIP senza APK)
 
 Gli assaltatori ora hanno una **preparazione visibile del colpo ravvicinato** di 0,28 s: il giocatore può evitarlo con un salto, una scivolata o allontanandosi. L'attacco infligge danni al massimo una volta per azione, seguito da un tempo di recupero; un proiettile che ferisce il soldato interrompe la preparazione. Il punto esclamativo sopra la testa anticipa l'impatto e la posa d'attacco sfrutta i nuovi fotogrammi di combattimento. Test deterministici verificano tutti questi stati.
+
+## Miglioramento gameplay in sviluppo — indicatore granata nemica
+
+Il granatiere ora mostra durante il windup un arco tratteggiato con **punto di impatto stimato**, calcolato usando la velocità e la gravità del proiettile nemico, in modo da poter schivare o scivolare intenzionalmente anziché subire esplosioni inattese. L'indicatore svanisce appena finisce la preparazione al lancio, non compare per gli altri soldati e disegna al massimo 12 segni per evitare carichi grafici inutili. Test dedicati verificano fisica, direzione, indicatori e assenza di nuove build APK automatiche.
