@@ -22,9 +22,11 @@ const leftEnemy={x:120,alive:true};
 assert.equal(vehicleRamContacts({...options,velocity:-140,fromX:200,toX:165,troops:[leftEnemy],covers:[],obstacles:[]}).length,1,'Reverse ramming');
 assert.equal(vehicleRamContacts({...options,velocity:160,fromX:200,toX:235,troops:[leftEnemy],covers:[],obstacles:[]}).length,0,'No rear ramming');
 const main=readFileSync('main.js','utf8'),html=readFileSync('index.html','utf8'),css=readFileSync('style.css','utf8');
-for(const token of ["import {vehicleRamContacts} from './vehicle-ram.js'",'const contacts=vehicleRamContacts(', "hit.kind==='troop'", "hit.kind==='obstacle'", "hit.ref.hp=0", "hit.ref.alive=false", "armorHud.hidden=!ride.occupied", "armorFill.style.width=armor+'%'"]){
+for(const token of ["import {vehicleRamContacts} from './vehicle-ram.js'",'const contacts=vehicleRamContacts(', "hit.kind==='troop'", "hit.kind==='obstacle'", "hit.ref.hp=0", "hit.ref.alive=false", "hudView.update({", "vehicle:ride.occupied,vehicleHp:ride.hp,vehicleMaxHp:ride.maxHp"]){
  assert.ok(main.includes(token),'Missing runtime integration: '+token);
 }
+const hud=readFileSync('arcade-hud-renderer.js','utf8');
+for(const source of ["armorHud.hidden=!visible","armorFill.style.width=pct+'%'","armorHud.classList.toggle('critical',critical)"])assert.ok(hud.includes(source),'Armor HUD integration: '+source);
 for(const id of ['vehicle-armor','vehicle-armor-fill','vehicle-armor-label'])assert.ok(html.includes('id="'+id+'"'));
 assert.ok(css.includes('#vehicle-armor[hidden]{display:none!important}'));
 assert.ok(css.includes('#vehicle-armor.critical'));
