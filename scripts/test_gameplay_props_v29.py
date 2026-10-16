@@ -20,7 +20,11 @@ for key,frames in (("sandbagCover",3),("prisonerIdle",4)):
         for i in range(frames):
             im=sheet.crop((480*i,0,480*(i+1),320))
             bb=im.getchannel("A").getbbox()
-            assert bb and bb[2]-bb[0]>50 and bb[3]-bb[1]>75,(key,i,bb)
+            # Destroyed sandbags must become a low pile of rubble, not a full-height wall.
+            min_height=45 if key=="sandbagCover" and i==2 else 75
+            assert bb and bb[2]-bb[0]>50 and bb[3]-bb[1]>min_height,(key,i,bb)
+            if key=="sandbagCover" and i==2:
+                assert bb[1]>225,"Destroyed cover should leave low rubble only"
             assert im.getpixel((0,0))[3]==0,(key,i,"not transparent")
             hashes.append(sha256(im.tobytes()).digest())
         assert len(set(hashes))==frames,f"Animation/damage states are duplicated: {key}"
