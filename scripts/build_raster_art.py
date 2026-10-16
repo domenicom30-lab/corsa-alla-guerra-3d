@@ -47,12 +47,13 @@ def hero(im,pose,n):
         return
     d=ImageDraw.Draw(im); t=n*math.pi/4
     moving=pose in ("run","runFire")
-    stride=round(math.sin(t)*22) if moving else 0
+    stride=round(math.sin(t)*22) if moving else ([-12,14,1][n%3] if pose=="jump" else 0)
     bounce=round(abs(math.sin(t))*5) if moving else 0
     crouch=25 if pose in ("duck","duckFire") else 0
-    jump=-17 if pose=="jump" else 0
+    jump=([-13,-24,-16][n%3] if pose=="jump" else 0)
     hurt=6 if pose=="hurt" else 0
-    y=bounce+crouch+jump+hurt
+    idle_breath=round((1-math.cos(n*math.pi/2))*1.25) if pose=="idle" else 0
+    y=bounce+crouch+jump+hurt+idle_breath
     # Two independently posed legs; oversized boots and folded trousers.
     line(d,[(87,124+y),(77-stride*.28,153+y),(62-stride,181+y)],"#57634c",19)
     line(d,[(119,126+y),(125+stride*.26,153+y),(135+stride,181+y)],"#414d3c",20)
@@ -137,9 +138,9 @@ def hero_finishing(im,pose,n):
     """Second-pass cloth shading, engraved helmet, joint folds and rifle details."""
     d=ImageDraw.Draw(im,"RGBA")
     t=n*math.pi/4
-    stride=round(math.sin(t)*22) if pose in ("run","runFire") else 0
+    stride=round(math.sin(t)*22) if pose in ("run","runFire") else ([-12,14,1][n%3] if pose=="jump" else 0)
     bounce=round(abs(math.sin(t))*5) if pose in ("run","runFire") else 0
-    y=bounce+(25 if pose in ("duck","duckFire") else 0)+(-17 if pose=="jump" else 0)+(6 if pose=="hurt" else 0)
+    y=bounce+(25 if pose in ("duck","duckFire") else 0)+([-13,-24,-16][n%3] if pose=="jump" else 0)+(6 if pose=="hurt" else 0)+(round((1-math.cos(n*math.pi/2))*1.25) if pose=="idle" else 0)
     rng=random.Random(4049+n*17+len(pose)*13)
     d.arc((80,35+y,131,69+y),186,327,fill=(176,190,136,255),width=3)
     d.line([(83,58+y),(110,55+y),(134,58+y)],fill=(28,38,32,255),width=3)
@@ -193,6 +194,49 @@ def hero_finishing(im,pose,n):
         for j in range(6):
             xx=203-recoil+j*4
             d.line([(xx,aim_y-4-j%2*3),(xx+4,aim_y-6-j%3)],fill=(255,219,126,205),width=2)
+
+
+
+def draw_secondary_motion(im,pose,n):
+    """Original eight-phase cloth flutter and equipment inertia, baked into PNG sprite atlases."""
+    if pose not in ("idle","run","runFire","jump","fire","duck","duckFire","aimUp"):
+        return
+    d=ImageDraw.Draw(im,"RGBA")
+    t=n*math.pi/4
+    stride=round(math.sin(t)*22) if pose in ("run","runFire") else 0
+    bounce=round(abs(math.sin(t))*5) if pose in ("run","runFire") else 0
+    crouch=25 if pose in ("duck","duckFire") else 0
+    jump=([-13,-24,-16][n%3] if pose=="jump" else 0)
+    breathing=round((1-math.cos(n*math.pi/2))*1.25) if pose=="idle" else 0
+    y=bounce+crouch+jump+breathing
+    # The warm scarf stream follows acceleration instead of being glued to the torso.
+    flutter=round(math.sin(t)*9) if pose in ("run","runFire") else (-4,2,5,0)[n%4]
+    if pose=="jump":
+        flutter=(7,-6,11)[n%3]
+    tail_x=66-flutter
+    tail_y=96+y-(5 if pose=="jump" else 0)+(abs(flutter)//3)
+    d.polygon([(91,84+y),(104,89+y),(88,96+y),(tail_x,tail_y+5),
+               (tail_x-11,tail_y),(81,87+y)],
+              fill=(154,49,39,255))
+    d.line([(86,86+y),(tail_x+1,tail_y+1)],
+           fill=(240,161,106,235),width=3)
+    d.line([(tail_x-9,tail_y+1),(tail_x-4,tail_y+4)],
+           fill=(100,40,34,255),width=2)
+    # A strapped field canteen and fabric pouch sway opposite to the forward leg.
+    equipment_sway=-round(stride*.18)
+    x=73+equipment_sway
+    d.rectangle((x-8,112+y,x+3,132+y),fill=(26,43,36,255),
+                outline=(14,28,26,255),width=2)
+    d.rectangle((x-6,115+y,x+1,127+y),fill=(107,122,85,255))
+    d.line([(x-7,112+y),(x+2,112+y)],fill=(215,188,122,255),width=2)
+    d.point((x-2,121+y),fill=(231,209,146,255))
+    # Jacket hem flaps slightly in opposite directions during running.
+    if pose in ("run","runFire","jump"):
+        hem=round(math.sin(t)*6) if pose!="jump" else (5,-7,3)[n%3]
+        d.polygon([(88,134+y),(111,138+y),(109+hem,150+y),
+                   (92+hem,146+y)],fill=(63,81,59,255))
+        d.line([(91+hem,145+y),(106+hem,149+y)],
+               fill=(173,185,127,225),width=2)
 
 
 def draw_slide_pose(im,n):
@@ -1171,6 +1215,7 @@ def write_atlas(rel,frames,fw,fh,fn,texture=True):
         if rel.startswith('hero/'):
             hero_pose=rel.split('/')[-1].replace('.png','')
             if hero_pose not in ('slide','land'):hero_finishing(im,hero_pose,n)
+            draw_secondary_motion(im,hero_pose,n)
             if hero_pose=='melee':draw_melee_bayonet(im,n)
         elif rel.startswith('enemies/'):
             kind=rel.split('/')[-1].replace('.png','')
