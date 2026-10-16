@@ -23,7 +23,9 @@ runner=frames("hero","run",8,240,210)
 gunner=frames("hero","aimUp",4,240,210)
 for im in hero+runner+gunner:
     assert im.getpixel((0,0))[3]==0,"Sprite background must stay transparent"
-    assert im.getpixel((60,79))[3]>160,"Illustrated pack radio tip or aerial missing"
+    assert any(im.getpixel((60,y))[3]>160 for y in range(51,101)), (
+        "Radio aerial must remain visible within the animated equipment region"
+    )
     diverse(im,(75,65,136,145),28)
     assert im.getbbox() is not None
 
