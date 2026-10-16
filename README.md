@@ -182,3 +182,9 @@ La release Android non parte automaticamente: la sola verifica continua è la pi
 - Il carro guidabile usa fotogrammi dedicati di **rinculo e lampo del cannone** anche se rimane fermo, non soltanto durante lo scorrimento dei cingoli. Lo stato dell'animazione viene azzerato al riavvio.
 - Test automatizzati specifici per traiettorie veloci, coperture, evasione e animazione del carro.
 - La procedura APK rimane manuale: nessuna build Android automatica è richiesta da questi sviluppi.
+
+### Miglioramento visivo in sviluppo — prigionieri e barricate
+
+Sostituiti i rettangoli di prova con due nuove risorse **PNG originali**: un prigioniero animato su quattro fotogrammi, con divisa civile, volto ed equipaggiamento, e una barricata di sacchi di sabbia in tre condizioni visive (integra, danneggiata, distrutta). Le coperture completamente distrutte restano come detriti scenici, ma non fermano più i proiettili. La nuova scala dei soldati, le soglie di liberazione e le collisioni restano invariate.
+
+La pipeline di qualità verifica ogni fotogramma e i collegamenti con il gioco. **Nessuna APK viene generata automaticamente** finché non è pronta una nuova versione candidata alla prova su Samsung.

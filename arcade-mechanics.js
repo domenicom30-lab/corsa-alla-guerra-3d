@@ -92,8 +92,20 @@ export function createArcadeSystems(){
   for(let i=grenades.length-1;i>=0;i--){const g=grenades[i];g.x+=g.vx*dt-cameraDelta;g.y+=g.vy*dt;g.vy+=H*2.4*dt;g.fuse-=dt;if(g.y>ground-H*.02){g.y=ground-H*.02;g.vy*=-.35;g.vx*=.8}if(g.fuse<=0){for(const c of covers)if(Math.abs(c.x-(scroll+g.x))<H*.4)c.hp=Math.max(0,c.hp-50);onExplosion(g.x,g.y,H*.35);screenShake=14;grenades.splice(i,1)}}
  };
  const draw=(ctx,scroll,ground,H,phase)=>{
-  for(const c of covers){if(c.hp<=0)continue;const x=c.x-scroll;if(x< -H*.2||x>ctx.canvas.width+H*.2)continue;ctx.fillStyle=c.hp>50?'#796548':'#56483a';ctx.fillRect(x-H*.08,ground-H*.13,H*.16,H*.13);ctx.strokeStyle='#bca77c';for(let row=0;row<3;row++)ctx.strokeRect(x-H*.08,ground-H*(.13-row*.04),H*.16,H*.04)}
-  for(const p of prisoners){if(p.rescued)continue;const x=p.x-scroll;if(x< -H*.2||x>ctx.canvas.width+H*.2)continue;ctx.fillStyle='#c4ad6d';ctx.fillRect(x-H*.03,ground-H*.13,H*.06,H*.1);ctx.fillStyle='#e3bb8c';ctx.fillRect(x-H*.03,ground-H*.17,H*.06,H*.05)}
+  // Authored multi-state destructible barricade; the rubble remains after cover breaks.
+  for(const c of covers){
+    const x=c.x-scroll,h=H*.145,w=H*.23;
+    if(x<-w||x>ctx.canvas.width+w)continue;
+    const frame=c.hp<=0?2:c.hp<50?1:0;
+    drawRaster(ctx,'props','sandbagCover',frame,x-w*.5,ground-h,w,h);
+  }
+  // Breathing, visibly restrained civilian instead of a featureless placeholder box.
+  for(const p of prisoners){
+    if(p.rescued)continue;
+    const x=p.x-scroll,h=H*.197,w=h*480/320;
+    if(x<-w||x>ctx.canvas.width+w)continue;
+    drawRaster(ctx,'props','prisonerIdle',Math.floor(phase*.14)%4,x-w*.5,ground-h,w,h);
+  }
   if(plane.active){ctx.fillStyle='#343a39';ctx.fillRect(plane.x, H*.09,H*.22,H*.038);ctx.fillRect(plane.x+H*.07,H*.065,H*.06,H*.09);ctx.fillStyle='#c24e37';ctx.fillRect(plane.x+H*.2,H*.1,H*.03,H*.02)}
   for(const b of airBombs){ctx.fillStyle='#292e2b';ctx.fillRect(b.x-H*.012,b.y-H*.017,H*.024,H*.034)}
   for(const d of airDrops){ctx.fillStyle='#eee3c5';ctx.beginPath();ctx.arc(d.x,d.y-H*.06,H*.065,Math.PI,0);ctx.fill();ctx.fillStyle='#a57a43';ctx.fillRect(d.x-H*.03,d.y-H*.03,H*.06,H*.06)}

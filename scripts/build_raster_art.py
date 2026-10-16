@@ -848,6 +848,92 @@ def bg(im,kind,layer):
             x=rng.randrange(W);y=rng.randrange(H)
             d.rectangle((x,y,x+2,y+2),fill=(215,185,143,45))
 
+
+def draw_gameplay_prop(im,kind,n):
+    """Original campaign actors & destructible scenery: 480x320 transparent atlas frames."""
+    d=ImageDraw.Draw(im,"RGBA")
+    rng=random.Random(7720+n*17+(19 if kind=="prisonerIdle" else 59))
+    if kind=="sandbagCover":
+        # Three levels of destruction: whole barricade, torn sacks, scattered rubble.
+        # The final state remains visible, but no longer stops projectiles.
+        d.ellipse((47,288,449,313),fill=(10,20,17,90))
+        for row in range(3):
+            count=6 if row==0 else 5 if row==1 else 4
+            for j in range(count):
+                if n==2 and (row>0 or j%2==0):continue
+                if n==1 and (row==2 and j>=2):continue
+                cx=75+j*59+(row%2)*22
+                cy=259-row*46 + (j%2)*3
+                if n==2:cy=277
+                width=70 if n==0 else 65
+                poly(d,[(cx-width//2,cy+19),(cx-width//2-3,cy+1),
+                        (cx-width//2+9,cy-12),(cx+width//2-8,cy-14),
+                        (cx+width//2+5,cy-2),(cx+width//2,cy+16)],
+                     (119+row*9,105+row*6,73+row*6,255),
+                     (34,36,28,255),3)
+                d.arc((cx-width//2+4,cy-10,cx+width//2-3,cy+15),186,337,
+                      fill=(211,186,132,230),width=4)
+                d.line([(cx-width//2+11,cy+8),(cx+width//2-7,cy+10)],
+                       fill=(83,78,58,200),width=3)
+                d.arc((cx-7,cy-7,cx+10,cy+10),0,280,fill=(63,69,50,180),width=2)
+                for k in range(11):
+                    x=cx+rng.randint(-29,29)
+                    y=cy+rng.randint(-8,13)
+                    d.point((x,y),fill=(205,186,133,150) if k%3==0 else (51,48,35,135))
+        if n>=1:
+            # Rips reveal straw, broken planks and dirt. No solid invisible barrier.
+            for k in range(28 if n==2 else 14):
+                x=rng.randint(55,436);y=rng.randint(249 if n==2 else 185,299)
+                d.line([(x,y),(x+rng.randint(-14,15),y-rng.randint(0,9))],
+                       fill=(187,155,94,255) if k%2 else (72,61,42,255),
+                       width=rng.randint(2,5))
+            for k in range(18):
+                x=rng.randint(50,445);y=rng.randint(279,301)
+                d.ellipse((x,y,x+7,y+3),fill=(68,58,41,170))
+    elif kind=="prisonerIdle":
+        # Original noncombatant, much smaller than the soldier and independently animated.
+        # Large transparent border maintains a consistent 480x320 prop atlas.
+        sway=math.sin(n*math.pi/2)*5
+        breathe=round(math.sin(n*math.pi/2)*3)
+        x=240+sway;y=breathe
+        d.ellipse((x-69,295,x+62,311),fill=(10,19,17,115))
+        # Prisoner in tattered civilian outfit, arms restrained with rope.
+        line(d,[(x-24,191+y),(x-35,266),(x-40,292)],(75,71,60,255),24)
+        line(d,[(x+20,191+y),(x+24,268),(x+27,292)],(65,66,60,255),23)
+        poly(d,[(x-54,286),(x-23,283),(x-16,300),(x-61,302)],(46,48,43,255))
+        poly(d,[(x+7,286),(x+46,286),(x+53,301),(x+9,302)],(39,45,42,255))
+        poly(d,[(x-39,156+y),(x-32,115+y),(x+16,109+y),(x+44,151+y),
+                (x+37,212+y),(x-38,213+y)],(92,107,94,255))
+        poly(d,[(x-33,118+y),(x-16,114+y),(x-11,207+y),(x-32,209+y)],(129,136,114,255))
+        for k in range(7):
+            px=x-24+k*9
+            d.line([(px,155+y+(k%2)*5),(px+7,174+y)],
+                   fill=(46,67,58,135),width=2)
+        # Empty sleeves with wrists tied in front of the body.
+        line(d,[(x-35,137+y),(x-47,169+y),(x-21,191+y)],(85,98,88,255),19)
+        line(d,[(x+36,135+y),(x+49,169+y),(x+15,190+y)],(90,105,91,255),19)
+        ell(d,(x-29,178+y,x-6,200+y),(177,132,99,255),None)
+        ell(d,(x+4,179+y,x+27,198+y),(181,140,103,255),None)
+        for j in range(3):
+            d.line([(x-26+j*11,187+y),(x+17+j*4,190+y)],
+                   fill=(181,143,90,220),width=3)
+        # Expressive tired face and hair, proportional to world sprite scale.
+        ell(d,(x-32,51+y,x+35,119+y),(177,130,97,255),(35,37,32,255),4)
+        d.pieslice((x-38,41+y,x+36,96+y),180,355,fill=(54,59,50,255))
+        d.line([(x-23,64+y),(x-6,67+y),(x+6,63+y)],
+               fill=(151,159,132,190),width=4)
+        d.line([(x-19,82+y),(x-7,83+y)],fill=(47,46,38,255),width=3)
+        d.line([(x+10,81+y),(x+21,80+y)],fill=(49,48,38,255),width=3)
+        d.line([(x-9,101+y),(x+10,104+y)],fill=(112,80,66,255),width=3)
+        poly(d,[(x-31,125+y),(x-15,135+y),(x-4,121+y)],
+             (175,161,124,255),None)
+        # A distinct olive armband makes the hostage readable from afar.
+        rect(d,(x+28,147+y,x+49,155+y),(187,160,95,255),None)
+        for k in range(35):
+            px=x+rng.randint(-33,35);py=y+rng.randint(123,205)
+            if 0<=px<480 and 0<=py<320 and im.getpixel((int(px),int(py)))[3]>120:
+                d.point((px,py),fill=(207,202,156,150) if k%3==0 else (30,53,43,120))
+
 def draw_stage_prop(im,kind):
     """Original hand-authored foreground structures for four distinctive levels.
     Pixel-outlined, textured and mechanically plausible; never repeated across zones.
@@ -1046,7 +1132,7 @@ def build():
         write_atlas(rel,n,512 if kind=="hud" else 768,76 if kind=="hud" else 162,lambda im,i,k=kind:ui(im,k,i),False)
     for name,frames in MANIFEST["props"].items():
         rel=f"props/{name}.png";expected.add(rel)
-        write_atlas(rel,frames,480,320,lambda im,i,k=name:draw_stage_prop(im,k),False)
+        write_atlas(rel,frames,480,320,lambda im,i,k=name:draw_gameplay_prop(im,k,i) if k in ('sandbagCover','prisonerIdle') else draw_stage_prop(im,k),False)
     for scene in MANIFEST["backgrounds"]:
         for layer in ("far","near"):
             rel=f"backgrounds/{scene}-{layer}.png";expected.add(rel)

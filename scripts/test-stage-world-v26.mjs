@@ -4,8 +4,8 @@ import {rasterAssetManifest as manifest} from '../sprite-loader.js';
 import {stageAt} from '../stage-art.js';
 const main=readFileSync('main.js','utf8');
 const props=['forestPost','ruinHouse','factoryMachinery','fortressGate'];
-assert.equal(Object.keys(manifest.props).length,4);
-assert.deepEqual(Object.keys(manifest.props),props);
+assert.equal(Object.keys(manifest.props).length,6);
+assert.deepEqual(Object.keys(manifest.props).slice(0,4),props);
 assert.equal(manifest.hero.duckFire,4);
 for(let i=0;i<4;i++){
   const name=props[i];
