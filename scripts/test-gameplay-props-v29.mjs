@@ -4,7 +4,7 @@ import {rasterAssetManifest as m,rasterAssetCount} from '../sprite-loader.js';
 import {createArcadeSystems} from '../arcade-mechanics.js';
 assert.equal(m.props.sandbagCover,3);
 assert.equal(m.props.prisonerIdle,4);
-assert.equal(rasterAssetCount,52);
+assert.equal(rasterAssetCount,56);
 const game=createArcadeSystems();
 const cover=game.covers[0];
 const H=400,ground=312;

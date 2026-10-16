@@ -41,6 +41,8 @@ jobs:
         run: python3 scripts/test_aimup_art.py
       - name: Validate distinct stage props and crouch firing frames
         run: python3 scripts/test_art_v26.py
+      - name: Validate four additional illustrated stage landmarks
+        run: python3 scripts/test-secondary-landmarks.py
       - name: Validate original animated drivable tank art
         run: python3 scripts/test_tank_art.py
       - name: Test new hero action sprites

@@ -8,6 +8,7 @@ from PIL import Image, ImageDraw, ImageFilter
 import json, math, random, sys
 from sprite_materials import soldier_surface, armored_surface
 from airborne_art import draw_airborne_finishing
+from secondary_landmarks import draw_landmark
 
 ROOT = Path(__file__).resolve().parent.parent
 PUBLIC = ROOT / "public" / "assets" / "sprites"
@@ -1277,7 +1278,7 @@ def build():
         write_atlas(rel,n,512 if kind=="hud" else 768,76 if kind=="hud" else 162,lambda im,i,k=kind:ui(im,k,i),False)
     for name,frames in MANIFEST["props"].items():
         rel=f"props/{name}.png";expected.add(rel)
-        write_atlas(rel,frames,480,320,lambda im,i,k=name:draw_gameplay_prop(im,k,i) if k in ('sandbagCover','prisonerIdle') else draw_stage_prop(im,k),False)
+        write_atlas(rel,frames,480,320,lambda im,i,k=name:draw_gameplay_prop(im,k,i) if k in ('sandbagCover','prisonerIdle') else draw_landmark(im,k) if k in ('forestWreck','villageBarricade','industrialConverter','fortressHowitzer') else draw_stage_prop(im,k),False)
     for scene in MANIFEST["backgrounds"]:
         for layer in ("far","near"):
             rel=f"backgrounds/{scene}-{layer}.png";expected.add(rel)

@@ -6,7 +6,7 @@ from PIL import Image
 root=Path(__file__).resolve().parent.parent
 manifest=json.loads((root/"sprite-manifest.json").read_text("utf-8"))
 assert manifest["hero"]["duckFire"]==4
-assert len(manifest["props"])==6
+assert len(manifest["props"])==10
 names=["forestPost","ruinHouse","factoryMachinery","fortressGate"]
 digests=[]
 for name in names:

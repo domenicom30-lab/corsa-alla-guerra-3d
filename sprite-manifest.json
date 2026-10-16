@@ -99,7 +99,11 @@
     "factoryMachinery": 1,
     "fortressGate": 1,
     "sandbagCover": 3,
-    "prisonerIdle": 4
+    "prisonerIdle": 4,
+    "forestWreck": 1,
+    "villageBarricade": 1,
+    "industrialConverter": 1,
+    "fortressHowitzer": 1
   },
   "vehicles": {
     "slug": 6

@@ -264,10 +264,11 @@ function background(){
  spectacle.drawBack(ctx,W,H,scroll,ground());
  // Stage-specific original scenery rather than the same repeated tower and crates.
  const props=['forestPost','ruinHouse','factoryMachinery','fortressGate'];
+ const secondaryProps=['forestWreck','villageBarricade','industrialConverter','fortressHowitzer'];
  for(let i=0;i<14;i++){
   const world=420+i*670,x=world-scroll;
   if(x<-H*.70||x>W+H*.65)continue;
-  const zone=stageAt(world),name=props[zone];
+  const zone=stageAt(world),name=i%2===0?props[zone]:secondaryProps[zone];
   const h=H*(zone===0?.29:zone===1?.34:zone===2?.31:.38),w=h*480/320;
   // Keep first forest watchtower as a distinct landmark, not a repeated prop.
   if(i===0&&zone===0)ctx.drawImage(arcadeArt.tower||sprites.tower,x,ground()-H*.47,H*.27,H*.47);

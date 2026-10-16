@@ -4,7 +4,7 @@ import {rasterAssetManifest as manifest} from '../sprite-loader.js';
 import {stageAt} from '../stage-art.js';
 const main=readFileSync('main.js','utf8');
 const props=['forestPost','ruinHouse','factoryMachinery','fortressGate'];
-assert.equal(Object.keys(manifest.props).length,6);
+assert.equal(Object.keys(manifest.props).length,10);
 assert.deepEqual(Object.keys(manifest.props).slice(0,4),props);
 assert.equal(manifest.hero.duckFire,4);
 for(let i=0;i<4;i++){
@@ -13,7 +13,7 @@ for(let i=0;i<4;i++){
     'World map must reach each matching illustrated environment');
   assert.ok(main.includes("'"+name+"'"),'Stage prop must render: '+name);
 }
-assert.ok(main.includes("const zone=stageAt(world),name=props[zone]"),'Use stage-specific scenery by world position');
+assert.ok(main.includes("const zone=stageAt(world),name=i%2===0?props[zone]:secondaryProps[zone]"),'Use stage-specific scenery by world position');
 assert.ok(main.includes("drawRaster(ctx,'props',name,0"),'New structures use shipped PNG atlas');
 assert.ok(main.includes("muzzleFlash>0||fireHeld?'duckFire':'duck'"),'Crouched shooting must animate');
 assert.ok(main.includes("pose==='duckFire'?Math.floor(phase*.9)%4"),'Four crouched shooting frames');
