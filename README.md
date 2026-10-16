@@ -169,3 +169,8 @@ I test bloccano l'integrazione se le nuove pose mancano, se i frame sono identic
 - Il protagonista sceglie la posa sulla base degli stati reali del sistema di combattimento; non viene più simulata una scivolata soltanto con `duck`.
 - Verifica CI delle dimensioni degli atlas, frame unici, trasparenza, posa bassa e collegamento col motore.
 - **Nessun incremento di versione Android e nessuna APK automatica**: tutte le prove restano nel sistema di quality gates.
+
+### Intelligenza nemica: manovre tattiche (sviluppo senza APK)
+I granatieri possono **arretrare** quando il protagonista si avvicina, restando entro il proprio tratto di battaglia. Gli assaltatori avanzano ora fino alla distanza del **corpo a corpo**, mentre i soldati corazzati continuano a mantenere lo spazio di tiro. Tre nuove verifiche controllano movimento, distanza e reset della missione.
+
+La release Android non parte automaticamente: la sola verifica continua è la pipeline di qualità.

@@ -1,0 +1,27 @@
+import assert from 'node:assert/strict';
+import {createTroopWaves,resetTroopWaves,advanceTroopWaves,ENEMY_TYPES} from '../enemy-director.js';
+const H=420;
+const troops=createTroopWaves();
+const grenadier=troops.find(e=>e.type==='grenadier');
+assert.ok(grenadier);
+const home=grenadier.home;
+let shots=[];
+advanceTroopWaves([grenadier],.2,home-100,home+H*.4,100,H,shots);
+assert.ok(grenadier.x<home,'Grenadier retreats from nearby player');
+assert.ok(grenadier.vx<0,'Grenadier faces away to regain throwing range');
+for(let k=0;k<60;k++)advanceTroopWaves([grenadier],.1,home-100,home+H*.4,100,H,shots);
+assert.ok(Math.abs(grenadier.x-home)<=H*.751,'Grenadier may not retreat off assigned battlefield');
+resetTroopWaves(troops);
+assert.equal(grenadier.x,home,'Restart returns grenade thrower to authored spot');
+const assault=troops.find(e=>e.type==='assault');
+const x0=assault.x;
+shots=[];
+for(let k=0;k<26;k++)
+  advanceTroopWaves([assault],.1,x0-100,x0+H*.29,100,H,shots);
+assert.ok(assault.x>x0+H*.12,'Assault troop advances into close-quarters combat instead of stopping too early');
+assert.ok(Math.abs(x0+H*.29-assault.x)<H*.19,'Assault closes far enough to threaten player');
+const heavy=troops.find(e=>e.type==='heavy');
+const hx=heavy.x;
+advanceTroopWaves([heavy],.16,hx-100,hx+H*.29,100,H,[]);
+assert.ok(heavy.x<=hx+H*.03,'Armored heavy retains firing distance and does not rush into melee');
+console.log('PASS: tactical grenadier retreat, bounded patrol, close-quarters assault advance and armored standoff');

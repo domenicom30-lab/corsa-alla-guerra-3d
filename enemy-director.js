@@ -58,8 +58,15 @@ export function advanceTroopWaves(enemies,dt,scroll,playerWorldX,playerScreenX,H
   const dx=playerWorldX-e.x,range=Math.abs(dx);
   if(range>H*2.8)continue;
   const type=ENEMY_TYPES[e.type],dir=dx>=0?1:-1;
-  if(range<H*.82&&type.speed>0){
-   const stop=e.type==='heavy'?H*.5:H*.24;
+  if(e.type==='grenadier'&&range<H*.67&&Math.abs(e.x-e.home)<H*.73){
+   // Grenadiers try to regain throwing distance instead of standing still.
+   e.vx=-dir*H*.24;
+   const next=e.x+e.vx*dt;
+   e.x=Math.max(e.home-H*.75,Math.min(e.home+H*.75,next));
+   e.walk+=Math.abs(e.vx)*dt/H*11;
+  }else if(range<H*.82&&type.speed>0){
+   // Assault troops can close to contact range; heavies stop to aim their gun.
+   const stop=e.type==='heavy'?H*.5:H*.075;
    e.vx=range>stop?dir*type.speed*H:0;
    e.x+=e.vx*dt;e.walk+=Math.abs(e.vx)*dt/H*10;
   }else{e.vx=0}
