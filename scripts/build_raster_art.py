@@ -10,6 +10,7 @@ from sprite_materials import soldier_surface, armored_surface
 from airborne_art import draw_airborne_finishing
 from secondary_landmarks import draw_landmark
 from enemy_falling_art import draw_falling_pose
+from environment_details import paint_environment_details
 
 ROOT = Path(__file__).resolve().parent.parent
 PUBLIC = ROOT / "public" / "assets" / "sprites"
@@ -1288,6 +1289,7 @@ def build():
             rel=f"backgrounds/{scene}-{layer}.png";expected.add(rel)
             im=Image.new("RGBA",(1400,540),(0,0,0,0))
             bg(im,scene,layer)
+            paint_environment_details(im,scene,layer)
             path=PUBLIC/rel;path.parent.mkdir(parents=True,exist_ok=True)
             im.save(path,"PNG",optimize=True,compress_level=6)
     # Original standalone forest guard tower, used directly in runtime background.
