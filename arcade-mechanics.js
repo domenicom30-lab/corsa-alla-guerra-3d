@@ -32,8 +32,8 @@ export function createArcadeSystems(){
  const kill=()=>{combo++;comboTimer=3;screenShake=Math.min(12,screenShake+3);return 100+Math.min(combo,15)*20};
  const step=(dt,scroll,playerX,ground,H,onDamage,onExplosion,cameraDelta=0,playerState={})=>{
    const jumping=Math.max(0,playerState.jumpY||0),crouching=!!playerState.crouching;
-   const playerCenterY=ground-H*(crouching?.07:.18)-jumping;
-   const verticalRadius=H*(crouching?.065:.16);
+   const playerCenterY=ground-H*(crouching?.058:.105)-jumping;
+   const verticalRadius=H*(crouching?.049:.095);
   plane.timer-=dt;if(!plane.active&&plane.timer<=0){plane.active=true;plane.x=-H*.3;plane.dropTimer=0;plane.timer=14;plane.passes++}
   if(plane.active){plane.x+=H*1.15*dt;plane.dropTimer+=dt;if(plane.dropTimer>=.75){plane.dropTimer=0;if(plane.x>0&&plane.x<H*2.5){if(plane.passes%2===0&&airDrops.length===0)airDrops.push({x:plane.x,y:H*.12});else airBombs.push({x:plane.x,y:H*.12,vy:0})}}if(plane.x>H*3.8)plane.active=false}
   for(let i=airBombs.length-1;i>=0;i--){const b=airBombs[i];b.vy+=H*1.2*dt;b.y+=b.vy*dt;if(b.y>=ground){if(Math.abs(b.x-playerX)<H*.12&&jumping<H*.10)onDamage();onExplosion(b.x,ground,H*.14);airBombs.splice(i,1)}}

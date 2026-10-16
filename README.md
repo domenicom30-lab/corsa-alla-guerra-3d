@@ -114,3 +114,12 @@ This pixel-art is original; it is not extracted from or identical to any copyrig
 
 ## v2.4 — Upward aiming sprites
 The commando has a dedicated 4-frame `aimUp` PNG animation: shoulders pivot, rifle and muzzle point vertically. The game chooses this pose from the Samsung `↑ MIRA` control and keyboard `W` while retaining jump, crouch, weapon physics, and existing collisions. The generated PNG is required by the manifest, and `scripts/test_aimup_art.py` confirms that all four frames contain a raised rifle without the horizontal rifle being left behind. Isolated Android package `com.corsaguerra.arcadeprova24` displays v2.4.
+
+
+## v2.5 — Personaggi proporzionati e tasto carro sul Samsung
+- Protagonista ridimensionato: la parte effettivamente visibile occupa circa il 19% dell'altezza del display anziché quasi il 29%. Posa abbassata proporzionata.
+- Soldati base intorno al 18%, soldati pesanti intorno al 22%. Carro guidabile intorno al 26% di altezza effettiva; boss proporzionato al nuovo cast.
+- Collisioni con proiettili nemici adattate alle dimensioni più piccole, evitando hitbox ingiustificatamente grandi.
+- Nuovo tasto touch contestuale centrale: **AVVICINATI AL CARRO** a distanza; **ENTRA NEL CARRO** quando raggiungibile; **ESCI DAL CARRO** una volta a bordo. Resta disponibile anche il tasto fisico `E`.
+- Nuovi test automatizzati per soglie di distanza, veicolo distrutto, avvio, pausa, entrata, uscita, dimensioni e interfaccia Android.
+- Versione e identificativo Android autonomo `com.corsaguerra.arcadeprova25` per evitare conflitti di firma con altre APK di prova.

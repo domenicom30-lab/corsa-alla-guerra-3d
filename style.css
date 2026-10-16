@@ -112,3 +112,20 @@
  .control-group button{width:clamp(44px,7vw,66px);height:clamp(44px,7vw,66px)}
  .control-group button small{font-size:8px}
 }
+
+/* v2.5: one contextual vehicle action between movement and fire controls. */
+#vehicle-toggle{
+ position:absolute;left:50%;bottom:calc(100% + 8px);
+ transform:translateX(-50%);z-index:4;pointer-events:auto;
+ min-width:clamp(124px,16vw,210px);height:clamp(38px,6.4vh,56px);
+ padding:5px 13px;border:2px solid #f3d384;border-radius:10px;
+ color:#fff2ca;background:linear-gradient(180deg,#4b6441ec,#25352bdc);
+ font:900 clamp(11px,1.3vw,17px) system-ui,sans-serif;
+ box-shadow:0 4px 14px #000b,inset 0 2px 0 #fff3a33a;
+ touch-action:manipulation;white-space:nowrap;text-shadow:0 1px #000c;
+}
+#vehicle-toggle[hidden]{display:none!important}
+#vehicle-toggle:disabled{background:#1a2924b3;border-color:#8991849c;color:#bac3b5;opacity:.77;box-shadow:0 1px 5px #0009}
+#vehicle-toggle[data-vehicle-action="exit"]{background:linear-gradient(180deg,#866b37ef,#473923ed);border-color:#ffe3a9}
+#vehicle-toggle:not(:disabled):active{filter:brightness(1.3);transform:translateX(-50%) scale(.96)}
+@media(max-height:420px){#vehicle-toggle{bottom:calc(100% + 5px);height:35px;min-width:122px;padding:3px 8px;font-size:11px}}
