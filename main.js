@@ -2,6 +2,7 @@ import {sprites,pixelBackdrop} from './pixel-art.js';
 import {loadSpritePacks,spritePacksReady,drawRaster,drawRasterBackground,spritePackError} from './sprite-loader.js';
 import {heroDimensions,troopDimensions,vehicleDimensions} from './arcade-proportions.js';
 import {vehicleInteraction} from './vehicle-controls.js';
+import {vehicleRamContacts} from './vehicle-ram.js';
 import {createArcadeCombatMoves,actionFrame} from './arcade-combat-moves.js';
 import {grenadeThreat,drawGrenadeThreat} from './grenade-threat.js';
 import {createGameInterface} from './game-interface.js';
@@ -182,6 +183,9 @@ function drawRide(){
 }
 }
 const rideButton=document.getElementById('vehicle-toggle');
+const armorHud=document.getElementById('vehicle-armor');
+const armorFill=document.getElementById('vehicle-armor-fill');
+const armorLabel=document.getElementById('vehicle-armor-label');
 let vehicleButtonCache='';
 function updateVehicleButton(){
  const state=currentVehicleInteraction();
@@ -404,7 +408,7 @@ function grenade(){if(!running){start()}if(running&&!paused)arcade.throwGrenade(
 function damage(){if(invulnerable>0||!running)return;hitFlash=.2;arcade.screenShake=Math.max(arcade.screenShake,7);invulnerable=1.25;if(ride.occupied&&ride.hp>0){ride.hp=Math.max(0,ride.hp-20);if(ride.hp===0){ride.occupied=false;jumpY=H*.07;vy=H*.42;explosion(playerX(),ground()-H*.14,H*.16)}hud();return}health--;if(health<=0)showContinue()}
 function defeatBoss(){if(bossVictoryAwarded)return;bossVictoryAwarded=true;bossDeathTime=0;bossDeathX=arcade.boss.x-scroll;arcade.boss.defeated=true;arcade.boss.active=false;score+=3000;const bossScreenX=arcade.boss.x-scroll;for(let i=0;i<5;i++){burst(bossScreenX+Math.cos(i*Math.PI*2/5)*H*.16,ground()-H*(.24+Math.sin(i*Math.PI*2/5)*.12))}for(let i=0;i<4;i++){shatterEnemy(bossScreenX+(i-1.5)*H*.11,ground()-H*(.18+(i%2)*.12))}arcade.screenShake=Math.max(arcade.screenShake,18);message.textContent='BOSS SCONFITTO — RAGGIUNGI IL TRAGUARDO';message.style.display='block';setTimeout(()=>{if(running&&!paused)message.style.display='none'},1800)}
 function explosion(x,y,radius,hostile=false){hitFlash=Math.max(hitFlash,.09);soundEffect('explosion');burst(x,y);if(hostile)return;for(const c of arcade.covers)if(c.hp>0&&Math.abs(c.x-scroll-x)<radius)c.hp=Math.max(0,c.hp-50);for(const e of sentries){if(!e.alive||Math.abs(e.x-scroll-x)>radius)continue;const result=damageTroop(e,rocketSplashDamage(Math.abs(e.x-scroll-x),radius,5));if(result.killed){score+=arcade.kill()+result.points;aftermath.defeated(e.type,e.x-scroll,ground(),H,Math.sign(e.x-scroll-x)||1,2.5);shatterEnemy(e.x-scroll,ground()-H*.14);spectacle.impact(e.x-scroll,ground()-H*.14,result.points)}else aftermath.impact(e.x-scroll,ground()-H*.14,H,e.type==='heavy')}for(const t of ticks){if(t.alive&&Math.abs(t.x-scroll-x)<radius){t.alive=false;score+=arcade.kill();shatterEnemy(t.x-scroll,ground()-H*.07)}}if(arcade.boss.active&&!arcade.boss.defeated&&Math.abs(arcade.boss.x-scroll-x)<radius+H*.2){arcade.boss.hp-=5;arcadeHitstop=3;if(arcade.boss.hp<=0)defeatBoss()}}
-function hud(){updateVehicleButton();saveArcadeHighScore();document.getElementById('points').textContent='PUNTI '+score+' · BEST '+arcadeHighScore+' · C '+arcadeCredits;document.getElementById('hearts').innerHTML=Array.from({length:3},(_,i)=>'<span class="heart '+(i>=health?'heart-lost':'')+'">♥</span>').join('');stats.textContent='Z'+(stageAt(scroll)+1)+' · '+Math.max(0,200-Math.floor(distance))+'m · '+arcade.weapon.toUpperCase()+(Number.isFinite(arcade.ammo)?' '+arcade.ammo:'')+' · BOMBE '+arcade.grenadeCount+(arcade.combo>1?' · COMBO x'+arcade.combo:'')+(arcade.boss.active&&!arcade.boss.defeated?' · BOSS '+Math.max(0,Math.ceil(arcade.boss.hp/arcade.boss.maxHp*100))+'%':'')}
+function hud(){updateVehicleButton();armorHud.hidden=!ride.occupied;if(ride.occupied){const armor=Math.max(0,Math.min(100,ride.hp/ride.maxHp*100));armorFill.style.width=armor+'%';armorLabel.textContent='CORAZZA '+Math.ceil(armor)+'%';armorHud.classList.toggle('critical',armor<=30)}saveArcadeHighScore();document.getElementById('points').textContent='PUNTI '+score+' · BEST '+arcadeHighScore+' · C '+arcadeCredits;document.getElementById('hearts').innerHTML=Array.from({length:3},(_,i)=>'<span class="heart '+(i>=health?'heart-lost':'')+'">♥</span>').join('');stats.textContent='Z'+(stageAt(scroll)+1)+' · '+Math.max(0,200-Math.floor(distance))+'m · '+arcade.weapon.toUpperCase()+(Number.isFinite(arcade.ammo)?' '+arcade.ammo:'')+' · BOMBE '+arcade.grenadeCount+(arcade.combo>1?' · COMBO x'+arcade.combo:'')+(arcade.boss.active&&!arcade.boss.defeated?' · BOSS '+Math.max(0,Math.ceil(arcade.boss.hp/arcade.boss.maxHp*100))+'%':'')}
 function update(dt){
  if(!running||paused)return;
  combatMoves.step(dt);
@@ -422,6 +426,33 @@ function update(dt){
  scroll=Math.max(0,Math.min(10000,scroll+advance));if(ride.occupied){ride.x=scroll+playerX();ride.cooldown=Math.max(0,ride.cooldown-dt)}ride.fireAnimation=Math.max(0,ride.fireAnimation-dt);
  if(Math.abs(horizontalSpeed)>SPEED*.09){const oldStep=Math.floor(runCycle);runCycle+=Math.abs(scroll-previousScroll)/Math.max(1,H)*7;if(jumpY===0&&Math.floor(runCycle)!==oldStep&&Math.floor(runCycle)%2===0){dustPuffs.push({x:playerX()-facing*H*.045,y:ground()-H*.008,life:.34,size:H*.018,color:'#b8a47b'});if(dustPuffs.length>35)dustPuffs.shift()}}
  const cameraDelta=scroll-previousScroll;spectacle.step(dt,cameraDelta);aftermath.step(dt,cameraDelta,ground(),H);distance=scroll/50;
+ // Tank tracks crush infantry and small obstacles and break barricades.
+ // Swept world-space detection also handles a slow mobile rendering frame.
+ if(ride.occupied){
+  const contacts=vehicleRamContacts({occupied:true,hp:ride.hp,velocity:horizontalSpeed,
+   fromX:previousScroll+playerX(),toX:scroll+playerX(),H,
+   troops:sentries,obstacles:ticks,covers:arcade.covers});
+  for(const hit of contacts){
+   const x=hit.x-scroll,y=ground()-H*.10;
+   let points=0;
+   if(hit.kind==='troop'){
+    const result=damageTroop(hit.ref,hit.ref.hp);
+    if(!result.killed)continue;
+    points=arcade.kill()+result.points;score+=points;
+    aftermath.defeated(hit.ref.type,x,ground(),H,Math.sign(horizontalSpeed),1.8);
+    shatterEnemy(x,y);
+   }else if(hit.kind==='obstacle'){
+    hit.ref.alive=false;points=arcade.kill();score+=points;
+    shatterEnemy(x,y);
+   }else{
+    hit.ref.hp=0; // Broken sandbags remain visible as rubble.
+    soundEffect('explosion');
+   }
+   spectacle.impact(x,y,points);
+   burst(x,y);
+   arcade.screenShake=Math.max(arcade.screenShake,hit.kind==='cover'?8:5);
+  }
+ }
  const nextStage=stageAt(scroll);if(nextStage!==stageIndex){stageIndex=nextStage;missionBanner=3;arcade.screenShake=Math.max(arcade.screenShake,3)}
  missionBanner=Math.max(0,missionBanner-dt);
  if(arcade.boss.active&&!bossAlertShown){bossAlertShown=true;missionBanner=3;}phase+=dt*15;if(arcade.boss.active&&!bossBerserk&&arcade.boss.hp<=arcade.boss.maxHp*.4){bossBerserk=true;arcade.screenShake=Math.max(arcade.screenShake,12);message.textContent='BOSS BERSERK!';message.style.display='block';setTimeout(()=>{if(running&&!paused)message.style.display='none'},1300)}if(bossDeathTime>=0){bossDeathTime+=dt;bossDeathX-=cameraDelta;if(bossDeathTime>2.6)bossDeathTime=-1;}if(direction!==0&&!combatMoves.sliding)facing=direction;
