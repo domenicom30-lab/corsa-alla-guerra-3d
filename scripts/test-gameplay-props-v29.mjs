@@ -4,7 +4,7 @@ import {rasterAssetManifest as m,rasterAssetCount} from '../sprite-loader.js';
 import {createArcadeSystems} from '../arcade-mechanics.js';
 assert.equal(m.props.sandbagCover,3);
 assert.equal(m.props.prisonerIdle,4);
-assert.equal(rasterAssetCount,39);
+assert.equal(rasterAssetCount,47);
 const game=createArcadeSystems();
 const cover=game.covers[0];
 const H=400,ground=312;
@@ -31,4 +31,4 @@ for(const token of [
 for(const token of ["def draw_gameplay_prop(im,kind,n):",
  "kind==\"sandbagCover\"","kind==\"prisonerIdle\""])
  assert.ok(generator.includes(token),'Artwork generator missing: '+token);
-console.log('PASS: prisoner rescue/reset, three-state destructible cover and 39 mandatory image assets');
+console.log('PASS: prisoner rescue/reset, three-state destructible cover and 47 mandatory image assets');
