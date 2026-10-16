@@ -55,6 +55,17 @@ jobs:
         run: python3 scripts/test-hero-secondary-motion.py
       - name: Validate premium original actor and armor materials
         run: python3 scripts/test-surface-materials.py
+      - name: Validate articulated infantry and distinct enemy silhouettes
+        run: python3 scripts/test-actor-redraw.py
+      - name: Generate real 2D sprite art review
+        run: python3 scripts/build-actor-review.py
+      - name: Upload sprite contact sheet for visual inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: CorsaGuerra-Original-Actor-Review
+          path: artifacts/actor-review.png
+          if-no-files-found: error
+          retention-days: 14
       - name: Verify distinct airborne attack and movement art
         run: python3 scripts/test-airborne-art.py
       - name: Validate new slide and melee animation sheets

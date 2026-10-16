@@ -14,6 +14,7 @@ from environment_details import paint_environment_details
 from boss_damage_art import paint_boss_damage
 from grenade_throw_art import draw_grenade_throw
 from fortress_repaint import paint_fortress_scene
+from actor_redraw import polish_hero, polish_enemy
 
 ROOT = Path(__file__).resolve().parent.parent
 PUBLIC = ROOT / "public" / "assets" / "sprites"
@@ -1231,6 +1232,7 @@ def write_atlas(rel,frames,fw,fh,fn,texture=True):
             if hero_pose=='melee':draw_melee_bayonet(im,n)
             soldier_surface(im,hero_pose,n)
             if hero_pose=='throw':draw_grenade_throw(im,n)
+            polish_hero(im,hero_pose,n)
         elif rel.startswith('enemies/'):
             kind=rel.split('/')[-1].replace('.png','')
             if kind.endswith('Fall'):
@@ -1255,6 +1257,7 @@ def write_atlas(rel,frames,fw,fh,fn,texture=True):
             else:
                 finish_enemy_art(im,kind,n)
                 soldier_surface(im,kind,n,kind)
+            polish_enemy(im,kind,n)
         elif rel.startswith('boss/'):
             finish_boss_art(im,n)
             armored_surface(im,n,boss=True)
