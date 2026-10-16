@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs';
 import {rasterAssetCount,rasterAssetManifest} from '../sprite-loader.js';
 const m=rasterAssetManifest;
 assert.equal(Object.keys(m.enemies).length,16);
-assert.equal(rasterAssetCount,51,'Must include original 39 + twelve enemy action atlases');
+assert.equal(rasterAssetCount,52,'Must include original 39 + twelve enemy action atlases + airborne fire');
 for(const kind of ['rifleman','assault','grenadier','heavy']){
  const name=kind+(kind==='grenadier'?'Throw':'Fire');
  assert.equal(m.enemies[name],4,name);
