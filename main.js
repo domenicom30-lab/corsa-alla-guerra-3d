@@ -5,6 +5,7 @@ import {vehicleInteraction} from './vehicle-controls.js';
 import {vehicleRamContacts} from './vehicle-ram.js';
 import {aircraftHitbox} from './aircraft-combat.js';
 import {bossPhase} from './boss-encounter.js';
+import {createExplosiveProps} from './explosive-props.js';
 import {createArcadeCombatMoves,actionFrame} from './arcade-combat-moves.js';
 import {grenadeThreat,drawGrenadeThreat} from './grenade-threat.js';
 import {createGameInterface} from './game-interface.js';
@@ -225,6 +226,7 @@ function drawArcadeFlash(){
  if(muzzleFlash>0){ctx.save();ctx.globalAlpha=Math.min(.65,muzzleFlash*9);ctx.fillStyle='#ffd37a';ctx.beginPath();ctx.arc(playerX()+facing*H*(ride.occupied?.2:.13),ground()-jumpY-H*.18,H*(ride.occupied?.08:.035),0,Math.PI*2);ctx.fill();ctx.restore()}
 }
 const arcade=createArcadeSystems();
+const explosiveProps=createExplosiveProps();
 const spectacle=createArcadeSpectacle();
 const aftermath=createBattleCasualties();
 const bullets=[];
@@ -409,7 +411,7 @@ function shoot(){if(!running){start()}if(!running||paused||shotCooldown>0)return
 function grenade(){if(!running){start()}if(running&&!paused)arcade.throwGrenade(playerX()+facing*H*.08,ground()-jumpY-H*.2,facing,H)}
 function damage(){if(invulnerable>0||!running)return;hitFlash=.2;arcade.screenShake=Math.max(arcade.screenShake,7);invulnerable=1.25;if(ride.occupied&&ride.hp>0){ride.hp=Math.max(0,ride.hp-20);if(ride.hp===0){ride.occupied=false;jumpY=H*.07;vy=H*.42;explosion(playerX(),ground()-H*.14,H*.16)}hud();return}health--;if(health<=0)showContinue()}
 function defeatBoss(){if(bossVictoryAwarded)return;bossVictoryAwarded=true;bossDeathTime=0;bossDeathX=arcade.boss.x-scroll;arcade.boss.defeated=true;arcade.boss.active=false;score+=3000;const bossScreenX=arcade.boss.x-scroll;for(let i=0;i<5;i++){burst(bossScreenX+Math.cos(i*Math.PI*2/5)*H*.16,ground()-H*(.24+Math.sin(i*Math.PI*2/5)*.12))}for(let i=0;i<4;i++){shatterEnemy(bossScreenX+(i-1.5)*H*.11,ground()-H*(.18+(i%2)*.12))}arcade.screenShake=Math.max(arcade.screenShake,18);message.textContent='BOSS SCONFITTO — RAGGIUNGI IL TRAGUARDO';message.style.display='block';setTimeout(()=>{if(running&&!paused)message.style.display='none'},1800)}
-function explosion(x,y,radius,hostile=false){hitFlash=Math.max(hitFlash,.09);soundEffect('explosion');burst(x,y);if(hostile)return;for(const c of arcade.covers)if(c.hp>0&&Math.abs(c.x-scroll-x)<radius)c.hp=Math.max(0,c.hp-50);for(const e of sentries){if(!e.alive||Math.abs(e.x-scroll-x)>radius)continue;const result=damageTroop(e,rocketSplashDamage(Math.abs(e.x-scroll-x),radius,5));if(result.killed){score+=arcade.kill()+result.points;aftermath.defeated(e.type,e.x-scroll,ground(),H,Math.sign(e.x-scroll-x)||1,2.5);shatterEnemy(e.x-scroll,ground()-H*.14);spectacle.impact(e.x-scroll,ground()-H*.14,result.points)}else aftermath.impact(e.x-scroll,ground()-H*.14,H,e.type==='heavy')}for(const t of ticks){if(t.alive&&Math.abs(t.x-scroll-x)<radius){t.alive=false;score+=arcade.kill();shatterEnemy(t.x-scroll,ground()-H*.07)}}if(arcade.boss.active&&!arcade.boss.defeated&&Math.abs(arcade.boss.x-scroll-x)<radius+H*.2){arcade.boss.hp-=5;arcadeHitstop=3;if(arcade.boss.hp<=0)defeatBoss()}}
+function explosion(x,y,radius,hostile=false){explosiveProps.igniteNear(scroll+x,radius);hitFlash=Math.max(hitFlash,.09);soundEffect('explosion');burst(x,y);if(hostile)return;for(const c of arcade.covers)if(c.hp>0&&Math.abs(c.x-scroll-x)<radius)c.hp=Math.max(0,c.hp-50);for(const e of sentries){if(!e.alive||Math.abs(e.x-scroll-x)>radius)continue;const result=damageTroop(e,rocketSplashDamage(Math.abs(e.x-scroll-x),radius,5));if(result.killed){score+=arcade.kill()+result.points;aftermath.defeated(e.type,e.x-scroll,ground(),H,Math.sign(e.x-scroll-x)||1,2.5);shatterEnemy(e.x-scroll,ground()-H*.14);spectacle.impact(e.x-scroll,ground()-H*.14,result.points)}else aftermath.impact(e.x-scroll,ground()-H*.14,H,e.type==='heavy')}for(const t of ticks){if(t.alive&&Math.abs(t.x-scroll-x)<radius){t.alive=false;score+=arcade.kill();shatterEnemy(t.x-scroll,ground()-H*.07)}}if(arcade.boss.active&&!arcade.boss.defeated&&Math.abs(arcade.boss.x-scroll-x)<radius+H*.2){arcade.boss.hp-=5;arcadeHitstop=3;if(arcade.boss.hp<=0)defeatBoss()}}
 function hud(){updateVehicleButton();armorHud.hidden=!ride.occupied;if(ride.occupied){const armor=Math.max(0,Math.min(100,ride.hp/ride.maxHp*100));armorFill.style.width=armor+'%';armorLabel.textContent='CORAZZA '+Math.ceil(armor)+'%';armorHud.classList.toggle('critical',armor<=30)}saveArcadeHighScore();document.getElementById('points').textContent='PUNTI '+score+' · BEST '+arcadeHighScore+' · C '+arcadeCredits;document.getElementById('hearts').innerHTML=Array.from({length:3},(_,i)=>'<span class="heart '+(i>=health?'heart-lost':'')+'">♥</span>').join('');stats.textContent='Z'+(stageAt(scroll)+1)+' · '+Math.max(0,200-Math.floor(distance))+'m · '+arcade.weapon.toUpperCase()+(Number.isFinite(arcade.ammo)?' '+arcade.ammo:'')+' · BOMBE '+arcade.grenadeCount+(arcade.combo>1?' · COMBO x'+arcade.combo:'')+(arcade.boss.active&&!arcade.boss.defeated?' · BOSS '+Math.max(0,Math.ceil(arcade.boss.hp/arcade.boss.maxHp*100))+'%':'')}
 function update(dt){
  if(!running||paused)return;
@@ -455,6 +457,10 @@ function update(dt){
    arcade.screenShake=Math.max(arcade.screenShake,hit.kind==='cover'?8:5);
   }
  }
+ if(ride.occupied){
+  const drums=explosiveProps.ram(previousScroll+playerX(),scroll+playerX(),horizontalSpeed,H);
+  for(const drum of drums)spectacle.impact(drum.x-scroll,ground()-H*.10,0);
+ }
  const nextStage=stageAt(scroll);if(nextStage!==stageIndex){stageIndex=nextStage;missionBanner=3;arcade.screenShake=Math.max(arcade.screenShake,3)}
  missionBanner=Math.max(0,missionBanner-dt);
  if(arcade.boss.active&&!bossAlertShown){bossAlertShown=true;missionBanner=3;}phase+=dt*15;if(arcade.boss.active&&!bossBerserk&&arcade.boss.hp<=arcade.boss.maxHp*.4){bossBerserk=true;arcade.screenShake=Math.max(arcade.screenShake,12);message.textContent='BOSS BERSERK!';message.style.display='block';setTimeout(()=>{if(running&&!paused)message.style.display='none'},1300)}if(bossDeathTime>=0){bossDeathTime+=dt;bossDeathX-=cameraDelta;if(bossDeathTime>2.6)bossDeathTime=-1;}if(direction!==0&&!combatMoves.sliding)facing=direction;
@@ -486,6 +492,7 @@ function update(dt){
   for(const t of ticks)if(t.alive)targets.push({
     kind:'obstacle',ref:t,x:t.x-scroll,y:ground()-H*.055,w:H*.055,h:H*.09
   });
+  targets.push(...explosiveProps.targets(scroll,ground(),H));
   const aircraft=aircraftHitbox(arcade.plane,H);
   if(aircraft)targets.push({kind:'aircraft',ref:arcade.plane,...aircraft});
   if(arcade.boss.active&&!arcade.boss.defeated)targets.push({
@@ -511,6 +518,9 @@ function update(dt){
     target.alive=false;score+=arcade.kill();
     spectacle.impact(target.x-scroll,ground()-H*.08,120);
     shatterEnemy(target.x-scroll,ground()-H*.07);burst(target.x-scroll,ground()-H*.07);
+   }else if(contact.item.kind==='barrel'){
+    const result=explosiveProps.hit(target,b.damage);
+    if(result.hit)spectacle.impact(b.x,b.y,0);
    }else if(contact.item.kind==='aircraft'){
     const outcome=arcade.hitPlane(b.damage,H);
     if(outcome.hit){
@@ -554,6 +564,16 @@ function update(dt){
   }
   if(hit||b.life<=0||b.x>W+40||b.x< -40)bullets.splice(i,1);
  }
+ explosiveProps.step(dt,event=>{
+  const bx=event.x-scroll;
+  // Destructible scenery shares the regular explosion/damage scoring path.
+  explosion(bx,ground()-H*.09,H*.36);
+  score+=event.points;
+  spectacle.impact(bx,ground()-H*.13,event.points);
+  arcade.screenShake=Math.max(arcade.screenShake,12);
+  if(Math.abs(event.x-(scroll+playerX()))<H*.31&&jumpY<H*.15)damage();
+ });
+ if(!running){hud();return}
  for(const t of ticks){const x=t.x-scroll;if(t.alive&&invulnerable===0&&Math.abs(x-playerX())<H*.075&&jumpY<H*.09){t.alive=false;damage();if(!running){hud();return}}}
  if(duckTime>0)duckTime=Math.max(0,duckTime-dt);
  landTime=Math.max(0,landTime-dt);
@@ -563,8 +583,8 @@ function update(dt){
 }
 function drawBossHealthBar(){if(!arcade.boss.active||arcade.boss.defeated)return;const width=Math.min(W*.52,360),height=Math.max(10,H*.023),x=(W-width)/2,y=Math.max(14,H*.075),ratio=Math.max(0,Math.min(1,arcade.boss.hp/arcade.boss.maxHp));ctx.save();ctx.fillStyle='#171b1b';ctx.fillRect(x-5,y-5,width+10,height+10);ctx.fillStyle='#483a32';ctx.fillRect(x,y,width,height);ctx.fillStyle=ratio>.35?'#d94d35':'#f0a33e';ctx.fillRect(x,y,width*ratio,height);ctx.fillStyle='#f7e8b9';ctx.fillRect(x,y,width*ratio,Math.max(2,height*.22));ctx.strokeStyle='#f4d7a0';ctx.lineWidth=2;ctx.strokeRect(x,y,width,height);const currentPhase=bossPhase(arcade.boss);ctx.fillStyle=currentPhase===3?'#ff7859':'#f3e1b9';ctx.font='bold '+Math.max(12,H*.025)+'px monospace';ctx.textAlign='center';ctx.fillText('IRON COMMANDER · FASE '+currentPhase+(bossBerserk?' · BERSERK':''),W/2,y+height+24);ctx.restore()}
 function drawMissionBanner(){if(missionBanner<=0)return;ctx.save();if(spritePacksReady()){const tw=Math.min(W*.64,H*1.03);drawRaster(ctx,'ui','title',0,(W-tw)*.5,H*.19,tw,H*.15)}const a=Math.min(1,missionBanner,Math.max(0,(3-missionBanner)*2));ctx.globalAlpha=a;ctx.textAlign='center';const size=Math.max(18,H*.049);ctx.font='900 '+size+'px Impact,system-ui,sans-serif';ctx.lineWidth=Math.max(4,size*.16);ctx.strokeStyle='#161c1b';const text=arcade.boss.active&&!arcade.boss.defeated?'BOSS IN ARRIVO!':stageIndex===0?'MISSIONE 01 · AVANTI!':STAGES[stageIndex].name;ctx.strokeText(text,W*.5,H*.35);ctx.fillStyle='#ffe39a';ctx.fillText(text,W*.5,H*.35);ctx.restore()}
-function frame(t){if(gameMenu.mode==='victory'&&t>=victoryRestartAt)gameMenu.allowReplay();if(continueUntil){if(t>=continueUntil){continueUntil=0;message.textContent='GAME OVER — TOCCA PER RIPROVARE'}else message.textContent='CONTINUE? · '+arcadeCredits+' CREDITI · '+Math.ceil((continueUntil-t)/1000)+' · TOCCA PER CONTINUARE'}updateArcadeMusic();updateVehicleButton();if(!visible){last=t;requestAnimationFrame(frame);return}if(last&&t-last<1000/65){requestAnimationFrame(frame);return}const dt=Math.min(last?(t-last)/1000:0,.05);last=t;if(arcadeHitstop>0)arcadeHitstop--;else update(dt);ctx.save();if(arcade.screenShake>0){const shake=arcade.screenShake;ctx.translate(Math.sin(phase*3.1)*shake*.5,Math.cos(phase*4.3)*shake*.35)}background();drawBattleAtmosphere(ctx,W,H,scroll,phase,ground());drawArcadeStorm(ctx,W,H,phase*.015,scroll>2900);drawTicks();aftermath.draw(ctx,W,H,ground(),drawFallenTroop);drawSentries();arcade.draw(ctx,scroll,ground(),H,phase);drawStageMarker(ctx,W,H,scroll,ground());drawDust();drawRide();if(!ride.occupied){drawPlayer();drawCombatMoves()}drawBullets();drawCasings();drawBlastEffects();drawEnemyDebris();drawParticles();drawArcadeForeground(ctx,W,H,scroll,ground(),phase);spectacle.drawFront(ctx,W,H,scroll,ground());if(bossDeathTime>=0)drawBossDeathCinematic(ctx,W,H,ground(),bossDeathTime,bossDeathX);ctx.restore();drawArcadeFlash();drawBossHealthBar();spectacle.drawOverlay(ctx,W,H,arcade.combo);drawMissionBanner();requestAnimationFrame(frame)}
-function start(){if(!rasterLoaded){message.textContent=rasterError?'ERRORE SPRITE: '+rasterError.message:'CARICAMENTO SPRITE...';message.style.display='block';return}if(continueArcade())return;if(victoryRestartAt&&performance.now()<victoryRestartAt)return;victoryRestartAt=0;missionSeconds=0;landTime=0;gameMenu.playMode();document.getElementById('victory-credit').style.display='none';musicStep=0;musicNext=0;message.classList.remove('victory-message');running=true;paused=false;arcadeCredits=3;continueUntil=0;bossBerserk=false;bossAlertShown=false;stageIndex=0;missionBanner=2.5;aimUp=false;score=0;health=3;distance=0;scroll=0;facing=1;bossVictoryAwarded=false;bossDeathTime=-1;bossDeathX=0;arcade.reset();Object.assign(ride,{x:750,hp:100,occupied:false,cooldown:0,flash:0,fireAnimation:0});vy=0;jumpY=0;horizontalSpeed=0;jumpHeld=false;duckTime=0;phase=0;runCycle=0;invulnerable=0;shotCooldown=0;muzzleFlash=0;recoil=0;fireHeld=false;bullets.length=0;casings.length=0;hitFlash=0;particles.length=0;blastEffects.length=0;dustPuffs.length=0;enemyDebris.length=0;spectacle.reset();aftermath.reset();combatMoves.reset();duckHeld=false;ticks.forEach(t=>t.alive=true);resetTroopWaves(sentries);clearTouchMovement();movement.left=false;movement.right=false;last=0;message.style.display='none';hud();soundEffect('enter')}
+function frame(t){if(gameMenu.mode==='victory'&&t>=victoryRestartAt)gameMenu.allowReplay();if(continueUntil){if(t>=continueUntil){continueUntil=0;message.textContent='GAME OVER — TOCCA PER RIPROVARE'}else message.textContent='CONTINUE? · '+arcadeCredits+' CREDITI · '+Math.ceil((continueUntil-t)/1000)+' · TOCCA PER CONTINUARE'}updateArcadeMusic();updateVehicleButton();if(!visible){last=t;requestAnimationFrame(frame);return}if(last&&t-last<1000/65){requestAnimationFrame(frame);return}const dt=Math.min(last?(t-last)/1000:0,.05);last=t;if(arcadeHitstop>0)arcadeHitstop--;else update(dt);ctx.save();if(arcade.screenShake>0){const shake=arcade.screenShake;ctx.translate(Math.sin(phase*3.1)*shake*.5,Math.cos(phase*4.3)*shake*.35)}background();drawBattleAtmosphere(ctx,W,H,scroll,phase,ground());drawArcadeStorm(ctx,W,H,phase*.015,scroll>2900);drawTicks();aftermath.draw(ctx,W,H,ground(),drawFallenTroop);drawSentries();arcade.draw(ctx,scroll,ground(),H,phase);explosiveProps.draw(ctx,scroll,ground(),H,phase);drawStageMarker(ctx,W,H,scroll,ground());drawDust();drawRide();if(!ride.occupied){drawPlayer();drawCombatMoves()}drawBullets();drawCasings();drawBlastEffects();drawEnemyDebris();drawParticles();drawArcadeForeground(ctx,W,H,scroll,ground(),phase);spectacle.drawFront(ctx,W,H,scroll,ground());if(bossDeathTime>=0)drawBossDeathCinematic(ctx,W,H,ground(),bossDeathTime,bossDeathX);ctx.restore();drawArcadeFlash();drawBossHealthBar();spectacle.drawOverlay(ctx,W,H,arcade.combo);drawMissionBanner();requestAnimationFrame(frame)}
+function start(){if(!rasterLoaded){message.textContent=rasterError?'ERRORE SPRITE: '+rasterError.message:'CARICAMENTO SPRITE...';message.style.display='block';return}if(continueArcade())return;if(victoryRestartAt&&performance.now()<victoryRestartAt)return;victoryRestartAt=0;missionSeconds=0;landTime=0;gameMenu.playMode();document.getElementById('victory-credit').style.display='none';musicStep=0;musicNext=0;message.classList.remove('victory-message');running=true;paused=false;arcadeCredits=3;continueUntil=0;bossBerserk=false;bossAlertShown=false;stageIndex=0;missionBanner=2.5;aimUp=false;score=0;health=3;distance=0;scroll=0;facing=1;bossVictoryAwarded=false;bossDeathTime=-1;bossDeathX=0;arcade.reset();explosiveProps.reset();Object.assign(ride,{x:750,hp:100,occupied:false,cooldown:0,flash:0,fireAnimation:0});vy=0;jumpY=0;horizontalSpeed=0;jumpHeld=false;duckTime=0;phase=0;runCycle=0;invulnerable=0;shotCooldown=0;muzzleFlash=0;recoil=0;fireHeld=false;bullets.length=0;casings.length=0;hitFlash=0;particles.length=0;blastEffects.length=0;dustPuffs.length=0;enemyDebris.length=0;spectacle.reset();aftermath.reset();combatMoves.reset();duckHeld=false;ticks.forEach(t=>t.alive=true);resetTroopWaves(sentries);clearTouchMovement();movement.left=false;movement.right=false;last=0;message.style.display='none';hud();soundEffect('enter')}
 function jump(){if(!running){start()}if(!paused&&!ride.occupied&&!combatMoves.sliding&&jumpY===0){vy=Math.sqrt(2*GRAVITY*H*.23);landTime=0;jumpHeld=true;duckTime=0;duckHeld=false}}
 function duck(){if(!running){start()}if(!paused)duckTime=.7}
 function pause(){if(!running)return;paused=!paused;last=0;if(paused)gameMenu.pause();else gameMenu.playMode();if(paused){fireHeld=false;clearTouchMovement();movement.left=false;movement.right=false}if(paused){jumpHeld=false;aimUp=false;duckHeld=false}message.textContent='IN PAUSA — TOCCA PER RIPRENDERE';message.style.display=paused?'block':'none'}
