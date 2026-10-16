@@ -155,12 +155,14 @@ def polish_enemy(im,kind,n):
             break
     if base not in ("rifleman","assault","grenadier","heavy"):
         return
+    # Special action atlases already re-pose/crop the body, so painting
+    # unmoved armor afterwards would create a floating visor on crouch/hurt.
+    # Articulate the complete eight-frame walking sheets only until each
+    # specialty animation has its own local coordinate pass.
+    if kind!=base:
+        return
     d=ImageDraw.Draw(im,"RGBA")
     y=round(abs(math.sin(n*math.pi/4))*3)
-    if kind.endswith("Crouch"):
-        y+=25  # Keep the entire helmet, visor, and equipment below crouch top
-    elif kind.endswith("Hurt"):
-        y+=6
     wide=9 if base=="heavy" else 0
     # Distinct tactical identities recognisable at 16% player height.
     if base=="heavy":
