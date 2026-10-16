@@ -1,15 +1,10 @@
 
 name: Build Android APK
 
+# The Android package is built only for a verified test/release candidate.
+# Every main push and pull request still runs separate quality gates.
 on:
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
-  push:
-    branches:
-      - main
-      - rebuild-arcade-final
 
 permissions:
   contents: read

@@ -142,3 +142,9 @@ I materiali sono disegni originali generati offline; una qualità equivalente ai
 - Reset e cronologia dello stato combattono gli exploit da tap ripetuti; test automatici separati con valori e condizioni verificati.
 - APK installabile separata: `com.corsaguerra.arcadeprova27`.
 Questo aggiornamento migliora le meccaniche ma non dimostra ancora parità di qualità grafica con Metal Slug; serve prova sul Samsung.
+
+## Politica build APK — solo candidate complete
+
+Per evitare un nuovo APK a ogni modifica, `.github/workflows/build-apk.yml` **non viene più attivato automaticamente** da push su `main` o pull request. L'APK viene creata soltanto tramite l'avvio esplicito della workflow `Build Android APK` (`workflow_dispatch`), quando le meccaniche e gli asset per una release candidata sono integrati e i test risultano verdi.
+
+Le verifiche automatiche `Automated quality gates` **restano attive** sugli aggiornamenti del ramo `main`. Il numero di versione e il pacchetto Android devono essere aggiornati solo quando si decide di produrre una nuova APK testabile.
