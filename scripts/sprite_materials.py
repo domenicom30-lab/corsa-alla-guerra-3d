@@ -144,7 +144,12 @@ def armored_surface(im, n, boss=False):
         xx=rng.randrange(xstart,xend)
         yy=rng.randrange(ytop+2,178)
         if im_pixels[xx,yy][3]>220:
-            shade=(18,37,33,155) if rng.random()<.68 else (220,205,157,140)
+            # Individual warm/cold pigment values give unique weathered metal
+            # tones without large flat rectangles or runtime procedural noise.
+            tone=rng.randrange(56)
+            shade=((17+tone//3,34+tone//2,30+tone//3,155+tone//6)
+                   if rng.random()<.68 else
+                   (195+tone//2,184+tone//3,145+tone//4,135+tone//7))
             d.line([(xx,yy),(xx+rng.randrange(2,8),yy-1)],fill=shade,width=1)
     # Identifying chevron is unique to this project, not borrowed iconography.
     cx=135 if boss else 122

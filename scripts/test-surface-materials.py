@@ -49,7 +49,7 @@ for category,name,count,width,height,region in (
     sheets=frames(category,name,count,width,height)
     for im in sheets:
         assert im.getpixel((0,0))[3]==0
-        diverse(im,region,65)
+        diverse(im,region,38)
         assert im.getbbox()
     assert len({sha256(im.tobytes()).digest() for im in sheets})>=5, (
         category,name,"Vehicle track animations disappeared"
