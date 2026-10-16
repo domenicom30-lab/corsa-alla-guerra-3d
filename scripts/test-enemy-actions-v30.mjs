@@ -19,8 +19,8 @@ for(const token of [
 ])assert.ok(main.includes(token),'Renderer state is missing: '+token);
 for(const token of [
 'def finish_enemy_pose(im,pose,n):',
-'finish_enemy_pose(im,\\'Crouch\\',n)',
-'finish_enemy_pose(im,\\'Hurt\\',n)',
+"finish_enemy_pose(im,'Crouch',n)",
+"finish_enemy_pose(im,'Hurt',n)",
 "kind[:-6] if k.endswith('Crouch')"
 ])assert.ok(generator.includes(token),'Art pipeline missing: '+token);
 const workflow=readFileSync('.github/workflows/build-apk.yml','utf8');
