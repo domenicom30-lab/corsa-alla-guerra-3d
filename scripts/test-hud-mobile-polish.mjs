@@ -17,23 +17,26 @@ function el(){
   counters,value
  };
 }
-const points=el(),hearts=el(),stats=el(),armorHud=el(),armorFill=el(),armorLabel=el();
-const hud=createHudRenderer({points,hearts,stats,armorHud,armorFill,armorLabel});
+const level=el(),points=el(),hearts=el(),stats=el(),armorHud=el(),armorFill=el(),armorLabel=el();
+const hud=createHudRenderer({level,points,hearts,stats,armorHud,armorFill,armorLabel});
 const initial={score:36000,best:36580,credits:1,health:3,stage:3,remaining:19,weapon:'rocket',
  ammo:29,grenades:4,combo:1,bossHealth:null,vehicle:false,vehicleHp:100,vehicleMaxHp:100};
 hud.update(initial);
+assert.equal(level.textContent,'4','HUD shows current battle zone instead of remaining at level 1');
 assert.equal(points.textContent,'PUNTI 36000 · BEST 36580 · C 1');
 assert.ok(hearts.innerHTML.includes('heart '));
 assert.equal(stats.textContent,'Z4 · 19m · ROCKET 29 · BOMBE 4');
 assert.equal(armorHud.hidden,true);
-const baseline={points:{...points.counters},hearts:{...hearts.counters},stats:{...stats.counters},armor:{...armorHud.counters}};
+const baseline={level:{...level.counters},points:{...points.counters},hearts:{...hearts.counters},stats:{...stats.counters},armor:{...armorHud.counters}};
 for(let i=0;i<600;i++)hud.update(initial);
+assert.deepEqual(level.counters,baseline.level,'600 identical frames never rewrite zone indicator');
 assert.deepEqual(points.counters,baseline.points,'600 identical frames must not cause DOM score writes');
 assert.deepEqual(hearts.counters,baseline.hearts,'Life icons are not re-rendered 60 times a second');
 assert.deepEqual(stats.counters,baseline.stats,'Unchanged stats need no DOM allocations');
 assert.deepEqual(armorHud.counters,baseline.armor);
 const next={...initial,score:36100,health:2,remaining:18,vehicle:true,vehicleHp:27,bossHealth:33.2};
 hud.update(next);
+assert.equal(level.counters.text,1,'Score/health changes do not rewrite stage');
 assert.equal(points.counters.text,2);
 assert.equal(hearts.counters.html,2);
 assert.equal(stats.counters.text,2);
@@ -46,6 +49,8 @@ assert.equal(armorHud.value.critical,false,'Tank damage warning clears on repair
 hud.update({...next,vehicle:false});
 assert.equal(armorHud.hidden,true);
 hud.update({...initial,score:0,best:36580,credits:3,stage:0,weapon:'pistol',ammo:Infinity,grenades:0});
+assert.equal(level.textContent,'1','Restart restores level indicator');
+assert.equal(level.counters.text,2,'Zone indicator changes only on transition/restart');
 assert.ok(!stats.textContent.includes('Infinity'));
 assert.equal(hud.stats().hearts,3,'Only health changes cause icons to update');
 
