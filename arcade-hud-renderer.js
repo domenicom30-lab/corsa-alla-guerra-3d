@@ -1,10 +1,12 @@
 // Text-only HUD diffing: never rebuild DOM panels in every 60 FPS frame.
 // The renderer is deliberately independent of document and browser APIs so
 // mobile regressions can be tested headlessly.
-export function createHudRenderer({points,hearts,stats,armorHud,armorFill,armorLabel}){
- const old={points:null,hearts:null,stats:null,armorVisible:null,armorPct:null,armorText:null,armorCritical:null};
- const writes={points:0,hearts:0,stats:0,armor:0};
+export function createHudRenderer({level,points,hearts,stats,armorHud,armorFill,armorLabel}){
+ const old={level:null,points:null,hearts:null,stats:null,armorVisible:null,armorPct:null,armorText:null,armorCritical:null};
+ const writes={level:0,points:0,hearts:0,stats:0,armor:0};
  function update({score,best,credits,health,stage,remaining,weapon,ammo,grenades,combo,bossHealth,vehicle,vehicleHp,vehicleMaxHp}){
+  const levelValue=Math.max(1,Math.floor(stage)+1);
+  if(level&&levelValue!==old.level){level.textContent=String(levelValue);old.level=levelValue;writes.level++}
   const pointString='PUNTI '+Math.max(0,score)+' · BEST '+Math.max(0,best)+' · C '+Math.max(0,credits);
   if(pointString!==old.points){points.textContent=pointString;old.points=pointString;writes.points++}
   const hp=Math.max(0,Math.min(3,Math.floor(health)));
