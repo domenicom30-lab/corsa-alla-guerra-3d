@@ -125,6 +125,31 @@ try{
  assert.ok(bytes.length>70000,'Screenshot is empty or rendered as a single flat panel');
  console.log('PASS: Chrome visual QA gameplay screenshot',output,'bytes',bytes.length,
   '8 non-overlapping touch targets, one aim button, compact HUD');
+ // Real keyboard input drives the live player toward the first enemies.
+ // A second original screenshot captures an actual impact rather than a static menu.
+ const beforeStats=await evaluate(cdp,"document.getElementById('stats').textContent");
+ const beforeRemaining=Number(beforeStats.match(/(\\d+)m/)?.[1]);
+ assert.ok(Number.isFinite(beforeRemaining),'Mission distance counter is missing');
+ await cdp.cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowRight',code:'ArrowRight',windowsVirtualKeyCode:39});
+ await pause(2100);
+ await cdp.cmd('Input.dispatchKeyEvent',{type:'keyUp',key:'ArrowRight',code:'ArrowRight',windowsVirtualKeyCode:39});
+ const afterStats=await evaluate(cdp,"document.getElementById('stats').textContent");
+ const afterRemaining=Number(afterStats.match(/(\\d+)m/)?.[1]);
+ assert.ok(Number.isFinite(afterRemaining)&&afterRemaining<beforeRemaining,
+  'Real Chromium movement did not advance the level');
+ await cdp.cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'f',code:'KeyF',windowsVirtualKeyCode:70});
+ await cdp.cmd('Input.dispatchKeyEvent',{type:'keyUp',key:'f',code:'KeyF',windowsVirtualKeyCode:70});
+ await pause(90);
+ const combatImage=await cdp.cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
+ const combatBytes=Buffer.from(combatImage.data,'base64');
+ const combatOutput=resolve('artifacts/gameplay-combat-qa.png');
+ writeFileSync(combatOutput,combatBytes);
+ assert.ok(combatBytes.length>70000,'Real combat screenshot is empty');
+ assert.equal(await evaluate(cdp,"document.querySelector('.arcade-menu')?.dataset.mode"),'playing',
+  'Gameplay must remain active during movement and shooting');
+ console.log('PASS: Chromium combat screenshot',combatOutput,
+  'bytes',combatBytes.length,'travelled',beforeRemaining-afterRemaining,'m');
+
 }finally{
  if(cdp)cdp.close();
  if(chrome){
