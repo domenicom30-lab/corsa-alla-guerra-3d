@@ -131,7 +131,7 @@ try{
  const beforeRemaining=Number(beforeStats.match(/(\d+)m/)?.[1]);
  assert.ok(Number.isFinite(beforeRemaining),'Mission distance counter is missing');
  await cdp.cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowRight',code:'ArrowRight',windowsVirtualKeyCode:39});
- await pause(2100);
+ await pause(1200);
  await cdp.cmd('Input.dispatchKeyEvent',{type:'keyUp',key:'ArrowRight',code:'ArrowRight',windowsVirtualKeyCode:39});
  const afterStats=await evaluate(cdp,"document.getElementById('stats').textContent");
  const afterRemaining=Number(afterStats.match(/(\d+)m/)?.[1]);
@@ -139,7 +139,7 @@ try{
   'Real Chromium movement did not advance the level');
  await cdp.cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'f',code:'KeyF',windowsVirtualKeyCode:70});
  await cdp.cmd('Input.dispatchKeyEvent',{type:'keyUp',key:'f',code:'KeyF',windowsVirtualKeyCode:70});
- await pause(90);
+ await pause(260);
  const combatImage=await cdp.cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
  const combatBytes=Buffer.from(combatImage.data,'base64');
  const combatOutput=resolve('artifacts/gameplay-combat-qa.png');
