@@ -46,4 +46,12 @@ damageTroop(medium,1,-1);
 advanceTroopWaves([medium],.08,0,medium.home-H*.5,100,H,[]);
 assert.ok(medium.x<medium.home,'Reverse fire produces opposite knockback');
 
+
+const opening=createTroopWaves().find(e=>e.type==='rifleman');
+const openingBullets=[],openingH=968,spawnPlayer=338;
+for(let i=0;i<45;i++)advanceTroopWaves([opening],.1,0,spawnPlayer,spawnPlayer,openingH,openingBullets);
+assert.equal(openingBullets.length,0,'Opening enemies cannot shoot across the intro spawn zone');
+const approachingPlayer=opening.home-openingH*.44;
+for(let i=0;i<45;i++)advanceTroopWaves([opening],.1,0,approachingPlayer,spawnPlayer,openingH,openingBullets);
+assert.ok(openingBullets.length>0,'Approaching infantry should still fight back at readable range');
 console.log('PASS: tactical ranged enemies, interrupted fire, bounded hit recoil, armored damping and full reset');
