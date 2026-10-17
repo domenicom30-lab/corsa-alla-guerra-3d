@@ -33,4 +33,11 @@ for(const token of [
  'hitFx.reset();'
 ])assert.ok(main.includes(token),'Live game integration missing: '+token);
 assert.ok(main.includes("kind:'boss'")&&main.includes("kind:'melee'"),'Boss/melee use distinct feedback');
+const slash=readFileSync('main.js','utf8'),scores=readFileSync('arcade-spectacle.js','utf8');
+assert.ok(slash.includes('ctx.arc(0,0,H*.055')&&slash.includes('ctx.arc(0,0,H*.069'),
+ 'Melee effect must match compact character proportions');
+assert.ok(!slash.includes('ctx.arc(0,0,H*.125'),
+ 'Old oversize melee crescent obscured soldiers');
+assert.ok(scores.includes('size=Math.max(12,h*.026)'),
+ 'Floating score labels should not cover actor faces');
 console.log('PASS: directional combat FX, armored ricochet, scenery impacts, mobile cap and camera motion');
