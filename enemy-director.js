@@ -31,7 +31,7 @@ export function damageTroop(e,damage=1,impactDir=0){
  e.hp=Math.max(0,e.hp-damage);e.flinch=.2;e.windup=0;e.meleeWindup=0;e.fireFlash=0;e.cooldown=Math.max(e.cooldown,.28);
  // Hits interrupt attacks and transfer a short, bounded horizontal impulse.
  // Armored troops recoil less; knockback is applied in the world-space AI step.
- e.stagger=e.type==='heavy'?.085:.16;
+ e.stagger=e.type==='assault'?0:e.type==='heavy'?.085:.16; // Assault troops evade immediately instead.
  e.knockbackDir=Math.sign(Number(impactDir)||0);
  e.knockbackPower=e.type==='heavy'?.12:.52;
  if(e.type==='assault')e.meleeCooldown=Math.max(e.meleeCooldown||0,.5);
