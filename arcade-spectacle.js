@@ -18,7 +18,7 @@ export function createArcadeSpectacle(){
    const a=i/14*Math.PI*2+rnd()*.2,v=75+rnd()*210;
    particle(sparks,{x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:.18+rnd()*.3,ttl:.48,size:1.7+rnd()*3.4,color:i%3===0?'#fffbd8':color},170);
   }
-  if(score>0)particle(labels,{x,y:y-14,text:'+'+score,life:.75,ttl:.75},28);
+  if(score>0)particle(labels,{x,y:y-24,text:'+'+score,life:.65,ttl:.65},28);
   particle(shockwaves,{x,y,r:4,life:.25,ttl:.25},24);
  }
  function explosion(x,y,scale=1){
@@ -138,7 +138,7 @@ export function createArcadeSpectacle(){
  function drawOverlay(ctx,w,h,combo){
   ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
   for(const label of labels){
-   const a=clamp(label.life/label.ttl,0,1),size=Math.max(13,h*.036);
+   const a=clamp(label.life/label.ttl,0,1),size=Math.max(12,h*.026);
    ctx.globalAlpha=a;ctx.font='900 '+size+'px system-ui,sans-serif';
    ctx.lineWidth=Math.max(3,size*.17);ctx.strokeStyle='#1a201d';ctx.strokeText(label.text,label.x,label.y);
    ctx.fillStyle='#ffd782';ctx.fillText(label.text,label.x,label.y);
