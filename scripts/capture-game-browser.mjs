@@ -127,7 +127,27 @@ try{
   '8 non-overlapping touch targets, one aim button, compact HUD');
 }finally{
  if(cdp)cdp.close();
- if(chrome)chrome.kill('SIGKILL');
+ if(chrome){
+  if(chrome.exitCode===null && chrome.signalCode===null){
+   const exited=new Promise(resolve=>chrome.once('exit',resolve));
+   chrome.kill('SIGTERM');
+   await Promise.race([exited,pause(2000)]);
+   if(chrome.exitCode===null && chrome.signalCode===null){
+    chrome.kill('SIGKILL');
+    await Promise.race([exited,pause(2000)]);
+   }
+  }
+ }
  await new Promise(r=>server.close(r));
- if(profile)rmSync(profile,{recursive:true,force:true});
+ if(profile){
+  // Chrome extensions can finish writing shortly after the browser exits.
+  for(let attempt=0;attempt<6;attempt++){
+   try{rmSync(profile,{recursive:true,force:true,maxRetries:5,retryDelay:200});break}
+   catch(error){
+    if(!['ENOTEMPTY','EBUSY','EPERM'].includes(error.code))throw error;
+    if(attempt===5){console.warn('WARN: Chrome temp profile cleanup:',error.message);break}
+    await pause(300*(attempt+1));
+   }
+  }
+ }
 }
