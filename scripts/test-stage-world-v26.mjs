@@ -17,5 +17,5 @@ assert.ok(main.includes("const zone=stageAt(world),name=i%2===0?props[zone]:seco
 assert.ok(main.includes("drawRaster(ctx,'props',name,0"),'New structures use shipped PNG atlas');
 assert.ok(main.includes("muzzleFlash>0||fireHeld?'duckFire':'duck'"),'Crouched shooting must animate');
 assert.ok(main.includes("pose==='duckFire'?Math.floor(phase*.9)%4"),'Four crouched shooting frames');
-assert.ok(main.includes("Math.min(W*.64,H*1.03)"),'Mission title is compact and does not obscure gameplay');
+assert.ok(main.includes("Math.min(W*.38,H*.62)"),'Mission title is compact and does not obscure gameplay');
 console.log('PASS: 4 distinct stage structures, 4 crouch-fire frames and compact mission UI on Android.');
