@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {createTroopWaves,resetTroopWaves,advanceTroopWaves,ENEMY_TYPES} from '../enemy-director.js';
+import {createTroopWaves,resetTroopWaves,advanceTroopWaves,damageTroop,ENEMY_TYPES} from '../enemy-director.js';
 const H=420;
 const troops=createTroopWaves();
 const grenadier=troops.find(e=>e.type==='grenadier');
@@ -24,4 +24,26 @@ const heavy=troops.find(e=>e.type==='heavy');
 const hx=heavy.x;
 advanceTroopWaves([heavy],.16,hx-100,hx+H*.29,100,H,[]);
 assert.ok(heavy.x<=hx+H*.03,'Armored heavy retains firing distance and does not rush into melee');
-console.log('PASS: tactical grenadier retreat, bounded patrol, close-quarters assault advance and armored standoff');
+// Incoming bullets stagger infantry, move them only a bounded distance, and delay attacks.
+const struck=createTroopWaves();
+const medium=struck.find(e=>e.type==='grenadier'),armored=struck.find(e=>e.type==='heavy');
+medium.windup=.4;armored.windup=.4;
+assert.equal(damageTroop(medium,1,1).hit,true);
+assert.equal(damageTroop(armored,1,1).hit,true);
+assert.equal(medium.windup,0,'Damage interrupts an announced attack');
+assert.equal(armored.windup,0,'Armored enemies also interrupt attacks on hit');
+const pending=[];
+advanceTroopWaves([medium,armored],.08,0,medium.home+H*.5,100,H,pending);
+const shiftedMedium=medium.x-medium.home,shiftedHeavy=armored.x-armored.home;
+assert.ok(shiftedMedium>H*.02,'Infantry physically recoils along the incoming bullet');
+assert.ok(shiftedHeavy>0&&shiftedHeavy<shiftedMedium*.5,'Heavy armor dampens the recoil');
+assert.equal(pending.length,0,'Stagger must not launch new attacks');
+resetTroopWaves([medium,armored]);
+assert.equal(medium.x,medium.home,'Restart clears displaced infantry');
+assert.equal(medium.stagger,0,'Restart clears hit stun');
+assert.equal(armored.knockbackDir,0,'Restart clears recoil direction');
+damageTroop(medium,1,-1);
+advanceTroopWaves([medium],.08,0,medium.home-H*.5,100,H,[]);
+assert.ok(medium.x<medium.home,'Reverse fire produces opposite knockback');
+
+console.log('PASS: tactical ranged enemies, interrupted fire, bounded hit recoil, armored damping and full reset');
