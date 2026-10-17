@@ -128,13 +128,13 @@ try{
  // Real keyboard input drives the live player toward the first enemies.
  // A second original screenshot captures an actual impact rather than a static menu.
  const beforeStats=await evaluate(cdp,"document.getElementById('stats').textContent");
- const beforeRemaining=Number(beforeStats.match(/(\\d+)m/)?.[1]);
+ const beforeRemaining=Number(beforeStats.match(/(\d+)m/)?.[1]);
  assert.ok(Number.isFinite(beforeRemaining),'Mission distance counter is missing');
  await cdp.cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowRight',code:'ArrowRight',windowsVirtualKeyCode:39});
  await pause(2100);
  await cdp.cmd('Input.dispatchKeyEvent',{type:'keyUp',key:'ArrowRight',code:'ArrowRight',windowsVirtualKeyCode:39});
  const afterStats=await evaluate(cdp,"document.getElementById('stats').textContent");
- const afterRemaining=Number(afterStats.match(/(\\d+)m/)?.[1]);
+ const afterRemaining=Number(afterStats.match(/(\d+)m/)?.[1]);
  assert.ok(Number.isFinite(afterRemaining)&&afterRemaining<beforeRemaining,
   'Real Chromium movement did not advance the level');
  await cdp.cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'f',code:'KeyF',windowsVirtualKeyCode:70});
