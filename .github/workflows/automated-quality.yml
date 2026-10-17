@@ -102,7 +102,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: CorsaGuerra-Gameplay-Screenshot-QA
-          path: artifacts/gameplay-browser-qa.png
+          path: |
+            artifacts/gameplay-browser-qa.png
+            artifacts/gameplay-combat-qa.png
           if-no-files-found: error
           retention-days: 14
       - name: Upload compiled in-browser visual QA build
