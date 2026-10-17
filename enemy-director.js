@@ -111,7 +111,10 @@ export function advanceTroopWaves(enemies,dt,scroll,playerWorldX,playerScreenX,H
    }
   }
   e.cooldown-=dt;
-  const canFire=range<H*type.range&&range>H*.22;
+  // Keep enemy rifle fire inside the readable encounter area: off-distance
+  // sentries must not drain player lives while the opening mission title plays.
+  const engagementRange=H*Math.min(type.range,e.type==='heavy'?.72:.62);
+  const canFire=range<engagementRange&&range>H*.22;
   if(!canFire&&e.windup>0)e.windup=0;
   if(canFire&&e.cooldown<=0&&e.windup<=0){
    e.windup=e.type==='heavy'?.46:e.type==='grenadier'?.58:.29;
