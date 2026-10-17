@@ -315,13 +315,13 @@ function drawCombatMoves(){
   }
  }
  if(combatMoves.slashActive){
-  const f=combatMoves.slashFraction,x=playerX()+facing*H*.095,y=ground()-jumpY-H*.13;
+  const f=combatMoves.slashFraction,x=playerX()+facing*H*.14,y=ground()-jumpY-H*.15;
   ctx.translate(x,y);ctx.scale(facing,1);
   ctx.globalAlpha=Math.min(1,(1-f)*2.3);
   ctx.lineWidth=Math.max(3,H*.008);ctx.strokeStyle='#fff3cd';
-  ctx.beginPath();ctx.arc(0,0,H*.11,-1.1,1.35);ctx.stroke();
+  ctx.beginPath();ctx.arc(0,0,H*.055,-1.1+f*.35,.7+f*.25);ctx.stroke();
   ctx.lineWidth=Math.max(2,H*.004);ctx.strokeStyle='#ffbb62';
-  ctx.beginPath();ctx.arc(0,0,H*.125,-.9,1.15);ctx.stroke();
+  ctx.beginPath();ctx.arc(0,0,H*.069,-.95+f*.30,.45+f*.22);ctx.stroke();
  }
  ctx.restore();
 }
